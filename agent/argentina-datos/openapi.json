@@ -1,0 +1,5694 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ArgentinaDatos API",
+    "version": "1.0.0",
+    "description": "API pÃºblica, **no oficial**, desarrollada en [EsJS](https://es.js.org?ref=argentinadatos.com) que brinda informaciÃ³n actualizada sobre diferentes datos de Argentina.\n\n<br/>Â¿Encontraste Ãºtil esta API? **Â¡DejÃ¡ tu â­ en [GitHub](https://github.com/enzonotario/esjs-argentina-datos-api)!**"
+  },
+  "servers": [
+    {
+      "url": "https://api.argentinadatos.com",
+      "description": "Servidor principal"
+    }
+  ],
+  "paths": {
+    "/v1/feriados/{aÃ±o}": {
+      "get": {
+        "summary": "Feriados",
+        "tags": ["Eventos"],
+        "description": "Devuelve los feriados del aÃ±o indicado (o del aÃ±o actual si no se especifica).",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "description": "AÃ±o de consulta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2016,
+              "maximum": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve los feriados del aÃ±o actual",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Feriado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-feriados",
+        "x-data-source": ["[La NaciÃ³n](https://www.lanacion.com.ar/feriados/)"]
+      }
+    },
+    "/v1/feriados-bancarios/{aÃ±o}": {
+      "get": {
+        "summary": "Feriados bancarios",
+        "tags": ["Eventos"],
+        "description": "Devuelve los feriados bancarios del aÃ±o indicado (o del aÃ±o actual si no se especifica).",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "description": "AÃ±o de consulta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2011,
+              "maximum": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve los feriados bancarios del aÃ±o indicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeriadoBancario"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-feriados-bancarios",
+        "x-data-source": [
+          "[BCRA](https://www.bcra.gob.ar/consulta-feriados-bancarios/)"
+        ]
+      }
+    },
+    "/v1/cotizaciones/dolares": {
+      "get": {
+        "summary": "DÃ³lares",
+        "tags": ["Cotizaciones histÃ³ricas"],
+        "description": "Devuelve las cotizaciones de todas las casas de cambio.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de cotizaciones del dÃ³lar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cotizacion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-cotizaciones-dolares",
+        "x-data-source": ["[DolarApi](https://dolarapi.com)"]
+      }
+    },
+    "/v1/cotizaciones/dolares/{casa}": {
+      "get": {
+        "summary": "DÃ³lares por casa",
+        "tags": ["Cotizaciones histÃ³ricas"],
+        "description": "Devuelve las cotizaciones del dÃ³lar de la casa de cambio especificada.",
+        "parameters": [
+          {
+            "name": "casa",
+            "in": "path",
+            "description": "Casa de cambio",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oficial",
+                "blue",
+                "bolsa",
+                "contadoconliqui",
+                "cripto",
+                "mayorista",
+                "solidario",
+                "turista"
+              ]
+            },
+            "example": "blue"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de cotizaciones del dÃ³lar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cotizacion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-cotizaciones-dolares-casa",
+        "x-data-source": ["[DolarApi](https://dolarapi.com)"]
+      }
+    },
+    "/v1/cotizaciones/dolares/{casa}/{fecha}": {
+      "get": {
+        "summary": "DÃ³lar por casa y fecha",
+        "tags": ["Cotizaciones histÃ³ricas"],
+        "description": "Devuelve la cotizaciÃ³n del dÃ³lar de la casa de cambio especificada en la fecha indicada (en formato `YYYY/MM/DD`).",
+        "parameters": [
+          {
+            "name": "casa",
+            "in": "path",
+            "description": "Casa de cambio",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oficial",
+                "blue",
+                "bolsa",
+                "contadoconliqui",
+                "cripto",
+                "mayorista",
+                "solidario",
+                "turista"
+              ]
+            },
+            "example": "blue"
+          },
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2024/01/01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de cotizaciones del dÃ³lar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cotizacion"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-cotizaciones-dolares-casa-fecha",
+        "x-data-source": ["[DolarApi](https://dolarapi.com)"]
+      }
+    },
+    "/v1/eventos/presidenciales": {
+      "get": {
+        "summary": "Eventos presidenciales",
+        "tags": ["Eventos"],
+        "description": "Devuelve los eventos presidenciales.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de eventos presidenciales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventoPresidencial"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-eventos-presidenciales",
+        "x-data-source": [
+          "[Wikipedia](https://es.wikipedia.org/wiki/Anexo:Presidentes_de_la_Naci%C3%B3n_Argentina)"
+        ]
+      }
+    },
+    "/v1/finanzas/indices/inflacion": {
+      "get": {
+        "summary": "Ãndices de inflaciÃ³n",
+        "tags": ["Finanzas", "Ãndices"],
+        "description": "Devuelve los Ã­ndices de inflaciÃ³n mensuales.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Ã­ndices de inflaciÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndiceInflacion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-indices-inflacion",
+        "x-sidebar-title": "InflaciÃ³n mensual",
+        "x-data-source": ["[BCRA](https://bcra.gob.ar/)"]
+      }
+    },
+    "/v1/finanzas/indices/inflacionInteranual": {
+      "get": {
+        "summary": "Ãndices de inflaciÃ³n interanuales",
+        "tags": ["Finanzas", "Ãndices"],
+        "description": "Devuelve los Ã­ndices de inflaciÃ³n interanuales.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Ã­ndices de inflaciÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndiceInflacion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-indices-inflacion-interanual",
+        "x-sidebar-title": "InflaciÃ³n interanual",
+        "x-data-source": ["[BCRA](https://bcra.gob.ar/)"]
+      }
+    },
+    "/v1/finanzas/indices/uva": {
+      "get": {
+        "summary": "Ãndices UVA",
+        "tags": ["Finanzas", "Ãndices"],
+        "description": "Devuelve los Ã­ndices UVA.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Ã­ndices UVA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndiceUVA"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-indices-uva",
+        "x-data-source": ["[BCRA](https://bcra.gob.ar/)"]
+      }
+    },
+    "/v1/finanzas/indices/riesgo-pais": {
+      "get": {
+        "summary": "Riesgo paÃ­s",
+        "tags": ["Finanzas", "Ãndices"],
+        "description": "Devuelve una lista de riesgo paÃ­s. Para obtener el Ãºltimo valor, consultar `/v1/finanzas/indices/riesgo-pais/ultimo`.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de riesgo paÃ­s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RiesgoPais"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-indices-riesgo-pais",
+        "x-data-source": ["[Ãmbito](https://mercados.ambito.com/riesgopais/)"]
+      }
+    },
+    "/v1/finanzas/indices/riesgo-pais/ultimo": {
+      "get": {
+        "summary": "Riesgo paÃ­s (Ãºltimo)",
+        "tags": ["Finanzas", "Ãndices"],
+        "description": "Devuelve el Ãºltimo valor de riesgo paÃ­s.",
+        "responses": {
+          "200": {
+            "description": "Devuelve el Ãºltimo valor de riesgo paÃ­s",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiesgoPais"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-indices-riesgo-pais-ultimo",
+        "x-data-source": ["[Ãmbito](https://mercados.ambito.com/riesgopais/)"]
+      }
+    },
+    "/v1/politica/indices/confianza-gobierno": {
+      "get": {
+        "summary": "Ãndice de Confianza en el Gobierno",
+        "tags": ["PolÃ­tica", "Ãndices"],
+        "description": "Devuelve la serie mensual del Ãndice de Confianza en el Gobierno (ICG) de la Universidad Torcuato Di Tella. Para obtener el Ãºltimo valor, consultar `/v1/politica/indices/confianza-gobierno/ultimo`.",
+        "responses": {
+          "200": {
+            "description": "Devuelve la serie mensual del ICG",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IndiceConfianzaGobierno"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-politica-indices-confianza-gobierno",
+        "x-data-source": [
+          "[UTDT - Ãndice de Confianza en el Gobierno](https://www.utdt.edu/icg)"
+        ]
+      }
+    },
+    "/v1/politica/indices/confianza-gobierno/ultimo": {
+      "get": {
+        "summary": "Ãndice de Confianza en el Gobierno (Ãºltimo)",
+        "tags": ["PolÃ­tica", "Ãndices"],
+        "description": "Devuelve el Ãºltimo valor publicado del Ãndice de Confianza en el Gobierno (ICG).",
+        "responses": {
+          "200": {
+            "description": "Devuelve el Ãºltimo valor del ICG",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndiceConfianzaGobierno"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-politica-indices-confianza-gobierno-ultimo",
+        "x-data-source": [
+          "[UTDT - Ãndice de Confianza en el Gobierno](https://www.utdt.edu/icg)"
+        ]
+      }
+    },
+    "/v1/finanzas/tasas/plazoFijo": {
+      "get": {
+        "summary": "Plazo fijo",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Tasa Nominal Anual para colocaciones online de $100.000 a 30 dÃ­as.(*).\n\nLas tasas son reportadas por los bancos al BCRA en cumplimiento del RÃ©gimen Informativo de Transparencia, capÃ­tulo I.\n\n(*): La tasa puede cambiar para otros montos o plazos.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de tasas de plazo fijo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TasaPlazoFijo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-tasas-plazo-fijo",
+        "x-data-source": [
+          "[BCRA](https://www.bcra.gob.ar/api/endpoints/plazos-fijos.php)",
+          "[Voii](https://www.voii.com.ar/plazo-fijo-web/)",
+          "[TuPlazoFijo](https://www.tuplazofijo.com.ar/plazos-fijos/tasas/homebanking/)"
+        ]
+      }
+    },
+    "/v1/finanzas/tasas/plazoFijoUvaPagoPeriodico": {
+      "get": {
+        "summary": "Plazo fijo UVA con pago periÃ³dico de intereses",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Tasas Nominales Anuales (TNA) y Tasas Efectivas Anuales (TEA) para plazos fijos UVA con pago periÃ³dico de intereses.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de proveedores, cada uno con sus tasas por rango de plazo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProveedorPlazoFijoUvaPagoPeriodico"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-tasas-plazo-fijo-uva-pago-periodico",
+        "x-data-source": [
+          "[BNA](https://www.bna.com.ar/Personas/PlazoFijoElectronico)"
+        ]
+      }
+    },
+    "/v1/finanzas/tasas/plazoFijoPrecancelable": {
+      "get": {
+        "summary": "Plazo fijo UVA precancelable",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Condiciones y tasas publicadas por entidades bancarias para plazos fijos UVA precancelables.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de proveedores con condiciones de plazo fijo UVA precancelable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProveedorPlazoFijoPrecancelable"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-tasas-plazo-fijo-precancelable",
+        "x-data-source": [
+          "[BNA](https://www.bna.com.ar/personas/plazofijoprecancelableuva)",
+          "[BBVA](https://www.bbva.com.ar/economia-para-tu-dia-a-dia/ef/plazos-fijos/que-es-plazo-fijo-uva.html)",
+          "[Banco Provincia](https://www.bancoprovincia.com.ar/mvc/productos/inversiones/Plazo_Fijo_uva_cancel_ant/Plazo_Fijo_uva_ca_info_gral)"
+        ]
+      }
+    },
+    "/v1/finanzas/tasas/depositos30Dias": {
+      "get": {
+        "summary": "DepÃ³sitos a 30 dÃ­as",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Tasas de interÃ©s por depÃ³sitos a 30 dÃ­as de plazo.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de tasas de interÃ©s por depÃ³sitos a 30 dÃ­as",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TasaInteres"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-tasas-depositos-30-dias",
+        "x-data-source": ["[BCRA](https://bcra.gob.ar/)"]
+      }
+    },
+    "/v1/finanzas/criptopesos": {
+      "get": {
+        "summary": "Criptopesos",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Tasas Nominales Anuales (TNA) de criptopesos por entidad.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de tasas de criptopesos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Criptopeso"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-criptopesos",
+        "x-data-source": [
+          "[Belo](https://www.belo.app/)",
+          "[Ripio](https://www.ripio.com/ar/)",
+          "[Buenbit](https://buenbit.com/)"
+        ]
+      }
+    },
+    "/v1/finanzas/remesas": {
+      "get": {
+        "summary": "Remesas",
+        "tags": ["Finanzas", "Remesas"],
+        "description": "Devuelve las plataformas para cobrar pagos del exterior, con sus costos y caracterÃ­sticas.",
+        "responses": {
+          "200": {
+            "description": "Devuelve la informaciÃ³n de plataformas de remesas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Remesas"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-remesas",
+        "x-data-source": [
+          "[Dolarito](https://www.dolarito.ar/remotito)",
+          "[rendimientos.co](https://rendimientos.co/tty.js)",
+          "[Belo](https://www.belo.app/ar/tarjeta-internacional)",
+          "[Ripio](https://www.ripio.com/es/productos/cripto-card)"
+        ]
+      }
+    },
+    "/v1/finanzas/cobros/comisiones": {
+      "get": {
+        "summary": "Comisiones de cobro",
+        "tags": ["Finanzas", "Cobros"],
+        "description": "Aranceles (MDR) de cobro con POS, QR, link y checkout por entidad, medio de pago y plazo de acreditaciÃ³n.",
+        "responses": {
+          "200": {
+            "description": "Comisiones de cobro con metadata de corrida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComisionesCobro"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-cobros-comisiones",
+        "x-data-source": [
+          "[Getnet](https://www.getnet.net/ar/aranceles)",
+          "[Mercado Pago Point](https://www.mercadopago.com.ar/ayuda/2779)",
+          "[Mercado Pago QR](https://www.mercadopago.com.ar/ayuda/3605)",
+          "[Mercado Pago Link](https://www.mercadopago.com.ar/ayuda/33392)",
+          "[Mercado Pago Checkout](https://www.mercadopago.com.ar/ayuda/33399)",
+          "[UalÃ¡ Bis QR](https://www.ualabis.com.ar/qr)",
+          "[UalÃ¡ Bis Lectores](https://www.ualabis.com.ar/lectores)",
+          "[Payway](https://www.payway.com.ar/planes-precios)",
+          "[Banco Provincia](https://www.bancoprovincia.com.ar/web/adhesion_comercios)",
+          "[Fiserv Pagos QR](https://www.fiserv.com.ar/servicios/pagos-qr/)",
+          "[Nave](https://www.galicia.ar/empresas/tarjetas-y-cuentas/cuenta-comercio/nave)",
+          "[Openpay](https://www.openpayargentina.com.ar/comisiones)",
+          "[Viumi](https://viumi.com.ar/)",
+          "[+Pagos NaciÃ³n](https://maspagos.com.ar/simulador-de-ventas)",
+          "[Naranja X Terminal](https://www.naranjax.com/beneficios-comercios)",
+          "[Naranja X QR](https://www.naranjax.com/codigo-qr-comercios)",
+          "[Naranja X TAP](https://www.naranjax.com/cobro-tap-comercios)",
+          "[Bezza Pay SmartPOS](https://www.bezzapay.com.ar/smartpos)",
+          "[Bezza Pay TAP](https://www.bezzapay.com.ar/tap-to-phone)",
+          "[Bezza Pay QR](https://www.bezzapay.com.ar/qr)",
+          "[Sipago Comisiones](https://www.sipago.coop/comisiones)",
+          "[Sipago Cuotas](https://www.sipago.coop/cuotas)"
+        ]
+      }
+    },
+    "/v1/finanzas/brokers/comisiones": {
+      "get": {
+        "summary": "Comisiones de brokers",
+        "tags": ["Finanzas", "Brokers"],
+        "description": "Aranceles comparables de brokers por producto (acciones, cedears, bonos, ON, letras, cauciones, opciones, futuros, FCI, cheques, licitaciones, alquiler de tÃ­tulos). Shape flat: una fila por arancel retail (canal web/app). Preferir `tasaAnualEquivalente` cuando `tasaBase` es mensual/anual/tna; respetar `tasaEsTope`. Agrupar en cliente por `producto` o `entidad`.",
+        "responses": {
+          "200": {
+            "description": "Comisiones de brokers con metadata de corrida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComisionesBrokers"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-brokers-comisiones",
+        "x-data-source": [
+          "[IOL Tarifas](https://www.invertironline.com/tarifas)",
+          "[Balanz Comisiones](https://balanz.com/comisiones/)",
+          "[Bull Market Help](https://help.bullmarketbrokers.com/)",
+          "[Cocos Tarifario](https://cocos.capital/tarifario)",
+          "[PPI Comisiones](https://www.portfoliopersonal.com/Contenido/comisiones)",
+          "[Fiwind Comisiones](https://www.fiwind.io/comisiones)",
+          "[IEB+ / IEB MAS](https://www.iebmas.com.ar/)"
+        ]
+      }
+    },
+    "/v1/finanzas/creditos/hipotecariosUva": {
+      "get": {
+        "summary": "CrÃ©ditos Hipotecarios UVA",
+        "tags": ["Finanzas", "CrÃ©ditos"],
+        "description": "Tasas Nominales Anuales (TNA) de crÃ©ditos hipotecarios UVA por entidad bancaria.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de TNA de crÃ©ditos hipotecarios UVA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HipotecarioUvaTna"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-creditos-hipotecarios-uva",
+        "x-data-source": ["[@SalinasAndres](https://x.com/SalinasAndres)"]
+      }
+    },
+    "/v1/finanzas/creditos/prestamosPersonales": {
+      "get": {
+        "summary": "PrÃ©stamos personales",
+        "tags": ["Finanzas", "CrÃ©ditos"],
+        "description": "Ofertas de prÃ©stamos personales con tasas por tramo de plazo.",
+        "responses": {
+          "200": {
+            "description": "Lista de ofertas de prÃ©stamos personales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrestamoPersonal"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-creditos-prestamos-personales",
+        "x-data-source": [
+          "[Bancor â€” PrÃ©stamos personales BancÃ³n](https://www.bancor.com.ar/personas/prestamos/prestamos-personales/bancon)",
+          "[BBVA â€” PrÃ©stamos personales](https://www.bbva.com.ar/personas/productos/prestamos/personales.html)",
+          "[BBVA â€” Tasas PDF](https://www.bbva.com.ar/tablas/tasaprestpers.pdf)",
+          "[BNA â€” NaciÃ³n Destino Libre](https://bna.com.ar/Personas/NacionDestinoLibre)",
+          "[BNA â€” NaciÃ³n Previsional](https://bna.com.ar/Personas/NacionPrevisionalBNA)",
+          "[BNA â€” NaciÃ³n Sueldos Convenios Generales](https://bna.com.ar/Personas/NacionSueldos-ConveniosGenerales)",
+          "[Chubut â€” Personales tasa fija](https://www.bancochubut.com.ar/webinstitucional/personas/prestamos/todos_los_prestamos/tasa_fija)",
+          "[Ciudad â€” Ciudad Veloz](https://bancociudad.com.ar/institucional/micrositio/PrestamoPersonalCiudadVeloz)",
+          "[Galicia â€” PrÃ©stamo personal](https://www.galicia.ar/personas/prestamos/prestamo-personal)",
+          "[Hipotecario â€” PrÃ©stamo con destino libre](https://www.hipotecario.com.ar/personas/prestamos-personales/prestamo-con-destino-libre/)",
+          "[Macro â€” PrÃ©stamos personales](https://www.macro.com.ar/personas/prestamos/personales)",
+          "[Patagonia â€” PrÃ©stamos online](https://www.bancopatagonia.com.ar/landings/prestamos-online.php)",
+          "[Santander â€” PrÃ©stamos personales](https://www.santander.com.ar/personas/prestamos/personales)"
+        ]
+      }
+    },
+    "/v1/finanzas/creditos/prestamosPersonalesBcra": {
+      "get": {
+        "summary": "PrÃ©stamos personales (techos BCRA)",
+        "tags": ["Finanzas", "CrÃ©ditos"],
+        "description": "Ofertas de prÃ©stamos personales informadas al BCRA: TEA mÃ¡xima y CFT mÃ¡ximo por producto y entidad.",
+        "responses": {
+          "200": {
+            "description": "Lista de ofertas BCRA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrestamoPersonalBcra"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-creditos-prestamos-personales-bcra",
+        "x-data-source": [
+          "[BCRA â€” PERSONALES.CSV](https://www.bcra.gob.ar/archivos/Pdfs/BCRAyVos/PERSONALES.CSV)"
+        ]
+      }
+    },
+    "/v1/finanzas/cuentas-remuneradas-usd": {
+      "get": {
+        "summary": "Cuentas remuneradas en USD",
+        "tags": ["Finanzas", "Tasas"],
+        "description": "Tasa de rendimiento anual y tope remunerable en dÃ³lares de **cuentas remuneradas en USD** de bancos relevados.",
+        "responses": {
+          "200": {
+            "description": "Lista de entidades con tasa y tope vigentes al Ãºltimo relevamiento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CuentaRemuneradaUsd"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-cuentas-remuneradas-usd",
+        "x-data-source": [
+          "[Banco de la NaciÃ³n Argentina](https://www.bna.com.ar/home/cuentaremunerada)",
+          "[Banco Galicia](https://www.galicia.ar/personas/beneficios-dolares)",
+          "[Supervielle](https://www.supervielle.com.ar/personas/cuentas/cuenta-remunerada-dolares)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/mercadoDinero/{fecha}": {
+      "get": {
+        "summary": "Mercado de dinero",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Mercado de Dinero de los Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/mercadoDinero/ultimo`\n- `/v1/finanzas/fci/mercadoDinero/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-mercado-dinero-fecha",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/rentaVariable/{fecha}": {
+      "get": {
+        "summary": "Renta variable",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Renta Variable de los Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/rentaVariable/ultimo`\n- `/v1/finanzas/fci/rentaVariable/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-renta-variable-fecha",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/rentaFija/{fecha}": {
+      "get": {
+        "summary": "Renta fija",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Renta Fija de los Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/rentaFija/ultimo`\n- `/v1/finanzas/fci/rentaFija/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-renta-fija-fecha",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/rentaMixta/{fecha}": {
+      "get": {
+        "summary": "Renta mixta",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Renta Mixta de los Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/rentaMixta/ultimo`\n- `/v1/finanzas/fci/rentaMixta/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-renta-mixta-fecha",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/retornoTotal/{fecha}": {
+      "get": {
+        "summary": "Retorno total",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Retorno Total de los Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/retornoTotal/ultimo`\n- `/v1/finanzas/fci/retornoTotal/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-retorno-total-fecha",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/otros/{fecha}": {
+      "get": {
+        "summary": "Otros",
+        "tags": ["Finanzas", "FCI"],
+        "description": "Devuelve los valores de Otros Fondos Comunes de InversiÃ³n en la fecha indicada (en formato `YYYY/MM/DD`).\n\nTambiÃ©n se puede consultar el `ultimo` y `penultimo` dÃ­a con valores utilizando los endpoints: \n\n- `/v1/finanzas/fci/otros/ultimo`\n- `/v1/finanzas/fci/otros/penultimo`",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "path",
+            "description": "Fecha de consulta",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "ultimo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de Fondos Comunes de InversiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FondoComunInversionOtro"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-otros-fecha",
+        "x-data-source": [
+          "[UalÃ¡](http://uala.com.ar/)",
+          "[Belo](https://www.belo.app/)",
+          "[BNA](https://www.bna.com.ar/)",
+          "[Brubank](https://www.brubank.com/)",
+          "[Carrefour Banco](https://www.bancodeserviciosfinancieros.com.ar/carrefourbank/)",
+          "[Cresium](https://www.cresium.com/)",
+          "[Fiwind](https://www.fiwind.io/)",
+          "[Montemar Pay](https://www.montemarpay.com.ar/)",
+          "[Naranja X](https://www.naranjax.com/)",
+          "[Naranja X Frascos](https://www.naranjax.com/frascos)",
+          "[Supervielle](https://www.supervielle.com.ar/)",
+          "[Voii](https://www.voii.com.ar/app-mobile/)"
+        ]
+      }
+    },
+    "/v1/presidentes": {
+      "get": {
+        "summary": "Presidentes",
+        "tags": ["Historia"],
+        "description": "Devuelve la lista de presidentes de la NaciÃ³n Argentina.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de presidentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Presidente"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-presidentes",
+        "x-data-source": [
+          "[Wikipedia](https://es.wikipedia.org/wiki/Anexo:Presidentes_de_la_Naci%C3%B3n_Argentina)"
+        ]
+      }
+    },
+    "/v1/estado": {
+      "get": {
+        "summary": "Estado de la API",
+        "description": "Devuelve el estado de la API.",
+        "tags": ["API"],
+        "responses": {
+          "200": {
+            "description": "Devuelve el estado de la API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Estado"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-estado"
+      }
+    },
+    "/v1/finanzas/rendimientos": {
+      "get": {
+        "summary": "Rendimientos de todas las entidades",
+        "tags": ["Finanzas", "Rendimientos"],
+        "description": "Rendimientos de distintas monedas por entidad.\n\nLas entidades disponibles son:\n\n- [Nexo](https://nexo.com/?ref=argentinadatos.com)\n\n- [Fiwind](https://www.fiwind.io/?ref=argentinadatos.com)\n\n- [Letsbit](https://letsbit.io/?ref=argentinadatos.com)\n\n- [Belo](https://www.belo.app/?ref=argentinadatos.com)\n\n- [Lemon Cash](https://www.lemon.me/?ref=argentinadatos.com)\n\n- [Ripio](https://www.ripio.com/ar/?ref=argentinadatos.com)\n\n- [Satoshi Tango](https://www.satoshitango.com/?ref=argentinadatos.com)\n\n- [Luca Money](https://lucamoney.com/?ref=argentinadatos.com)\n\n- [Decrypto](https://www.decrypto.la//?ref=argentinadatos.com)\n\n- [Lune.fi](https://lune.fi/investments)",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de rendimientos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntidadRendimiento"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-rendimientos",
+        "x-sidebar-title": "De entidades",
+        "x-data-source": [
+          "[Nexo](https://nexo.com/)",
+          "[Fiwind](https://www.fiwind.io/)",
+          "[Letsbit](https://letsbit.io/)",
+          "[Belo](https://www.belo.app/)",
+          "[Lemon Cash](https://www.lemon.me/)",
+          "[Ripio](https://www.ripio.com/ar/)",
+          "[Satoshi Tango](https://www.satoshitango.com/ar/)",
+          "[Luca Money](https://lucamoney.com/)",
+          "[Decrypto](https://www.decrypto.la/)",
+          "[Vesseo](https://www.vesseofinance.com/)",
+          "[AstroPay](https://www.astropay.com/ar/)",
+          "[Lune.fi](https://lune.fi/investments)"
+        ]
+      }
+    },
+    "/v1/finanzas/rendimientos/{entidad}": {
+      "get": {
+        "summary": "Por entidad",
+        "tags": ["Finanzas", "Rendimientos"],
+        "description": "Rendimientos de distintas monedas por entidad.\n\nLas entidades disponibles son:\n\n- [Nexo](https://nexo.com/?ref=argentinadatos.com)\n\n- [Fiwind](https://www.fiwind.io/?ref=argentinadatos.com)\n\n- [Letsbit](https://letsbit.io/?ref=argentinadatos.com)\n\n- [Belo](https://www.belo.app/?ref=argentinadatos.com)\n\n- [Lemon Cash](https://www.lemon.me/?ref=argentinadatos.com)\n\n- [Ripio](https://www.ripio.com/ar/?ref=argentinadatos.com)\n\n- [Satoshi Tango](https://www.satoshitango.com/?ref=argentinadatos.com)\n\n- [Luca Money](https://lucamoney.com/?ref=argentinadatos.com)\n\n- [Decrypto](https://www.decrypto.la//?ref=argentinadatos.com)\n\n- [Lune.fi](https://lune.fi/investments)",
+        "parameters": [
+          {
+            "name": "entidad",
+            "in": "path",
+            "description": "Entidad",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "nexo",
+                "fiwind",
+                "letsbit",
+                "belo",
+                "lemoncash",
+                "ripio",
+                "satoshitango",
+                "lucamoney",
+                "decrypto",
+                "vesseo",
+                "astropay",
+                "lunefi"
+              ]
+            },
+            "example": "nexo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de rendimientos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Rendimiento"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-rendimientos-entidad",
+        "x-data-source": [
+          "[Nexo](https://nexo.com/)",
+          "[Fiwind](https://www.fiwind.io/)",
+          "[Letsbit](https://letsbit.io/)",
+          "[Belo](https://www.belo.app/)",
+          "[Lemon Cash](https://www.lemon.me/)",
+          "[Ripio](https://www.ripio.com/ar/)",
+          "[Satoshi Tango](https://www.satoshitango.com/ar/)",
+          "[Luca Money](https://lucamoney.com/)",
+          "[Decrypto](https://www.decrypto.la/)",
+          "[Vesseo](https://www.vesseofinance.com/)",
+          "[AstroPay](https://www.astropay.com/ar/)",
+          "[Lune.fi](https://lune.fi/investments)"
+        ]
+      }
+    },
+    "/v1/senado/senadores": {
+      "get": {
+        "summary": "Senadores",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los senadores.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de senadores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Senador"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-senadores",
+        "x-data-source": ["[Senado](https://www.senado.gob.ar)"]
+      }
+    },
+    "/v1/senado/comisiones": {
+      "get": {
+        "summary": "Comisiones",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve las comisiones del Senado con su tipo e integrantes (senadores y, en bicamerales, diputados).",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de comisiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComisionSenado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-comisiones",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/parlamentario/comisiones/)"
+        ]
+      }
+    },
+    "/v1/senado/presidencia": {
+      "get": {
+        "summary": "Presidencia del Senado",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los datos del presidente actual del Senado (vicepresidente de la NaciÃ³n en ejercicio), scrapeados de la pÃ¡gina oficial de Presidencia.",
+        "responses": {
+          "200": {
+            "description": "Datos de la Presidencia del Senado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresidenciaSenado"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-presidencia",
+        "x-data-source": [
+          "[Senado â€” Presidencia](https://www.senado.gob.ar/presidencia)"
+        ]
+      }
+    },
+    "/v1/senado/viajes": {
+      "get": {
+        "summary": "Viajes nacionales e internacionales",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve el Ã­ndice completo de viajes (documentos PDF + listados nacionales e internacionales). TambiÃ©n hay recortes en `/v1/senado/viajes/nacionales`, `/v1/senado/viajes/internacionales` y `/v1/senado/senadores/{id}/viajes`.",
+        "responses": {
+          "200": {
+            "description": "CatÃ¡logo de documentos PDF y listados de viajes parseados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViajesSenado"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/viajes/nacionales": {
+      "get": {
+        "summary": "Viajes nacionales",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve todos los tramos aÃ©reos nacionales parseados.",
+        "responses": {
+          "200": {
+            "description": "Lista de viajes nacionales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeNacional"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes-nacionales",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/viajes/nacionales/{aÃ±o}": {
+      "get": {
+        "summary": "Viajes nacionales por aÃ±o",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los tramos aÃ©reos nacionales del aÃ±o indicado.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2018,
+              "maximum": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de viajes nacionales del aÃ±o",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeNacional"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes-nacionales-aÃ±o",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/viajes/nacionales/{aÃ±o}/{mes}": {
+      "get": {
+        "summary": "Viajes nacionales por aÃ±o y mes",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los tramos aÃ©reos nacionales del mes indicado (1â€“12).",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2018,
+              "maximum": 2026
+            },
+            "example": 2026
+          },
+          {
+            "name": "mes",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "example": 5
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de viajes nacionales del mes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeNacional"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes-nacionales-aÃ±o-mes",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/viajes/internacionales": {
+      "get": {
+        "summary": "Viajes internacionales",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve todos los viajes oficiales internacionales parseados.",
+        "responses": {
+          "200": {
+            "description": "Lista de viajes internacionales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeInternacional"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes-internacionales",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/viajes/internacionales/{aÃ±o}": {
+      "get": {
+        "summary": "Viajes internacionales por aÃ±o",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los viajes oficiales internacionales del aÃ±o indicado.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2012,
+              "maximum": 2026
+            },
+            "example": 2025
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de viajes internacionales del aÃ±o",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeInternacional"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-viajes-internacionales-aÃ±o",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/senadores/{id}/viajes": {
+      "get": {
+        "summary": "Viajes de un senador",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve los viajes nacionales e internacionales asociados a un senador (`senadorId`).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "546"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viajes del senador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SenadorViajes"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-senadores-id-viajes",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/administrativo/viajes)"
+        ]
+      }
+    },
+    "/v1/senado/comisiones/{id}": {
+      "get": {
+        "summary": "ComisiÃ³n por id",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve el detalle de una comisiÃ³n del Senado con sus integrantes.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "50"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle de la comisiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComisionSenado"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-comisiones-id",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/parlamentario/comisiones/)"
+        ]
+      }
+    },
+    "/v1/senado/senadores/{id}/comisiones": {
+      "get": {
+        "summary": "Comisiones de un senador",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve las comisiones en las que participa un senador (id, nombre y cargo).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "546"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de comisiones del senador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "nombre": {
+                        "type": "string"
+                      },
+                      "cargo": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-senadores-id-comisiones",
+        "x-data-source": [
+          "[Senado](https://www.senado.gob.ar/parlamentario/comisiones/)"
+        ]
+      }
+    },
+    "/v1/senado/actas/{aÃ±o}": {
+      "get": {
+        "summary": "Actas por aÃ±o",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve las actas del Senado del aÃ±o indicado.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "description": "AÃ±o de consulta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2016,
+              "maximum": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de actas del Senado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActaSenado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-actas-aÃ±o",
+        "x-data-source": ["[Senado](https://www.senado.gob.ar)"]
+      }
+    },
+    "/v1/senado/actas": {
+      "get": {
+        "summary": "Actas",
+        "tags": ["Congreso", "Senado"],
+        "description": "Devuelve las actas del Senado.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de actas del Senado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActaSenado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-senado-actas",
+        "x-data-source": ["[Senado](https://www.senado.gob.ar)"]
+      }
+    },
+    "/v1/diputados/diputados": {
+      "get": {
+        "summary": "Diputados",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Devuelve los diputados.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de diputados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Diputado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-diputados",
+        "x-data-source": ["[Diputados](https://datos.hcdn.gob.ar)"]
+      }
+    },
+    "/v1/diputados/periodos": {
+      "get": {
+        "summary": "PerÃ­odos parlamentarios",
+        "tags": ["Congreso", "Diputados"],
+        "description": "PerÃ­odos parlamentarios oficiales de la HCDN (dataset `periodos_p`). Cada Ã­tem agrega los tramos ordinario/extraordinario/prÃ³rroga en un rango `inicio`â€“`fin`. La clave `periodo` coincide con `acta.periodo`. TambiÃ©n `/v1/diputados/periodos/lista`.",
+        "responses": {
+          "200": {
+            "description": "CatÃ¡logo de perÃ­odos parlamentarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodosDiputados"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-periodos",
+        "x-data-source": [
+          "[HCDN â€” PerÃ­odos Parlamentarios](https://datos.hcdn.gob.ar/dataset/periodos_p)"
+        ]
+      }
+    },
+    "/v1/diputados/periodos/lista": {
+      "get": {
+        "summary": "PerÃ­odos parlamentarios (lista)",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Lista de perÃ­odos (sin metadatos de fuente).",
+        "responses": {
+          "200": {
+            "description": "Lista de perÃ­odos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PeriodoParlamentarioDiputados"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-periodos-lista",
+        "x-data-source": [
+          "[HCDN â€” PerÃ­odos Parlamentarios](https://datos.hcdn.gob.ar/dataset/periodos_p)"
+        ]
+      }
+    },
+    "/v1/diputados/misiones": {
+      "get": {
+        "summary": "Misiones oficiales de diputados",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Ãndice de misiones oficiales al exterior (CSVs `misiones-oficiales`): `fuente`, `actualizado`, `recursos` y `misiones`. TambiÃ©n `/v1/diputados/misiones/lista`, `/v1/diputados/misiones/{aÃ±o}` y `/v1/diputados/diputados/{id}/misiones`.",
+        "responses": {
+          "200": {
+            "description": "CatÃ¡logo de recursos CSV y misiones parseadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisionesDiputados"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-misiones",
+        "x-data-source": [
+          "[HCDN â€” Misiones Oficiales](https://datos.hcdn.gob.ar/dataset/misiones-oficiales)"
+        ]
+      }
+    },
+    "/v1/diputados/misiones/lista": {
+      "get": {
+        "summary": "Misiones oficiales (lista)",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Lista plana de misiones oficiales parseadas.",
+        "responses": {
+          "200": {
+            "description": "Lista de misiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MisionOficialDiputado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-misiones-lista",
+        "x-data-source": [
+          "[HCDN â€” Misiones Oficiales](https://datos.hcdn.gob.ar/dataset/misiones-oficiales)"
+        ]
+      }
+    },
+    "/v1/diputados/misiones/{aÃ±o}": {
+      "get": {
+        "summary": "Misiones oficiales por aÃ±o",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Misiones oficiales del aÃ±o indicado.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 2024
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de misiones del aÃ±o",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MisionOficialDiputado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-misiones-aÃ±o",
+        "x-data-source": [
+          "[HCDN â€” Misiones Oficiales](https://datos.hcdn.gob.ar/dataset/misiones-oficiales)"
+        ]
+      }
+    },
+    "/v1/diputados/diputados/{id}/misiones": {
+      "get": {
+        "summary": "Misiones de un diputado",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Misiones oficiales asociadas a un diputado.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "HCDN3178"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Misiones del diputado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiputadoMisiones"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-diputado-misiones",
+        "x-data-source": [
+          "[HCDN â€” Misiones Oficiales](https://datos.hcdn.gob.ar/dataset/misiones-oficiales)"
+        ]
+      }
+    },
+    "/v1/diputados/viajes": {
+      "get": {
+        "summary": "Viajes nacionales de diputados",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Ãndice de viajes nacionales de diputados (CSVs `viajes-nacionales`). TambiÃ©n hay recortes en `/v1/diputados/viajes/nacionales`, `/v1/diputados/viajes/conteo-12m` y `/v1/diputados/diputados/{id}/viajes`. Las misiones oficiales al exterior estÃ¡n en `/v1/diputados/misiones`.",
+        "responses": {
+          "200": {
+            "description": "CatÃ¡logo de recursos CSV y tramos parseados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViajesDiputados"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-viajes",
+        "x-data-source": [
+          "[HCDN â€” Viajes Nacionales](https://datos.hcdn.gob.ar/dataset/viajes-nacionales)"
+        ]
+      }
+    },
+    "/v1/diputados/viajes/nacionales": {
+      "get": {
+        "summary": "Viajes nacionales (lista)",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Todos los tramos nacionales parseados desde los CSV semestrales.",
+        "responses": {
+          "200": {
+            "description": "Lista de viajes nacionales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ViajeNacionalDiputado"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-viajes-nacionales",
+        "x-data-source": [
+          "[HCDN â€” Viajes Nacionales](https://datos.hcdn.gob.ar/dataset/viajes-nacionales)"
+        ]
+      }
+    },
+    "/v1/diputados/viajes/conteo-12m": {
+      "get": {
+        "summary": "Conteo de viajes (Ãºltimos 12 meses)",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Cantidad de tramos nacionales por diputado en la ventana mÃ³vil de 12 meses.",
+        "responses": {
+          "200": {
+            "description": "Conteo por diputadoId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViajesConteo12mDiputados"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-viajes-conteo-12m",
+        "x-data-source": [
+          "[HCDN â€” Viajes Nacionales](https://datos.hcdn.gob.ar/dataset/viajes-nacionales)"
+        ]
+      }
+    },
+    "/v1/diputados/diputados/{id}/viajes": {
+      "get": {
+        "summary": "Viajes de un diputado",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Tramos nacionales asociados a un diputado.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "HCDN3178"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viajes del diputado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiputadoViajes"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-diputado-viajes",
+        "x-data-source": [
+          "[HCDN â€” Viajes Nacionales](https://datos.hcdn.gob.ar/dataset/viajes-nacionales)"
+        ]
+      }
+    },
+    "/v1/diputados/comisiones": {
+      "get": {
+        "summary": "Comisiones de diputados",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Comisiones de la HCDN con tipologÃ­a e integrantes. TambiÃ©n `/v1/diputados/comisiones/{id}` y `/v1/diputados/diputados/{id}/comisiones`.",
+        "responses": {
+          "200": {
+            "description": "Lista de comisiones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ComisionDiputados"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-comisiones",
+        "x-data-source": [
+          "[HCDN â€” Comisiones](https://datos.hcdn.gob.ar/dataset/comisiones)"
+        ]
+      }
+    },
+    "/v1/diputados/comisiones/{id}": {
+      "get": {
+        "summary": "ComisiÃ³n de diputados por ID",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Detalle de una comisiÃ³n e integrantes.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ComisiÃ³n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComisionDiputados"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-comision",
+        "x-data-source": [
+          "[HCDN â€” Comisiones](https://datos.hcdn.gob.ar/dataset/comisiones)"
+        ]
+      }
+    },
+    "/v1/diputados/diputados/{id}/comisiones": {
+      "get": {
+        "summary": "Comisiones de un diputado",
+        "tags": ["Congreso", "Diputados"],
+        "description": "MembresÃ­as de comisiones asociadas a un diputado.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "HCDN3178"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de comisiones del diputado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "nombre": {
+                        "type": "string"
+                      },
+                      "cargo": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-diputado-comisiones",
+        "x-data-source": [
+          "[HCDN â€” Comisiones](https://datos.hcdn.gob.ar/dataset/comisiones)"
+        ]
+      }
+    },
+    "/v1/diputados/actas/{aÃ±o}": {
+      "get": {
+        "summary": "Actas por aÃ±o",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Devuelve las actas de Diputados del aÃ±o indicado.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "description": "AÃ±o de consulta",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2016,
+              "maximum": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de actas de Diputados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActaDiputados"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-actas-aÃ±o",
+        "x-data-source": ["[Diputados](https://votaciones.hcdn.gob.ar)"]
+      }
+    },
+    "/v1/diputados/actas": {
+      "get": {
+        "summary": "Actas",
+        "tags": ["Congreso", "Diputados"],
+        "description": "Devuelve las actas de Diputados.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de actas de Diputados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActaDiputados"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-diputados-actas",
+        "x-data-source": ["[Diputados](https://votaciones.hcdn.gob.ar)"]
+      }
+    },
+    "/v1/finanzas/rem": {
+      "get": {
+        "summary": "Relevamientos de Expectativas de Mercado (REM)",
+        "tags": ["Finanzas", "REM"],
+        "description": "Devuelve el Ã­ndice de endpoints relativos para consultar el Ãºltimo REM y cada uno de los informes REM disponibles por perÃ­odo.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de endpoints relativos disponibles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "/finanzas/rem/2026/03"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-rem",
+        "x-sidebar-title": "REM",
+        "x-data-source": ["[BCRA](https://www.bcra.gob.ar/ultimos-informes/)"]
+      }
+    },
+    "/v1/finanzas/rem/ultimo": {
+      "get": {
+        "summary": "Relevamiento de Expectativas de Mercado (REM) - Ãºltimo informe",
+        "tags": ["Finanzas", "REM"],
+        "description": "Devuelve las expectativas del Ãºltimo informe REM disponible.",
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de expectativas del Ãºltimo REM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RemExpectativa"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-rem-ultimo",
+        "x-sidebar-title": "Ãšltimo informe",
+        "x-data-source": ["[BCRA](https://www.bcra.gob.ar/ultimos-informes/)"]
+      }
+    },
+    "/v1/finanzas/rem/{aÃ±o}/{mes}": {
+      "get": {
+        "summary": "Relevamiento de Expectativas de Mercado (REM) por perÃ­odo",
+        "tags": ["Finanzas", "REM"],
+        "description": "Devuelve las expectativas del informe REM correspondiente al aÃ±o y mes indicados.",
+        "parameters": [
+          {
+            "name": "aÃ±o",
+            "in": "path",
+            "description": "AÃ±o del informe REM",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 2016
+            },
+            "example": 2026
+          },
+          {
+            "name": "mes",
+            "in": "path",
+            "description": "Mes del informe REM con dos dÃ­gitos",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0[1-9]|1[0-2])$"
+            },
+            "example": "03"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve una lista de expectativas del REM para el perÃ­odo indicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RemExpectativa"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-rem-anio-mes",
+        "x-sidebar-title": "Por perÃ­odo",
+        "x-data-source": ["[BCRA](https://www.bcra.gob.ar/ultimos-informes/)"]
+      }
+    },
+    "/v1/finanzas/fci/fondos": {
+      "get": {
+        "summary": "Detalles de todos los fondos",
+        "tags": ["Finanzas", "FCI Detalles"],
+        "description": "Devuelve la informaciÃ³n detallada disponible de los Fondos Comunes de InversiÃ³n.",
+        "responses": {
+          "200": {
+            "description": "Devuelve los detalles de todos los fondos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FondosDetalles"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-fondos",
+        "x-sidebar-title": "Detalles de fondos",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/fondos/{nombre}": {
+      "get": {
+        "summary": "Detalle de un fondo por nombre",
+        "tags": ["Finanzas", "FCI Detalles"],
+        "description": "Devuelve el detalle disponible de un Fondo ComÃºn de InversiÃ³n especÃ­fico, identificado por su nombre normalizado en minÃºsculas y con guiones.",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "path",
+            "description": "Nombre normalizado del fondo (por ejemplo: mercado-fondo-clase-a)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "mercado-fondo-clase-a"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve el detalle del fondo solicitado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FondoDetalle"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-fondos-nombre",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    },
+    "/v1/finanzas/fci/fondos/{nombre}/historico": {
+      "get": {
+        "summary": "HistÃ³rico de un fondo por nombre",
+        "tags": ["Finanzas", "FCI Detalles"],
+        "description": "Devuelve la evoluciÃ³n histÃ³rica disponible de un Fondo ComÃºn de InversiÃ³n especÃ­fico, identificado por su nombre normalizado en minÃºsculas y con guiones.",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "path",
+            "description": "Nombre normalizado del fondo (por ejemplo: mercado-fondo-clase-a)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "mercado-fondo-clase-a"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devuelve el histÃ³rico disponible del fondo solicitado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FondoHistorico"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-finanzas-fci-fondos-nombre-historico",
+        "x-data-source": [
+          "[CNV - Cuotapartes](https://www.cnv.gov.ar/SitioWeb/FondosComunesInversion/CuotaPartes)"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BonoSoberanoCer": {
+        "title": "BonoSoberanoCer",
+        "type": "object",
+        "required": [
+          "ticker",
+          "precioArs",
+          "tirPorcentaje",
+          "fechaVencimiento"
+        ],
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "CÃ³digo del bono",
+            "example": "TZX26"
+          },
+          "precioArs": {
+            "type": "number",
+            "description": "Precio de cotizaciÃ³n en pesos argentinos"
+          },
+          "tirPorcentaje": {
+            "type": "number",
+            "description": "Tasa interna de retorno (TIR) en porcentaje"
+          },
+          "fechaVencimiento": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha de vencimiento (ISO 8601, solo fecha: yyyy-MM-dd)"
+          },
+          "volumen": {
+            "type": "number",
+            "description": "Volumen nominal negociado, si la fuente lo publica"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "ticker": "TZX26",
+            "precioArs": 379.3,
+            "tirPorcentaje": -8.55,
+            "fechaVencimiento": "2026-06-30",
+            "volumen": 7197806107
+          }
+        }
+      },
+      "BonosCer": {
+        "title": "BonosCer",
+        "type": "object",
+        "required": ["fechaActualizacion", "bonos"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante en que se generÃ³ el recurso (UTC, ISO 8601 con sufijo Z)"
+          },
+          "bonos": {
+            "type": "array",
+            "description": "Filas de la grilla soberanos CER",
+            "items": {
+              "$ref": "#/components/schemas/BonoSoberanoCer"
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fechaActualizacion": "2026-05-04T19:02:59.767Z",
+            "bonos": [
+              {
+                "ticker": "TZX26",
+                "precioArs": 379.3,
+                "tirPorcentaje": -8.55,
+                "fechaVencimiento": "2026-06-30",
+                "volumen": 7197806107
+              }
+            ]
+          }
+        }
+      },
+      "LetraSoberanaTasaFija": {
+        "title": "LetraSoberanaTasaFija",
+        "type": "object",
+        "required": [
+          "ticker",
+          "precioArs",
+          "tnaPorcentaje",
+          "teaPorcentaje",
+          "temPorcentaje",
+          "fechaVencimiento"
+        ],
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "CÃ³digo del instrumento",
+            "example": "S15S6"
+          },
+          "precioArs": {
+            "type": "number",
+            "description": "Precio de cotizaciÃ³n en pesos argentinos"
+          },
+          "cierreArs": {
+            "type": "number",
+            "description": "Precio de cierre en pesos argentinos, si la fuente lo publica"
+          },
+          "variacionPorcentaje": {
+            "type": "number",
+            "description": "VariaciÃ³n diaria del precio en porcentaje, si la fuente lo publica"
+          },
+          "volumen": {
+            "type": "number",
+            "description": "Volumen nominal negociado, si la fuente lo publica"
+          },
+          "volumenEfectivoArs": {
+            "type": "number",
+            "description": "Volumen efectivo negociado en pesos argentinos, si la fuente lo publica"
+          },
+          "tnaPorcentaje": {
+            "type": "number",
+            "description": "Tasa Nominal Anual (TNA) en porcentaje"
+          },
+          "teaPorcentaje": {
+            "type": "number",
+            "description": "Tasa Efectiva Anual (TEA) en porcentaje"
+          },
+          "temPorcentaje": {
+            "type": "number",
+            "description": "Tasa Efectiva Mensual (TEM) en porcentaje"
+          },
+          "diasAlVencimiento": {
+            "type": "number",
+            "description": "DÃ­as al vencimiento, si la fuente lo publica"
+          },
+          "fechaVencimiento": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha de vencimiento (ISO 8601, solo fecha: yyyy-MM-dd)"
+          },
+          "paridadPorcentaje": {
+            "type": "number",
+            "description": "Paridad en porcentaje, si la fuente lo publica"
+          },
+          "monedaCupon": {
+            "type": "string",
+            "description": "Moneda de cupÃ³n (ej. ARS), si la fuente lo publica",
+            "example": "ARS"
+          },
+          "isin": {
+            "type": "string",
+            "description": "CÃ³digo ISIN, si la fuente lo publica",
+            "example": "AR0227219554"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "ticker": "S15S6",
+            "precioArs": 106.74,
+            "tnaPorcentaje": 23.13,
+            "teaPorcentaje": 25.95,
+            "temPorcentaje": 1.94,
+            "fechaVencimiento": "2026-09-15",
+            "diasAlVencimiento": 7,
+            "paridadPorcentaje": 100.02,
+            "volumen": 21453598713,
+            "variacionPorcentaje": 0.06,
+            "cierreArs": 106.74,
+            "volumenEfectivoArs": 22899870365.79,
+            "monedaCupon": "ARS",
+            "isin": "AR0227219554"
+          }
+        }
+      },
+      "Letras": {
+        "title": "Letras",
+        "type": "object",
+        "required": ["fechaActualizacion", "letras"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante en que se generÃ³ el recurso (UTC, ISO 8601 con sufijo Z)"
+          },
+          "letras": {
+            "type": "array",
+            "description": "Filas de la grilla soberanos tasa fija (LECAP/BONCAP)",
+            "items": {
+              "$ref": "#/components/schemas/LetraSoberanaTasaFija"
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fechaActualizacion": "2026-09-06T13:00:00.000Z",
+            "letras": [
+              {
+                "ticker": "S15S6",
+                "precioArs": 106.74,
+                "tnaPorcentaje": 23.13,
+                "teaPorcentaje": 25.95,
+                "temPorcentaje": 1.94,
+                "fechaVencimiento": "2026-09-15",
+                "diasAlVencimiento": 7,
+                "paridadPorcentaje": 100.02,
+                "volumen": 21453598713,
+                "variacionPorcentaje": 0.06,
+                "cierreArs": 106.74,
+                "volumenEfectivoArs": 22899870365.79,
+                "monedaCupon": "ARS",
+                "isin": "AR0227219554"
+              }
+            ]
+          }
+        }
+      },
+      "Feriado": {
+        "title": "Feriado",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fecha": "2020-01-01",
+            "tipo": "Inamovible",
+            "motivo": "AÃ±o Nuevo"
+          }
+        }
+      },
+      "FeriadoBancario": {
+        "title": "FeriadoBancario",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fecha": "2026-01-01",
+            "nombre": "AÃ±o nuevo"
+          }
+        }
+      },
+      "Estado": {
+        "title": "Estado",
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string"
+          },
+          "aleatorio": {
+            "type": "integer"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "estado": "Disponible",
+            "aleatorio": 1234
+          }
+        }
+      },
+      "Cotizacion": {
+        "title": "Cotizacion",
+        "type": "object",
+        "properties": {
+          "moneda": {
+            "type": "string"
+          },
+          "casa": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "compra": {
+            "type": "number"
+          },
+          "venta": {
+            "type": "number"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "compra": 123.45,
+            "venta": 123.45
+          }
+        }
+      },
+      "EventoPresidencial": {
+        "title": "EventoPresidencial",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "evento": {
+            "type": "string"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fecha": "2020-01-01",
+            "evento": "AÃ±o Nuevo"
+          }
+        }
+      },
+      "IndiceInflacion": {
+        "title": "IndiceInflacion",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "mes": "Enero",
+            "indice": 2.3
+          }
+        }
+      },
+      "IndiceUVA": {
+        "title": "IndiceUVA",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "mes": "Enero",
+            "indice": 2.3
+          }
+        }
+      },
+      "RiesgoPais": {
+        "title": "RiesgoPais",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fecha": "2020-01-01",
+            "valor": 123.45
+          }
+        }
+      },
+      "IndiceConfianzaGobierno": {
+        "title": "IndiceConfianzaGobierno",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string",
+            "description": "Fecha del mes (primer dÃ­a), en formato YYYY-MM-DD"
+          },
+          "valor": {
+            "type": "number",
+            "description": "Valor del Ãndice de Confianza en el Gobierno"
+          },
+          "variacion": {
+            "type": "number",
+            "description": "VariaciÃ³n mensual relativa del ICG respecto al mes anterior"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fecha": "2026-07-01",
+            "valor": 1.935553,
+            "variacion": -0.06461
+          }
+        }
+      },
+      "TasaPlazoFijo": {
+        "title": "TasaPlazoFijo",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL del logo de la entidad"
+          },
+          "tnaClientes": {
+            "type": "number",
+            "description": "Tasa Nominal Anual para clientes, en porcentaje",
+            "example": 123.45,
+            "format": "float",
+            "nullable": true
+          },
+          "tnaNoClientes": {
+            "type": "number",
+            "description": "Tasa Nominal Anual para no clientes, en porcentaje",
+            "example": 123.45,
+            "format": "float",
+            "nullable": true
+          },
+          "enlace": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL de la fuente o pÃ¡gina del producto"
+          },
+          "tasas": {
+            "type": "array",
+            "nullable": true,
+            "description": "Tramos de TNA cuando la entidad publica distintas tasas segÃºn monto y/o plazo",
+            "items": {
+              "$ref": "#/components/schemas/TramoPlazoFijo"
+            }
+          },
+          "condiciones": {
+            "type": "string",
+            "nullable": true,
+            "description": "Condiciones o aclaraciones del producto"
+          },
+          "condicionesCorto": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "description": "Resumen breve de condiciones"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "Banco de la NaciÃ³n Argentina",
+            "tnaClientes": 123.45,
+            "tnaNoClientes": 123.45,
+            "logo": null,
+            "link": null
+          }
+        }
+      },
+      "TramoPlazoFijo": {
+        "title": "TramoPlazoFijo",
+        "type": "object",
+        "description": "TNA para un rango de monto y/o plazo dentro de una entidad de plazo fijo",
+        "properties": {
+          "montoMinimo": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Monto mÃ­nimo en pesos ARS del tramo"
+          },
+          "montoMaximo": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Monto mÃ¡ximo en pesos ARS del tramo"
+          },
+          "plazoMinDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "MÃ­nimo de dÃ­as del rango de plazo"
+          },
+          "plazoMaxDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "MÃ¡ximo de dÃ­as del rango de plazo"
+          },
+          "tna": {
+            "type": "number",
+            "description": "Tasa Nominal Anual del tramo",
+            "format": "float"
+          }
+        },
+        "required": ["tna"],
+        "x-examples": {
+          "Example 1": {
+            "montoMinimo": null,
+            "montoMaximo": 999999,
+            "plazoMinDias": 30,
+            "plazoMaxDias": 44,
+            "tna": 0.23
+          }
+        }
+      },
+      "ProveedorPlazoFijoUvaPagoPeriodico": {
+        "title": "ProveedorPlazoFijoUvaPagoPeriodico",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador estable del proveedor",
+            "example": "bna"
+          },
+          "entidad": {
+            "type": "string",
+            "description": "Nombre de la entidad"
+          },
+          "logo": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL del logo de la entidad"
+          },
+          "tasas": {
+            "type": "array",
+            "description": "Tasas por rango de plazo",
+            "items": {
+              "$ref": "#/components/schemas/TasaPlazoFijoUvaPagoPeriodico"
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "id": "bna",
+            "entidad": "Banco de la NaciÃ³n Argentina",
+            "logo": "https://www.bna.com.ar/Content/img/logo-bna.png",
+            "tasas": [
+              {
+                "nombre": "PF TRAD.EN UVA CON PAGO INTERÃ‰S SUBPERÃODOS DE 30 DÃAS",
+                "plazoMinDias": 90,
+                "plazoMaxDias": 119,
+                "tna": 0.015,
+                "tea": 0.0151
+              }
+            ]
+          }
+        }
+      },
+      "TasaPlazoFijoUvaPagoPeriodico": {
+        "title": "TasaPlazoFijoUvaPagoPeriodico",
+        "type": "object",
+        "description": "Tasa para un rango de plazo dentro de un proveedor",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "description": "Nombre del tipo de plazo fijo"
+          },
+          "plazoMinDias": {
+            "type": "integer",
+            "description": "MÃ­nimo de dÃ­as del rango de plazo"
+          },
+          "plazoMaxDias": {
+            "type": "integer",
+            "description": "MÃ¡ximo de dÃ­as del rango de plazo"
+          },
+          "tna": {
+            "type": "number",
+            "description": "Tasa Nominal Anual",
+            "format": "float"
+          },
+          "tea": {
+            "type": "number",
+            "description": "Tasa Efectiva Anual",
+            "format": "float"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "nombre": "PF TRAD.EN UVA CON PAGO INTERÃ‰S SUBPERÃODOS DE 30 DÃAS",
+            "plazoMinDias": 90,
+            "plazoMaxDias": 119,
+            "tna": 0.015,
+            "tea": 0.0151
+          }
+        }
+      },
+      "ProveedorPlazoFijoPrecancelable": {
+        "title": "ProveedorPlazoFijoPrecancelable",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador estable del proveedor"
+          },
+          "entidad": {
+            "type": "string",
+            "description": "Nombre de la entidad"
+          },
+          "logo": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL del logo de la entidad"
+          },
+          "enlace": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de la fuente"
+          },
+          "canal": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canales publicados para constituir el plazo fijo"
+          },
+          "moneda": {
+            "type": "string",
+            "description": "Moneda de constituciÃ³n"
+          },
+          "plazoMinDias": {
+            "type": "integer",
+            "description": "Plazo mÃ­nimo en dÃ­as"
+          },
+          "plazoMaxDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Plazo mÃ¡ximo en dÃ­as"
+          },
+          "plazoPrecancelacionDias": {
+            "type": "integer",
+            "description": "DÃ­as mÃ­nimos para ejercer la precancelaciÃ³n"
+          },
+          "avisoPrecancelacionDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "DÃ­as hÃ¡biles de aviso previo para precancelar"
+          },
+          "montoMinimo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Monto mÃ­nimo de constituciÃ³n"
+          },
+          "montoMaximo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Monto mÃ¡ximo de constituciÃ³n"
+          },
+          "modalidad": {
+            "type": "string",
+            "nullable": true,
+            "description": "Modalidad publicada por la entidad"
+          },
+          "tna": {
+            "type": "number",
+            "nullable": true,
+            "format": "float",
+            "description": "Tasa Nominal Anual"
+          },
+          "tea": {
+            "type": "number",
+            "nullable": true,
+            "format": "float",
+            "description": "Tasa Efectiva Anual"
+          },
+          "tnaPrecancelacion": {
+            "type": "number",
+            "nullable": true,
+            "format": "float",
+            "description": "Tasa Nominal Anual aplicada ante precancelaciÃ³n"
+          },
+          "teaPrecancelacion": {
+            "type": "number",
+            "nullable": true,
+            "format": "float",
+            "description": "Tasa Efectiva Anual aplicada ante precancelaciÃ³n"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "id": "bna",
+            "entidad": "Banco de la NaciÃ³n Argentina",
+            "logo": "https://www.bna.com.ar/Content/img/logo-bna.png",
+            "enlace": "https://www.bna.com.ar/personas/plazofijoprecancelableuva",
+            "canal": "App BNA+, Home Banking y sucursales",
+            "moneda": "ARS",
+            "plazoMinDias": 180,
+            "plazoMaxDias": 370,
+            "plazoPrecancelacionDias": 30,
+            "avisoPrecancelacionDias": 5,
+            "montoMinimo": 1500,
+            "montoMaximo": 5000000,
+            "modalidad": "intransferible",
+            "tna": 0.01,
+            "tea": 0.01,
+            "tnaPrecancelacion": 0.83,
+            "teaPrecancelacion": 1.232
+          }
+        }
+      },
+      "TasaInteres": {
+        "title": "TasaInteres",
+        "type": "object",
+        "properties": {
+          "fecha": {
+            "type": "string"
+          },
+          "valor": {
+            "type": "number"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "Banco de la NaciÃ³n Argentina",
+            "tna": 123.45
+          }
+        }
+      },
+      "CuentaRemuneradaUsd": {
+        "title": "CuentaRemuneradaUsd",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "description": "Identificador de la entidad",
+            "example": "BNA"
+          },
+          "tasa": {
+            "type": "number",
+            "format": "float",
+            "description": "Tasa de rendimiento anual",
+            "example": 0.02
+          },
+          "tope": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Monto mÃ¡ximo en USD remunerado a esa tasa, o null si no hay tope o no se informÃ³"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "BNA",
+            "tasa": 0.006,
+            "tope": 10000
+          }
+        }
+      },
+      "Criptopeso": {
+        "title": "Criptopeso",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del criptopeso",
+            "example": "ARGt"
+          },
+          "entidad": {
+            "type": "string",
+            "description": "Nombre de la entidad que ofrece el criptopeso"
+          },
+          "tna": {
+            "type": "number",
+            "description": "Tasa Nominal Anual en porcentaje",
+            "format": "float"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "token": "ARGt",
+            "entidad": "Belo",
+            "tna": 0.25
+          }
+        }
+      },
+      "HipotecarioUvaTna": {
+        "title": "HipotecarioUvaTna",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "description": "Nombre del banco u oferente del crÃ©dito hipotecario UVA"
+          },
+          "nombreComercial": {
+            "type": "string",
+            "description": "Nombre comercial"
+          },
+          "tna": {
+            "type": "number",
+            "description": "Tasa Nominal Anual",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Detalle de condiciones",
+            "properties": {
+              "plazo_max_anios": {
+                "type": "integer",
+                "description": "Plazo mÃ¡ximo del prÃ©stamo en aÃ±os"
+              },
+              "relacion_cuota_ingreso": {
+                "type": "string",
+                "description": "RelaciÃ³n cuotaâ€“ingreso indicada en la fuente",
+                "example": "30%"
+              },
+              "financiamiento": {
+                "type": "string",
+                "description": "Porcentaje o condiciÃ³n de financiamiento"
+              }
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "BNA",
+            "nombreComercial": "BNA",
+            "tna": 0.06,
+            "metadata": {
+              "plazo_max_anios": 30,
+              "relacion_cuota_ingreso": "25%",
+              "financiamiento": "75%"
+            }
+          }
+        }
+      },
+      "PrestamoPersonal": {
+        "title": "PrestamoPersonal",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "description": "Identificador de la entidad",
+            "example": "MACRO"
+          },
+          "nombreComercial": {
+            "type": "string",
+            "description": "Nombre comercial de la entidad"
+          },
+          "producto": {
+            "type": "string",
+            "description": "Nombre del producto o lÃ­nea de prÃ©stamo"
+          },
+          "tna": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Tasa Nominal Anual",
+            "example": 0.79
+          },
+          "tea": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Tasa Efectiva Anual",
+            "example": 1.1492
+          },
+          "cftTna": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Costo Financiero Total expresado como TNA"
+          },
+          "cftTea": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Costo Financiero Total expresado como TEA",
+            "example": 1.5086
+          },
+          "tipoTasa": {
+            "type": "string",
+            "description": "Tipo de tasa",
+            "example": "fija"
+          },
+          "moneda": {
+            "type": "string",
+            "description": "Moneda del prÃ©stamo",
+            "example": "ARS"
+          },
+          "requiereCliente": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Si la oferta requiere ser cliente de la entidad o contratar un paquete"
+          },
+          "condiciones": {
+            "type": "string",
+            "nullable": true,
+            "description": "Condiciones comerciales resumidas",
+            "example": "Plan Sueldo"
+          },
+          "enlace": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de la landing oficial"
+          },
+          "vigenciaDesde": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Inicio de vigencia de la oferta"
+          },
+          "vigenciaHasta": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Fin de vigencia de la oferta"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Detalle adicional",
+            "additionalProperties": true,
+            "properties": {
+              "tasasPorPlazo": {
+                "type": "array",
+                "description": "Tasas por tramo de plazo en meses",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "plazoMinMeses": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "plazoMaxMeses": {
+                      "type": "integer",
+                      "example": 12
+                    },
+                    "tna": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 0.61
+                    },
+                    "tea": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 0.813
+                    },
+                    "cftTea": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 1.0468
+                    }
+                  }
+                }
+              },
+              "plazoMesesEjemplo": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Plazo del ejemplo representativo publicado por el banco",
+                "example": 60
+              },
+              "plazoMinMeses": {
+                "type": "integer",
+                "nullable": true,
+                "example": 1
+              },
+              "plazoMaxMeses": {
+                "type": "integer",
+                "nullable": true,
+                "example": 72
+              },
+              "fuentePdf": {
+                "type": "boolean",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "MACRO",
+            "nombreComercial": "Macro",
+            "producto": "PrÃ©stamo personal",
+            "tna": 0.79,
+            "tea": 1.1492,
+            "cftTna": null,
+            "cftTea": 1.5086,
+            "tipoTasa": "fija",
+            "moneda": "ARS",
+            "requiereCliente": true,
+            "condiciones": "Plan Sueldo",
+            "enlace": "https://www.macro.com.ar/personas/prestamos/personales",
+            "vigenciaDesde": "2026-05-04",
+            "vigenciaHasta": null,
+            "metadata": {
+              "fuentePdf": true,
+              "plazoMesesEjemplo": 60,
+              "plazoMinMeses": 1,
+              "plazoMaxMeses": 72,
+              "tasasPorPlazo": [
+                {
+                  "plazoMinMeses": 1,
+                  "plazoMaxMeses": 12,
+                  "tna": 0.61,
+                  "tea": 0.813,
+                  "cftTea": 1.0468
+                }
+              ]
+            }
+          }
+        }
+      },
+      "PrestamoPersonalBcra": {
+        "title": "PrestamoPersonalBcra",
+        "type": "object",
+        "description": "Oferta de prÃ©stamo personal informada al BCRA",
+        "properties": {
+          "codigoEntidad": {
+            "type": "string",
+            "description": "CÃ³digo de entidad BCRA",
+            "example": "11"
+          },
+          "entidad": {
+            "type": "string",
+            "description": "Identificador de la entidad",
+            "example": "BNA"
+          },
+          "nombreComercial": {
+            "type": "string",
+            "description": "Nombre comercial de la entidad"
+          },
+          "producto": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre completo del prÃ©stamo personal"
+          },
+          "productoCorto": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre corto del prÃ©stamo personal"
+          },
+          "moneda": {
+            "type": "string",
+            "enum": ["ARS", "USD", "UVA"],
+            "description": "Moneda",
+            "example": "ARS"
+          },
+          "teaMax": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "TEA mÃ¡xima",
+            "example": 0.7286
+          },
+          "cftTeaMax": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Costo financiero efectivo total mÃ¡ximo",
+            "example": 0.9332
+          },
+          "tipoTasa": {
+            "type": "string",
+            "nullable": true,
+            "description": "Tipo de tasa",
+            "example": "fija"
+          },
+          "requiereCliente": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Si la oferta requiere ser cliente de la entidad"
+          },
+          "condiciones": {
+            "type": "string",
+            "nullable": true,
+            "description": "Condiciones / beneficiarios"
+          },
+          "vigenciaDesde": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Fecha de informaciÃ³n"
+          },
+          "enlace": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de la fuente"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Detalle adicional",
+            "additionalProperties": true,
+            "properties": {
+              "montoMin": {
+                "type": "integer",
+                "nullable": true
+              },
+              "montoMax": {
+                "type": "integer",
+                "nullable": true
+              },
+              "plazoMaxMeses": {
+                "type": "integer",
+                "nullable": true,
+                "example": 72
+              },
+              "ingresoMinMensual": {
+                "type": "integer",
+                "nullable": true
+              },
+              "antiguedadLaboralMinMeses": {
+                "type": "integer",
+                "nullable": true
+              },
+              "edadMax": {
+                "type": "integer",
+                "nullable": true
+              },
+              "afectacionIngresos": {
+                "type": "string",
+                "nullable": true,
+                "example": "35%"
+              },
+              "cargoCancelacionAnticipada": {
+                "type": "number",
+                "nullable": true,
+                "description": "Cargo mÃ¡ximo por cancelaciÃ³n anticipada",
+                "example": 0.04
+              },
+              "cuotaInicialPor10000": {
+                "type": "number",
+                "nullable": true
+              },
+              "territorio": {
+                "type": "string",
+                "nullable": true,
+                "example": "Todo el territorio nacional"
+              },
+              "notas": {
+                "type": "string",
+                "nullable": true
+              },
+              "fuente": {
+                "type": "string",
+                "enum": ["bcra-csv"]
+              }
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "codigoEntidad": "11",
+            "entidad": "BNA",
+            "nombreComercial": "BANCO DE LA NACION ARGENTINA",
+            "producto": "NACION SUELDOS TRAMO III",
+            "productoCorto": "NACION SUELDOS",
+            "moneda": "ARS",
+            "teaMax": 0.7286,
+            "cftTeaMax": 0.9332,
+            "tipoTasa": "fija",
+            "requiereCliente": true,
+            "condiciones": "Clientes que acrediten sueldos en la entidad",
+            "vigenciaDesde": "2026-08-10",
+            "enlace": "https://www.bcra.gob.ar/archivos/Pdfs/BCRAyVos/PERSONALES.CSV",
+            "metadata": {
+              "montoMin": 1000000,
+              "montoMax": 100000000,
+              "plazoMaxMeses": 72,
+              "ingresoMinMensual": 421284,
+              "antiguedadLaboralMinMeses": 3,
+              "edadMax": 74,
+              "afectacionIngresos": "35%",
+              "cargoCancelacionAnticipada": 0.04,
+              "cuotaInicialPor10000": 583,
+              "territorio": "Todo el territorio nacional",
+              "notas": null,
+              "fuente": "bcra-csv"
+            }
+          }
+        }
+      },
+      "FondoComunInversion": {
+        "title": "FondoComunInversion",
+        "type": "object",
+        "properties": {
+          "fondo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "vcp": {
+            "type": "number"
+          },
+          "ccp": {
+            "type": "number"
+          },
+          "patrimonio": {
+            "type": "number"
+          },
+          "horizonte": {
+            "type": "string",
+            "enum": ["corto", "medio", "largo"]
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fondo": "Fondo ComÃºn de InversiÃ³n",
+            "vcp": 123.45,
+            "ccp": 123.45,
+            "patrimonio": 123.45,
+            "horizonte": "corto"
+          }
+        }
+      },
+      "FondoComunInversionOtro": {
+        "title": "FondoComunInversionOtro",
+        "type": "object",
+        "properties": {
+          "fondo": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "tea": {
+            "type": "number"
+          },
+          "tna": {
+            "type": "number"
+          },
+          "tope": {
+            "type": "number"
+          },
+          "condiciones": {
+            "type": "string",
+            "nullable": true
+          },
+          "condicionesCorto": {
+            "type": "string",
+            "nullable": true
+          },
+          "plazoMinDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "MÃ­nimo de dÃ­as del rango de plazo"
+          },
+          "plazoMaxDias": {
+            "type": "integer",
+            "nullable": true,
+            "description": "MÃ¡ximo de dÃ­as del rango de plazo"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fondo": "Otro Fondo ComÃºn de InversiÃ³n",
+            "tea": 123.45,
+            "tna": 123.45,
+            "tope": 123.45
+          }
+        }
+      },
+      "Rendimiento": {
+        "title": "Rendimiento",
+        "type": "object",
+        "properties": {
+          "moneda": {
+            "type": "string"
+          },
+          "apy": {
+            "type": "number"
+          },
+          "fecha": {
+            "type": "string"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "moneda": "USDT",
+            "apy": 123.45,
+            "fecha": "2024-01-01"
+          }
+        }
+      },
+      "EntidadRendimiento": {
+        "title": "EntidadRendimiento",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string"
+          },
+          "rendimientos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Rendimiento"
+            }
+          }
+        }
+      },
+      "ActaSenado": {
+        "title": "ActaSenado",
+        "type": "object",
+        "properties": {
+          "actaId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "titulo": {
+            "type": "string",
+            "nullable": true
+          },
+          "proyecto": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "quorumTipo": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date"
+          },
+          "acta": {
+            "type": "string"
+          },
+          "mayoria": {
+            "type": "string"
+          },
+          "miembros": {
+            "type": "integer"
+          },
+          "afirmativos": {
+            "type": "integer"
+          },
+          "negativos": {
+            "type": "integer"
+          },
+          "abstenciones": {
+            "type": "integer"
+          },
+          "presentes": {
+            "type": "integer"
+          },
+          "ausentes": {
+            "type": "integer"
+          },
+          "amn": {
+            "type": "integer"
+          },
+          "resultado": {
+            "type": "string",
+            "enum": ["afirmativa", "negativa", "cancelada lev.vot."]
+          },
+          "votos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VotoData"
+            }
+          },
+          "observaciones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Senador": {
+        "title": "Senador",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "provincia": {
+            "type": "string"
+          },
+          "partido": {
+            "type": "string"
+          },
+          "bloque": {
+            "type": "string",
+            "nullable": true,
+            "description": "Bloque parlamentario actual (solo senadores vigentes). Distinto de partido/alianza electoral."
+          },
+          "periodoLegal": {
+            "type": "object",
+            "properties": {
+              "inicio": {
+                "type": "string",
+                "format": "date",
+                "nullable": true
+              },
+              "fin": {
+                "type": "string",
+                "format": "date",
+                "nullable": true
+              }
+            }
+          },
+          "periodoReal": {
+            "type": "object",
+            "properties": {
+              "inicio": {
+                "type": "string",
+                "format": "date",
+                "nullable": true
+              },
+              "fin": {
+                "type": "string",
+                "format": "date",
+                "nullable": true
+              }
+            }
+          },
+          "reemplazo": {
+            "type": "string",
+            "nullable": true
+          },
+          "observaciones": {
+            "type": "string",
+            "nullable": true
+          },
+          "foto": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "telefono": {
+            "type": "string",
+            "nullable": true
+          },
+          "redes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "meta": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "dieta": {
+                "type": "object",
+                "properties": {
+                  "renunciaAlAumento": {
+                    "type": "boolean"
+                  },
+                  "donacion": {
+                    "type": "boolean"
+                  },
+                  "aportesPartidarios": {
+                    "type": "boolean"
+                  },
+                  "fuente": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "actualizado": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "comisiones": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "nombre": {
+                      "type": "string"
+                    },
+                    "cargo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ComisionSenado": {
+        "title": "ComisionSenado",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "integrantes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nombre": {
+                  "type": "string"
+                },
+                "cargo": {
+                  "type": "string"
+                },
+                "camara": {
+                  "type": "string",
+                  "enum": ["senado", "diputados"],
+                  "nullable": true
+                },
+                "senadorId": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "PresidenciaSenado": {
+        "title": "PresidenciaSenado",
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Victoria Eugenia Villarruel"
+          },
+          "cargo": {
+            "type": "string",
+            "example": "Presidente del Senado de la NaciÃ³n"
+          },
+          "periodoInicio": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "periodoFin": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "foto": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "telefono": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "curriculum": {
+            "type": "string",
+            "nullable": true,
+            "description": "Texto del currÃ­culum si estÃ¡ publicado; null si no estÃ¡ disponible"
+          },
+          "fuente": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["nombre", "cargo", "fuente"]
+      },
+      "ViajesSenado": {
+        "title": "ViajesSenado",
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "format": "uri"
+          },
+          "actualizado": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "documentos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "ambito": {
+                  "type": "string",
+                  "enum": ["nacional", "internacional"]
+                },
+                "anio": {
+                  "type": "integer"
+                },
+                "mes": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "mesNombre": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "nacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeNacional"
+            }
+          },
+          "internacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeInternacional"
+            }
+          }
+        }
+      },
+      "ViajeNacional": {
+        "title": "ViajeNacional",
+        "type": "object",
+        "properties": {
+          "ambito": {
+            "type": "string",
+            "enum": ["nacional"]
+          },
+          "anio": {
+            "type": "integer"
+          },
+          "mes": {
+            "type": "integer"
+          },
+          "mesNombre": {
+            "type": "string"
+          },
+          "documentoId": {
+            "type": "string"
+          },
+          "documentoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "senadorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "origen": {
+            "type": "string"
+          },
+          "origenCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "destino": {
+            "type": "string"
+          },
+          "destinoCodigo": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ViajeInternacional": {
+        "title": "ViajeInternacional",
+        "type": "object",
+        "properties": {
+          "ambito": {
+            "type": "string",
+            "enum": ["internacional"]
+          },
+          "anio": {
+            "type": "integer"
+          },
+          "mes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "mesNombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentoId": {
+            "type": "string"
+          },
+          "documentoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "senadorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "expediente": {
+            "type": "string"
+          },
+          "destino": {
+            "type": "string"
+          },
+          "fechaInicio": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "fechaFin": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "fechaTexto": {
+            "type": "string",
+            "nullable": true
+          },
+          "asistenciaAlViajero": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "viaticos": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "viaticosUsd": {
+            "type": "number",
+            "nullable": true
+          },
+          "viaticosEuro": {
+            "type": "number",
+            "nullable": true
+          },
+          "viaticosArs": {
+            "type": "number",
+            "nullable": true
+          },
+          "motivo": {
+            "type": "string",
+            "nullable": true
+          },
+          "bloque": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SenadorViajes": {
+        "title": "SenadorViajes",
+        "type": "object",
+        "properties": {
+          "senadorId": {
+            "type": "string"
+          },
+          "nacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeNacional"
+            }
+          },
+          "internacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeInternacional"
+            }
+          }
+        }
+      },
+      "VotoData": {
+        "title": "VotoData",
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "voto": {
+            "type": "string",
+            "enum": [
+              "si",
+              "no",
+              "ausente",
+              "abstencion",
+              "no emite",
+              "desconocido"
+            ]
+          },
+          "banca": {
+            "type": "string"
+          }
+        }
+      },
+      "Diputado": {
+        "title": "Diputado",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "apellido": {
+            "type": "string"
+          },
+          "genero": {
+            "type": "string"
+          },
+          "provincia": {
+            "type": "string"
+          },
+          "periodoMandato": {
+            "type": "object",
+            "properties": {
+              "inicio": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "fin": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          },
+          "juramentoFecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ceseFecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bloque": {
+            "type": "string"
+          },
+          "periodoBloque": {
+            "type": "object",
+            "properties": {
+              "inicio": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "fin": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          },
+          "foto": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "PeriodoParlamentarioDiputados": {
+        "title": "PeriodoParlamentarioDiputados",
+        "type": "object",
+        "properties": {
+          "periodo": {
+            "type": "string",
+            "description": "NÃºmero de perÃ­odo (coincide con acta.periodo)"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date"
+          },
+          "fin": {
+            "type": "string",
+            "format": "date"
+          },
+          "sesiones": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "tramos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": ["ordinario", "extraordinario", "prorroga", "otro"]
+                },
+                "inicio": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "fin": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "sesiones": {
+                  "type": "string",
+                  "format": "date",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "PeriodosDiputados": {
+        "title": "PeriodosDiputados",
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "format": "uri"
+          },
+          "actualizado": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodoParlamentarioDiputados"
+            }
+          }
+        }
+      },
+      "ViajesDiputados": {
+        "title": "ViajesDiputados",
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "format": "uri"
+          },
+          "actualizado": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recursos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "anio": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "semestre": {
+                  "type": "integer",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "nacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeNacionalDiputado"
+            }
+          }
+        }
+      },
+      "ViajeNacionalDiputado": {
+        "title": "ViajeNacionalDiputado",
+        "type": "object",
+        "properties": {
+          "ambito": {
+            "type": "string",
+            "enum": ["nacional"]
+          },
+          "anio": {
+            "type": "integer"
+          },
+          "mes": {
+            "type": "integer"
+          },
+          "mesNombre": {
+            "type": "string"
+          },
+          "recursoId": {
+            "type": "string"
+          },
+          "recursoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "recursoNombre": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "diputadoId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoSolicitud": {
+            "type": "string",
+            "nullable": true
+          },
+          "origen": {
+            "type": "string"
+          },
+          "origenCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "destino": {
+            "type": "string"
+          },
+          "destinoCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "provincia": {
+            "type": "string",
+            "nullable": true
+          },
+          "bloque": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ViajesConteo12mDiputados": {
+        "title": "ViajesConteo12mDiputados",
+        "type": "object",
+        "properties": {
+          "ventanaMeses": {
+            "type": "integer"
+          },
+          "desde": {
+            "type": "object",
+            "properties": {
+              "anio": {
+                "type": "integer"
+              },
+              "mes": {
+                "type": "integer"
+              }
+            }
+          },
+          "hasta": {
+            "type": "object",
+            "properties": {
+              "anio": {
+                "type": "integer"
+              },
+              "mes": {
+                "type": "integer"
+              }
+            }
+          },
+          "actualizado": {
+            "type": "string"
+          },
+          "porDiputado": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "nacionales": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "DiputadoViajes": {
+        "title": "DiputadoViajes",
+        "type": "object",
+        "properties": {
+          "diputadoId": {
+            "type": "string"
+          },
+          "nacionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViajeNacionalDiputado"
+            }
+          }
+        }
+      },
+      "ComisionDiputados": {
+        "title": "ComisionDiputados",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoCodigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "grupo": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodoInicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodoFin": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaInicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaFin": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "integrantes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nombre": {
+                  "type": "string"
+                },
+                "cargo": {
+                  "type": "string"
+                },
+                "distrito": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "bloque": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "diputadoId": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "ActaDiputados": {
+        "title": "ActaDiputados",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "periodo": {
+            "type": "string"
+          },
+          "reunion": {
+            "type": "string"
+          },
+          "numeroActa": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "resultado": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "presidente": {
+            "type": "string"
+          },
+          "votosAfirmativos": {
+            "type": "integer"
+          },
+          "votosNegativos": {
+            "type": "integer"
+          },
+          "abstenciones": {
+            "type": "integer"
+          },
+          "ausentes": {
+            "type": "integer"
+          },
+          "votos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "diputado": {
+                  "type": "string"
+                },
+                "tipoVoto": {
+                  "type": "string",
+                  "enum": [
+                    "afirmativo",
+                    "negativo",
+                    "abstencion",
+                    "ausente",
+                    "presidente"
+                  ]
+                },
+                "imagen": {
+                  "type": "string"
+                },
+                "videoDiscurso": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "Presidente": {
+        "title": "Presidente",
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "inicio": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fecha de inicio del mandato (formato yyyy-MM-dd)"
+          },
+          "fin": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fecha de fin del mandato (formato yyyy-MM-dd). Null si es el presidente actual."
+          },
+          "partido": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodoPresidencial": {
+            "type": "string",
+            "nullable": true,
+            "description": "Rango de aÃ±os del perÃ­odo presidencial",
+            "example": "2019-2023"
+          },
+          "vicepresidente": {
+            "type": "string",
+            "nullable": true,
+            "description": "Nombre del vicepresidente. Puede ser 'Cargo inexistente' o 'vacante' en ciertos periodos."
+          },
+          "imagen": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL de la imagen del presidente"
+          },
+          "partidoImagen": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL de la imagen del logo del partido polÃ­tico"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "nombre": "Javier Milei",
+            "inicio": "2023-12-10",
+            "fin": null,
+            "partido": "La Libertad Avanza",
+            "periodoPresidencial": "2023-2027",
+            "vicepresidente": "Victoria Villarruel",
+            "imagen": "https://api.argentinadatos.com/static/presidentes/javier-milei.jpg",
+            "partidoImagen": "https://api.argentinadatos.com/static/partidos/la-libertad-avanza.png"
+          }
+        }
+      },
+      "Remesa": {
+        "title": "Remesa",
+        "type": "object",
+        "properties": {
+          "compania": {
+            "type": "string",
+            "description": "Nombre de la compaÃ±Ã­a/plataforma"
+          },
+          "cuentaPropia": {
+            "type": "boolean",
+            "description": "Indica si la plataforma tiene cuenta propia"
+          },
+          "moneda": {
+            "type": "string",
+            "enum": ["FIAT", "CRIPTO"],
+            "nullable": true,
+            "description": "Tipo de moneda que maneja la plataforma"
+          },
+          "inversiones": {
+            "type": "boolean",
+            "description": "Indica si permite inversiones"
+          },
+          "tarjetaUsa": {
+            "type": "boolean",
+            "description": "Indica si ofrece tarjeta emitida en EEUU"
+          },
+          "costoRecibirPagos": {
+            "type": "string",
+            "nullable": true,
+            "description": "Costo por recibir pagos",
+            "example": "0"
+          },
+          "costoMantenimientoTarjeta": {
+            "type": "string",
+            "nullable": true,
+            "description": "Costo de mantenimiento de tarjeta",
+            "example": "0 USD"
+          },
+          "costoTarjeta": {
+            "type": "string",
+            "nullable": true,
+            "description": "Costo de uso de tarjeta",
+            "example": "0%"
+          },
+          "retiroArs": {
+            "type": "string",
+            "nullable": true,
+            "description": "Costo de retiro en ARS",
+            "example": "0"
+          },
+          "detalles": {
+            "type": "object",
+            "nullable": true,
+            "description": "Aclaraciones o tooltips por columna cuando existan",
+            "properties": {
+              "cuentaPropia": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de cuenta propia"
+              },
+              "moneda": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de moneda"
+              },
+              "inversiones": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de inversiones"
+              },
+              "tarjetaUsa": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de tarjeta USA"
+              },
+              "costoRecibirPagos": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de costo por recibir pagos"
+              },
+              "costoMantenimientoTarjeta": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de costo de mantenimiento de tarjeta"
+              },
+              "costoTarjeta": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de costo de uso de tarjeta"
+              },
+              "retiroArs": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de retiro en ARS"
+              },
+              "calificacionAndroid": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de review Android"
+              },
+              "calificacionIos": {
+                "type": "string",
+                "nullable": true,
+                "description": "Detalle adicional de review iOS"
+              }
+            }
+          },
+          "calificacionAndroid": {
+            "type": "number",
+            "nullable": true,
+            "description": "Puntaje en Google Play Store"
+          },
+          "calificacionIos": {
+            "type": "number",
+            "nullable": true,
+            "description": "Puntaje en App Store"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "compania": "DolarApp",
+            "cuentaPropia": true,
+            "moneda": "FIAT",
+            "inversiones": true,
+            "tarjetaUsa": false,
+            "costoRecibirPagos": "1%",
+            "costoMantenimientoTarjeta": "0 USD",
+            "costoTarjeta": "0%",
+            "retiroArs": "1%",
+            "detalles": {
+              "costoRecibirPagos": "Para ACH es 0, para wire domÃ©stica es 25 USD y swift 35 USD"
+            },
+            "calificacionAndroid": 4.5,
+            "calificacionIos": 4.7
+          }
+        }
+      },
+      "Remesas": {
+        "title": "Remesas",
+        "type": "object",
+        "required": ["fechaActualizacion", "remesas"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante en que se generÃ³ el recurso (UTC, ISO 8601)"
+          },
+          "remesas": {
+            "type": "array",
+            "description": "Filas de la tabla comparativa de plataformas de cobro",
+            "items": {
+              "$ref": "#/components/schemas/Remesa"
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fechaActualizacion": "2026-05-13T18:47:54.000Z",
+            "remesas": [
+              {
+                "compania": "DolarApp",
+                "cuentaPropia": true,
+                "moneda": "FIAT",
+                "inversiones": true,
+                "tarjetaUsa": false,
+                "costoRecibirPagos": "1%",
+                "costoMantenimientoTarjeta": "0 USD",
+                "costoTarjeta": "0%",
+                "retiroArs": "1%",
+                "detalles": {
+                  "costoRecibirPagos": "Para ACH es 0, para wire domÃ©stica es 25 USD y swift 35 USD"
+                },
+                "calificacionAndroid": 4.5,
+                "calificacionIos": 4.7
+              }
+            ]
+          }
+        }
+      },
+      "RemExpectativa": {
+        "title": "RemExpectativa",
+        "type": "object",
+        "properties": {
+          "informe": {
+            "type": "string",
+            "description": "Informe REM en formato YYYY-MM"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha ISO del primer dÃ­a del mes del informe"
+          },
+          "muestra": {
+            "type": "string",
+            "enum": ["todos", "top_10"],
+            "description": "Muestra de participantes: todos o TOP 10"
+          },
+          "indicador": {
+            "type": "string",
+            "description": "Indicador relevado"
+          },
+          "periodo": {
+            "type": "string",
+            "description": "PerÃ­odo original informado por el BCRA"
+          },
+          "periodoTipo": {
+            "type": "string",
+            "description": "Tipo de perÃ­odo normalizado"
+          },
+          "periodoDesde": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Fecha de inicio del perÃ­odo normalizado"
+          },
+          "periodoHasta": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Fecha de fin del perÃ­odo normalizado"
+          },
+          "referencia": {
+            "type": "string",
+            "description": "Referencia original de la tabla"
+          },
+          "referenciaFecha": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "Fecha detectada en la referencia, si corresponde"
+          },
+          "unidad": {
+            "type": "string",
+            "nullable": true,
+            "description": "Unidad inferida desde la referencia"
+          },
+          "mediana": {
+            "type": "number",
+            "nullable": true
+          },
+          "promedio": {
+            "type": "number",
+            "nullable": true
+          },
+          "desvio": {
+            "type": "number",
+            "nullable": true
+          },
+          "maximo": {
+            "type": "number",
+            "nullable": true
+          },
+          "minimo": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentil90": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentil75": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentil25": {
+            "type": "number",
+            "nullable": true
+          },
+          "percentil10": {
+            "type": "number",
+            "nullable": true
+          },
+          "participantes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "fuente": {
+            "type": "string"
+          },
+          "publicacionUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "xlsxUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "informe": "2026-03",
+            "fecha": "2026-03-01",
+            "muestra": "todos",
+            "indicador": "Precios minoristas (IPC nivel general-Nacional; INDEC)",
+            "periodo": "Mar-26",
+            "periodoTipo": "mensual",
+            "periodoDesde": "2026-03-01",
+            "periodoHasta": "2026-03-31",
+            "referencia": "var. % mensual",
+            "referenciaFecha": null,
+            "unidad": "var. % mensual",
+            "mediana": 3,
+            "promedio": 3,
+            "desvio": 0.2,
+            "maximo": 3.5,
+            "minimo": 2.5,
+            "percentil90": 3.2,
+            "percentil75": 3.1,
+            "percentil25": 2.9,
+            "percentil10": 2.8,
+            "participantes": 46,
+            "fuente": "BCRA REM",
+            "publicacionUrl": "https://www.bcra.gob.ar/publicaciones/relevamiento-de-expectativas-de-mercado-rem-marzo-de-2026/",
+            "xlsxUrl": "https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/informes/tablas-relevamiento-expectativas-mercado-mar-2026.xlsx"
+          }
+        }
+      },
+      "RendimientosHistoricoFondo": {
+        "title": "RendimientosHistoricoFondo",
+        "type": "object",
+        "description": "Retornos de perÃ­odo en % (planilla CNV Cuotapartes), no TNA anualizada. `unMes`/`enElAnio`/`doceMeses` salen de las columnas de variaciÃ³n del Excel; `ultimos7Dias` se estima desde VCP histÃ³rico cuando hay datos.",
+        "properties": {
+          "valorCuotaparte": {
+            "type": "number",
+            "nullable": true
+          },
+          "variacionDiariaPct": {
+            "type": "number",
+            "nullable": true,
+            "description": "VariaciÃ³n diaria de la cuotaparte en % (columna Variac. % del Excel CNV)"
+          },
+          "ultimos7Dias": {
+            "type": "number",
+            "nullable": true
+          },
+          "unMes": {
+            "type": "number",
+            "nullable": true
+          },
+          "noventaDias": {
+            "type": "number",
+            "nullable": true
+          },
+          "cientoOchentaDias": {
+            "type": "number",
+            "nullable": true
+          },
+          "enElAnio": {
+            "type": "number",
+            "nullable": true
+          },
+          "doceMeses": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "ComposicionCarteraItem": {
+        "title": "ComposicionCarteraItem",
+        "type": "object",
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "porcentaje": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "CalificacionFondo": {
+        "title": "CalificacionFondo",
+        "type": "object",
+        "properties": {
+          "calificadora": {
+            "type": "string",
+            "nullable": true
+          },
+          "calificacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "fecha": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "HonorariosFondo": {
+        "title": "HonorariosFondo",
+        "type": "object",
+        "properties": {
+          "honorarioGerente": {
+            "type": "number",
+            "nullable": true
+          },
+          "honorarioDepositaria": {
+            "type": "number",
+            "nullable": true
+          },
+          "comisionIngreso": {
+            "type": "number",
+            "nullable": true
+          },
+          "comisionEgreso": {
+            "type": "number",
+            "nullable": true
+          },
+          "comisionTransferencia": {
+            "type": "number",
+            "nullable": true
+          },
+          "gastosOrdinariosGestion": {
+            "type": "number",
+            "nullable": true
+          },
+          "comisionExito": {
+            "type": "number",
+            "nullable": true
+          },
+          "otros": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "SociedadFondo": {
+        "title": "SociedadFondo",
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "FondoDetalle": {
+        "title": "FondoDetalle",
+        "type": "object",
+        "properties": {
+          "fondoId": {
+            "type": "string",
+            "description": "Identificador del fondo"
+          },
+          "claseId": {
+            "type": "string",
+            "description": "Identificador de la clase del fondo"
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre del fondo"
+          },
+          "fecha": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fecha de actualizaciÃ³n de la informaciÃ³n (ISO 8601)"
+          },
+          "tipoRenta": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoDD": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "benchmark": {
+            "type": "string",
+            "nullable": true
+          },
+          "horizonte": {
+            "type": "string",
+            "nullable": true
+          },
+          "duracion": {
+            "type": "string",
+            "nullable": true
+          },
+          "moneda": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoCNV": {
+            "type": "string",
+            "nullable": true
+          },
+          "administradora": {
+            "type": "string",
+            "nullable": true
+          },
+          "depositaria": {
+            "type": "string",
+            "nullable": true
+          },
+          "patrimonio": {
+            "type": "number",
+            "nullable": true
+          },
+          "inversionMinima": {
+            "type": "number",
+            "nullable": true
+          },
+          "monedaInversion": {
+            "type": "string",
+            "nullable": true
+          },
+          "plazoLiquidacionDias": {
+            "type": "integer",
+            "nullable": true
+          },
+          "rendimientos": {
+            "$ref": "#/components/schemas/RendimientosHistoricoFondo"
+          },
+          "composicionCartera": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComposicionCarteraItem"
+            }
+          },
+          "calificaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalificacionFondo"
+            }
+          },
+          "honorarios": {
+            "$ref": "#/components/schemas/HonorariosFondo"
+          },
+          "sociedades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SociedadFondo"
+            }
+          }
+        }
+      },
+      "FondosDetalles": {
+        "title": "FondosDetalles",
+        "type": "object",
+        "required": ["fechaActualizacion", "fondos"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante en que se generÃ³ el recurso (UTC, ISO 8601)"
+          },
+          "fondos": {
+            "type": "array",
+            "description": "Detalles de todos los fondos",
+            "items": {
+              "$ref": "#/components/schemas/FondoDetalle"
+            }
+          }
+        }
+      },
+      "FondoHistoricoSerieItem": {
+        "title": "FondoHistoricoSerieItem",
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "fondoId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Identificador del fondo"
+          },
+          "claseId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Identificador de la clase del fondo"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "categoria": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoriaKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "horizonte": {
+            "type": "string",
+            "nullable": true
+          },
+          "valorCuotaparte": {
+            "type": "number",
+            "nullable": true
+          },
+          "patrimonio": {
+            "type": "number",
+            "nullable": true
+          },
+          "retornoDiario": {
+            "type": "number",
+            "nullable": true
+          },
+          "retornoAcumulado": {
+            "type": "number",
+            "nullable": true
+          },
+          "flujoEstimado": {
+            "type": "number",
+            "nullable": true
+          },
+          "origen": {
+            "type": "string"
+          }
+        }
+      },
+      "FondoHistorico": {
+        "title": "FondoHistorico",
+        "type": "object",
+        "required": [
+          "fondoId",
+          "claseId",
+          "nombre",
+          "fechaActualizacion",
+          "historico"
+        ],
+        "properties": {
+          "fondoId": {
+            "type": "string"
+          },
+          "claseId": {
+            "type": "string"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "historico": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FondoHistoricoSerieItem"
+            }
+          }
+        }
+      },
+      "MisionOficialDiputado": {
+        "title": "MisionOficialDiputado",
+        "type": "object",
+        "properties": {
+          "anio": {
+            "type": "integer"
+          },
+          "mes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "mesNombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "recursoId": {
+            "type": "string"
+          },
+          "recursoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "recursoNombre": {
+            "type": "string"
+          },
+          "documentoId": {
+            "type": "string"
+          },
+          "documentoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "diputadoId": {
+            "type": "string",
+            "nullable": true
+          },
+          "destino": {
+            "type": "string"
+          },
+          "fechaInicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaFin": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaTexto": {
+            "type": "string",
+            "nullable": true
+          },
+          "institucion": {
+            "type": "string",
+            "nullable": true
+          },
+          "viaticos": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "viaticosUsd": {
+            "type": "number",
+            "nullable": true
+          },
+          "viaticosEuro": {
+            "type": "number",
+            "nullable": true
+          },
+          "viaticosArs": {
+            "type": "number",
+            "nullable": true
+          },
+          "motivo": {
+            "type": "string",
+            "nullable": true
+          },
+          "bloque": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MisionesDiputados": {
+        "title": "MisionesDiputados",
+        "type": "object",
+        "properties": {
+          "fuente": {
+            "type": "string",
+            "format": "uri"
+          },
+          "actualizado": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recursos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "misiones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MisionOficialDiputado"
+            }
+          }
+        }
+      },
+      "DiputadoMisiones": {
+        "title": "DiputadoMisiones",
+        "type": "object",
+        "properties": {
+          "diputadoId": {
+            "type": "string"
+          },
+          "misiones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MisionOficialDiputado"
+            }
+          }
+        }
+      },
+      "ComisionCobro": {
+        "title": "ComisionCobro",
+        "type": "object",
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "description": "Slug estable de la entidad",
+            "example": "getnet"
+          },
+          "nombreComercial": {
+            "type": "string",
+            "description": "Nombre para mostrar",
+            "example": "Getnet"
+          },
+          "producto": {
+            "type": "string",
+            "description": "Etiqueta humana del producto",
+            "example": "DÃ©bito"
+          },
+          "canal": {
+            "type": "string",
+            "enum": ["pos", "qr", "link", "checkout", "online", "otro"],
+            "description": "Canal de cobro"
+          },
+          "medioPago": {
+            "type": "string",
+            "enum": [
+              "debito",
+              "credito",
+              "credito_cuotas",
+              "qr_cuenta",
+              "prepaga",
+              "amex",
+              "otro"
+            ],
+            "description": "Medio de pago"
+          },
+          "arancel": {
+            "type": "number",
+            "nullable": true,
+            "description": "Arancel en decimal",
+            "example": 0.0153
+          },
+          "arancelEsTope": {
+            "type": "boolean",
+            "description": "Si el arancel es un tope (hasta X%)"
+          },
+          "incluyeIva": {
+            "type": "boolean",
+            "description": "Si el porcentaje ya incluye IVA"
+          },
+          "ivaAdicional": {
+            "type": "boolean",
+            "description": "Si se suma IVA al arancel"
+          },
+          "acreditacionTipo": {
+            "type": "string",
+            "enum": ["inmediata", "anticipada", "estandar", "desconocida"],
+            "description": "Tipo de acreditaciÃ³n"
+          },
+          "acreditacionPlazoHabiles": {
+            "type": "number",
+            "nullable": true,
+            "description": "Plazo en dÃ­as hÃ¡biles",
+            "example": 1
+          },
+          "acreditacionLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Etiqueta legible del plazo"
+          },
+          "moneda": {
+            "type": "string",
+            "example": "ARS"
+          },
+          "condiciones": {
+            "type": "string",
+            "nullable": true,
+            "description": "Notas o footnotes"
+          },
+          "enlace": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "description": "URL de la fuente"
+          },
+          "vigenciaDesde": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "vigenciaHasta": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Campos adicionales (fuenteUrl, grupoProvincial, etc.)"
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "entidad": "getnet",
+            "nombreComercial": "Getnet",
+            "producto": "DÃ©bito",
+            "canal": "pos",
+            "medioPago": "debito",
+            "arancel": 0.0153,
+            "arancelEsTope": true,
+            "incluyeIva": false,
+            "ivaAdicional": true,
+            "acreditacionTipo": "inmediata",
+            "acreditacionPlazoHabiles": 0,
+            "acreditacionLabel": "AcreditaciÃ³n inmediata",
+            "moneda": "ARS",
+            "condiciones": null,
+            "enlace": "https://www.getnet.net/ar/aranceles",
+            "vigenciaDesde": null,
+            "vigenciaHasta": null,
+            "metadata": {
+              "fuenteUrl": "https://www.getnet.net/ar/aranceles"
+            }
+          }
+        }
+      },
+      "ComisionesCobro": {
+        "title": "ComisionesCobro",
+        "type": "object",
+        "required": ["fechaActualizacion", "comisiones"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante en que se generÃ³ el recurso (UTC, ISO 8601)"
+          },
+          "comisiones": {
+            "type": "array",
+            "description": "Filas comparables de comisiones de cobro",
+            "items": {
+              "$ref": "#/components/schemas/ComisionCobro"
+            }
+          }
+        },
+        "x-examples": {
+          "Example 1": {
+            "fechaActualizacion": "2026-08-12T21:23:23.281Z",
+            "comisiones": [
+              {
+                "entidad": "getnet",
+                "nombreComercial": "Getnet",
+                "producto": "DÃ©bito",
+                "canal": "pos",
+                "medioPago": "debito",
+                "arancel": 0.0153,
+                "arancelEsTope": true,
+                "incluyeIva": false,
+                "ivaAdicional": true,
+                "acreditacionTipo": "inmediata",
+                "acreditacionPlazoHabiles": 0,
+                "acreditacionLabel": "AcreditaciÃ³n inmediata",
+                "moneda": "ARS",
+                "condiciones": null,
+                "enlace": "https://www.getnet.net/ar/aranceles",
+                "vigenciaDesde": null,
+                "vigenciaHasta": null,
+                "metadata": {
+                  "fuenteUrl": "https://www.getnet.net/ar/aranceles"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ComisionBroker": {
+        "title": "ComisionBroker",
+        "type": "object",
+        "required": [
+          "entidad",
+          "nombreComercial",
+          "producto",
+          "operacion",
+          "moneda",
+          "canal",
+          "tasa",
+          "tasaBase",
+          "tasaAnualEquivalente",
+          "tasaEsTope"
+        ],
+        "properties": {
+          "entidad": {
+            "type": "string",
+            "description": "Slug del broker"
+          },
+          "nombreComercial": {
+            "type": "string"
+          },
+          "producto": {
+            "type": "string",
+            "description": "Slug estable del instrumento comparable",
+            "enum": [
+              "acciones",
+              "cedears",
+              "bonos",
+              "obligaciones_negociables",
+              "letras",
+              "cauciones",
+              "opciones",
+              "futuros",
+              "fci",
+              "cheques",
+              "licitaciones",
+              "alquiler_titulos"
+            ],
+            "example": "cauciones"
+          },
+          "operacion": {
+            "type": "string",
+            "enum": ["colocadora", "tomadora", "compra", "venta", "ambas"]
+          },
+          "moneda": {
+            "type": "string",
+            "enum": ["ARS", "USD"]
+          },
+          "canal": {
+            "type": "string",
+            "example": "web"
+          },
+          "plan": {
+            "type": ["string", "null"]
+          },
+          "tasa": {
+            "type": ["number", "null"]
+          },
+          "tasaBase": {
+            "type": ["string", "null"],
+            "enum": ["mensual", "anual", "tna", null]
+          },
+          "tasaAnualEquivalente": {
+            "type": ["number", "null"]
+          },
+          "tasaEsTope": {
+            "type": "boolean"
+          },
+          "incluyeIva": {
+            "type": "boolean"
+          },
+          "ivaAdicional": {
+            "type": "boolean"
+          },
+          "prorrateoDias": {
+            "type": ["integer", "null"]
+          },
+          "comisionMinima": {
+            "type": ["number", "null"]
+          },
+          "membresiaMensual": {
+            "type": ["number", "null"],
+            "description": "Costo fijo de membresÃ­a/plan en la moneda de la fila (tÃ­picamente mensual). Null si no aplica. No es comisiÃ³n por operaciÃ³n.",
+            "example": 5000
+          },
+          "membresiaIvaAdicional": {
+            "type": "boolean",
+            "description": "Si a membresiaMensual hay que sumar IVA.",
+            "default": false
+          },
+          "derechoMercado": {
+            "type": ["number", "null"]
+          },
+          "enlace": {
+            "type": ["string", "null"],
+            "format": "uri"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ComisionesBrokers": {
+        "title": "ComisionesBrokers",
+        "type": "object",
+        "required": ["fechaActualizacion", "comisiones"],
+        "properties": {
+          "fechaActualizacion": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "comisiones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComisionBroker"
+            }
+          },
+          "erroresExtraccion": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fuente": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
