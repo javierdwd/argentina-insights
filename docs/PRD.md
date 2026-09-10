@@ -51,7 +51,7 @@ What exists:
 
 - Primary user: retail saver, civic/journalist, both, or power-user analyst.
 - MVP: one end-to-end flow + command bar + schema renderer, vs. a broader first cut.
-- Compact catalog format for the LLM (derived from the OpenAPI).
+- ~~Compact catalog format for the LLM (derived from the OpenAPI).~~ **Decided:** compact in-memory catalog derived from `openapi.json` at startup; domain-filtered subset injected into the system prompt each turn; single `fetch_argentinadatos` tool. No RAG, no per-endpoint tools. See `agent/src/agent/catalog.py` and `agent/src/agent/tools/fetch.py`.
 
 ## 5. Generative UI — abstraction & charts
 
