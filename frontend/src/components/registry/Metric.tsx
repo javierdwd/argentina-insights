@@ -1,6 +1,6 @@
 import { formatDelta, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { MetricProps } from "@/lib/uitree";
+import type { MetricProps } from "./Metric.schema";
 
 const TREND_CLASS: Record<string, string> = {
   up: "text-trend-up",
