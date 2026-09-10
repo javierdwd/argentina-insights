@@ -9,7 +9,7 @@ Two domains, one API:
 
 The product goal is to **cross, compare, and explain** (e.g. a time deposit vs REM inflation; a legislator's commissions and trips on one timeline).
 
-Product requirements: [`docs/PRD.md`](docs/PRD.md) · Use cases: [`docs/use-cases.md`](docs/use-cases.md)
+Product requirements: [`docs/PRD.md`](docs/PRD.md) · Use cases: [`docs/use-cases.md`](docs/use-cases.md) · UX interaction: [`docs/ux-interaction.md`](docs/ux-interaction.md)
 
 ---
 

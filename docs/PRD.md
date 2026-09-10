@@ -15,6 +15,7 @@ See [`README.md`](../README.md) for the product pitch, stack, and repo layout.
 
 - A central **command bar** (`Cmd + K`) is the main entry point for queries and actions.
 - The UI suggests **contextual follow-ups** from what is on screen (e.g. after a FX series or a rate, offer a comparison or a projection).
+- Interaction model (command-only default, query registry + compact summaries backlog): [`ux-interaction.md`](ux-interaction.md).
 
 ### 2.2 Generative UI
 
