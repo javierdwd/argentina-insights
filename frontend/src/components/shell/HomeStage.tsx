@@ -2,55 +2,61 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
-import { CommandBar } from "./CommandBar";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
 interface HomeStageProps {
-  /** Pre-rendered generative UI (e.g. DynamicRenderer output). */
-  children: ReactNode;
+  /** CopilotChat panel rendered in the right column. */
+  chat: ReactNode;
+  /** Generative UI widgets rendered in the left stage area (optional). */
+  stage?: ReactNode;
 }
 
 /**
- * Cold bulletin shell — asymmetric brand + command + response stage.
+ * Two-column shell: brand + stage (left) · chat panel (right).
+ *
+ * Desktop: 50/50 grid, full viewport height.
+ * Mobile:  stacked — compact brand, then chat.
  */
-export function HomeStage({ children }: HomeStageProps) {
+export function HomeStage({ chat, stage }: HomeStageProps) {
   const reduce = useReducedMotion();
 
   return (
-    <main className="relative flex min-h-[100dvh] flex-col bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 py-16 md:px-8 md:py-20 lg:px-10">
-        <div className="grid grid-cols-1 items-end gap-12 md:grid-cols-2 md:gap-16 lg:gap-24">
-          {/* Brand column */}
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: EASE }}
-            className="max-w-md"
-          >
-            <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-              Argentina Insights
-            </h1>
-            <p className="mt-4 max-w-[36ch] text-base leading-relaxed text-muted-foreground md:text-lg">
-              Preguntá en lenguaje natural. El agente arma la vista.
+    <main className="flex min-h-[100dvh] flex-col md:grid md:grid-cols-2">
+      {/* ── Left column: brand + stage ─────────────────────────────────── */}
+      <div className="flex flex-col justify-between px-8 py-10 md:px-12 md:py-14 lg:px-16">
+        {/* Brand */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE }}
+        >
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+            Argentina Insights
+          </h1>
+          <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+            Preguntá en lenguaje natural. El agente arma la vista.
+          </p>
+        </motion.div>
+
+        {/* Stage area — empty for now, widgets land here */}
+        <motion.div
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
+          className="mt-10 flex-1 md:mt-12"
+        >
+          {stage ?? (
+            <p className="text-xs text-muted-foreground/50 select-none">
+              La vista aparece acá.
             </p>
-          </motion.div>
+          )}
+        </motion.div>
+      </div>
 
-          {/* Interaction + response stage */}
-          <div className="flex flex-col gap-10">
-            <CommandBar />
-
-            <motion.div
-              initial={reduce ? false : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: EASE, delay: 0.16 }}
-              className="space-y-1"
-            >
-              <p className="text-xs text-muted-foreground">Respuesta de muestra</p>
-              {children}
-            </motion.div>
-          </div>
-        </div>
+      {/* ── Right column: chat ─────────────────────────────────────────── */}
+      <div className="flex h-[70dvh] flex-col border-t border-border md:h-[100dvh] md:border-l md:border-t-0">
+        {chat}
       </div>
     </main>
   );

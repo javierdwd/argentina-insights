@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Source_Sans_3 } from "next/font/google";
 import { Providers } from "./providers";
+import "@copilotkit/react-core/v2/styles.css";
 import "./globals.css";
 
 const outfit = Outfit({
