@@ -109,6 +109,9 @@ importers:
 
   .:
     dependencies:
+      '@ag-ui/client':
+        specifier: ^0.0.59
+        version: 0.0.59
       '@copilotkit/react-core':
         specifier: 1.71.0
         version: 1.71.0(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@7.2.0)(zod@4.6.1))(@types/mdast@4.0.4)(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(graphql@16.14.2)(micromark-util-types@2.0.2)(micromark@4.0.2(supports-color@7.2.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@7.2.0)(zod@4.6.1)
