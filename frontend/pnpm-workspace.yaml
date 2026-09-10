@@ -1,0 +1,14 @@
+allowBuilds:
+  '@scarf/scarf': false
+  sharp: false
+  unrs-resolver: false
+minimumReleaseAgeExclude:
+  - '@copilotkit/a2ui-renderer@1.71.0'
+  - '@copilotkit/core@1.71.0'
+  - '@copilotkit/react-core@1.71.0'
+  - '@copilotkit/runtime-client-gql@1.71.0'
+  - '@copilotkit/shared@1.71.0'
+  - '@copilotkit/web-components@1.71.0'
+  - '@copilotkit/web-inspector@1.71.0'
+  - zod@4.6.1
+  - '@copilotkit/runtime@1.71.0'
