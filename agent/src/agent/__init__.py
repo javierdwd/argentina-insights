@@ -1,0 +1,1 @@
+"""Argentina Insights agent package."""
