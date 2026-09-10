@@ -2,6 +2,8 @@ import type { ComponentType } from "react";
 import type { z } from "zod";
 import { Metric } from "./Metric";
 import { MetricNodeSchema } from "./Metric.schema";
+import { Text } from "./Text";
+import { TextNodeSchema } from "./Text.schema";
 
 /**
  * Component registry — map UITree `type` → React component.
@@ -10,6 +12,7 @@ import { MetricNodeSchema } from "./Metric.schema";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const REGISTRY: Record<string, ComponentType<any>> = {
   Metric,
+  Text,
 };
 
 /**
@@ -17,4 +20,5 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
  */
 export const NODE_SCHEMAS = {
   Metric: MetricNodeSchema,
+  Text: TextNodeSchema,
 } as const satisfies Record<string, z.ZodType>;
