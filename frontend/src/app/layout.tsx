@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, Source_Sans_3 } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const sourceSans = Source_Sans_3({
+  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Argentina Insights",
-  description: "Agent-driven Argentine public data — finance & politics.",
+  description: "Ask in plain language. The agent composes the view.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${sourceSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>
