@@ -12,7 +12,7 @@ Flow:
 
 from __future__ import annotations
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -50,11 +50,50 @@ def _system_message(query_type: str) -> SystemMessage:
     return SystemMessage(content=content)
 
 
+def _clean_history(messages: list) -> list:
+    """Strip tool-call/tool-result messages from client-echoed conversation history.
+
+    The client echoes back the full ag-ui message list on every run, which
+    includes internal LangGraph messages (AIMessage with tool_calls, ToolMessage).
+    Sending those to a fresh LLM call confuses the model and causes OpenAI 400
+    errors ("tool_calls must be followed by tool messages").
+
+    Strategy:
+    - Everything *from* the last HumanMessage onward is the CURRENT run's context
+      (the user's new question, plus any tool-call/tool-result turns the graph
+      accumulated in this same run).  Leave it untouched.
+    - Everything *before* the last HumanMessage is PRIOR-TURN history.  Keep only
+      HumanMessages and text-only AIMessages (drop AIMessages with tool_calls and
+      all ToolMessages — those are implementation details the LLM needn't see).
+    """
+    last_human = next(
+        (i for i in range(len(messages) - 1, -1, -1) if isinstance(messages[i], HumanMessage)),
+        -1,
+    )
+    if last_human <= 0:
+        return messages
+
+    history = messages[:last_human]
+    current = messages[last_human:]
+
+    clean = [
+        m for m in history
+        if isinstance(m, HumanMessage)
+        or (isinstance(m, AIMessage) and not m.tool_calls and m.content)
+    ]
+    return clean + current
+
+
 # ── Nodes ─────────────────────────────────────────────────────────────────────
 
 
 def classify_node(state: AgentState) -> dict:
-    """Classify the user query domain using the fast (cheap) model."""
+    """Classify the user query domain using the fast (cheap) model.
+
+    The ``emit-messages: False`` metadata flag suppresses TEXT_MESSAGE events
+    for this internal LLM call so the classification label ("finance", "politics",
+    etc.) never reaches the client as an assistant message.
+    """
     llm = get_model("fast")
     response = llm.invoke(
         [
@@ -63,8 +102,9 @@ def classify_node(state: AgentState) -> dict:
                 "Classify the user query into exactly one word: "
                 "finance, politics, or unknown.",
             ),
-            *state["messages"],
-        ]
+            *_clean_history(state["messages"]),
+        ],
+        config={"metadata": {"emit-messages": False}},
     )
     return {"query_type": response.content.strip().lower()}
 
@@ -83,7 +123,7 @@ def respond_node(state: AgentState) -> dict:
     response = llm_with_tools.invoke(
         [
             _system_message(query_type),
-            *state["messages"],
+            *_clean_history(state["messages"]),
         ]
     )
     return {"messages": [response]}

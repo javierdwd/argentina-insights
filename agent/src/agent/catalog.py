@@ -40,10 +40,11 @@ _MAX_ENUM_SIZE = 12
 @dataclass
 class Param:
     name: str
-    location: str  # "path" | "query" | "header"
+    location: str  # "path" | "query" | "header" | "client"
     required: bool
     type: str  # "string" | "integer" | "number" | "boolean"
     enum: list[str] | None = None
+    example: str | None = None
 
     def to_dict(self) -> dict:
         d: dict = {
@@ -54,6 +55,8 @@ class Param:
         }
         if self.enum:
             d["enum"] = self.enum
+        if self.example:
+            d["example"] = self.example
         return d
 
 
@@ -125,6 +128,8 @@ class Catalog:
                     if len(p.enum) > _MAX_ENUM_SIZE:
                         joined += "|…"
                     s += f"[{joined}]"
+                elif p.example:
+                    s += f"[{p.example}]"
                 elif p.type != "string":
                     s += f"[{p.type}]"
                 param_parts.append(s)
@@ -162,12 +167,14 @@ def _parse_param(raw: dict) -> Param:
     schema = raw.get("schema", {})
     type_ = schema.get("type", "string")
     enum = schema.get("enum")
+    example = raw.get("example")
     return Param(
         name=raw["name"],
         location=raw.get("in", "query"),
         required=bool(raw.get("required", False)),
         type=type_,
         enum=[str(e) for e in enum] if enum else None,
+        example=str(example) if example is not None else None,
     )
 
 
@@ -192,7 +199,29 @@ def _load_catalog(openapi_path: Path = _OPENAPI_PATH) -> Catalog:
             )
         )
 
-    return Catalog(ops)
+    result = Catalog(ops)
+
+    # Inject synthetic client-side date params for filterable endpoints.
+    # ``location="client"`` marks them as never forwarded to the HTTP API.
+    # Import here (after ops are built) to avoid load-order concerns.
+    from .filters import FILTERABLE_PATHS  # noqa: PLC0415
+
+    for op in result._all:
+        if op.path not in FILTERABLE_PATHS:
+            continue
+        existing = {p.name for p in op.params}
+        for name in ("desde", "hasta"):
+            if name not in existing:
+                op.params.append(
+                    Param(
+                        name=name,
+                        location="client",
+                        required=False,
+                        type="string",
+                    )
+                )
+
+    return result
 
 
 # ── Singleton — parsed once at import time ────────────────────────────────────
