@@ -1,6 +1,15 @@
 # Argentina Insights
 
-Agent-driven web app for Argentine public data. Ask in natural language; the agent fetches from [ArgentinaDatos](https://argentinadatos.com/docs/) and **composes a UI** from a fixed design system — not a static dashboard, and not chat-only markdown.
+Agent-driven web app for Argentine public data. Ask in natural language; the agent fetches from [ArgentinaDatos](https://argentinadatos.com/docs/) and **composes a UI** from a fixed design system.
+
+### Core Objective: The Hybrid UI (The Bridge)
+This is not a static dashboard, and it's not a standard chat-only interface. The fundamental objective of this project is to allow the user to control the application in two intersecting ways:
+1. **Declarative (Natural Language):** Typing in the chat to fetch data, generate charts, or modify the view (e.g., *"Compare inflation with UVA over the last year"*).
+2. **Imperative (Traditional UI):** Clicking filters, selecting data points on a chart, or using dropdowns rendered on the screen.
+
+**The magic is in the bridge between the two:** Interacting with the UI (like clicking a peak in a chart) should feed context back into the chat, and typing in the chat should seamlessly mutate the state of the UI components on the main canvas. This is why components are rendered in a dedicated stage (left) rather than inline within the chat stream (right) — it creates a persistent, interactive workspace rather than an ephemeral message history.
+
+---
 
 Two domains, one API:
 
