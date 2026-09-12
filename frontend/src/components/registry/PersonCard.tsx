@@ -13,7 +13,7 @@ import type { Person, PersonCardProps } from "./PersonCard.schema";
  */
 
 function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -88,15 +88,18 @@ function RosterTile({ person }: { person: Person }) {
 }
 
 export function PersonCard({ people }: PersonCardProps) {
-  if (!people || people.length === 0) return null;
+  // A row that carries no name has nothing to render, and would take the
+  // whole canvas down with it.
+  const entries = (people ?? []).filter((person) => Boolean(person?.name));
+  if (entries.length === 0) return null;
 
   return (
     <div className="border-t border-rule pt-4">
-      {people.length === 1 ? (
-        <ProfileCard person={people[0]} />
+      {entries.length === 1 ? (
+        <ProfileCard person={entries[0]} />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {people.map((person, i) => (
+          {entries.map((person, i) => (
             <RosterTile key={`${person.name}-${i}`} person={person} />
           ))}
         </div>
