@@ -1,3 +1,6 @@
+export { Acta } from "./Acta";
+export { ActaNodeSchema, ActaPropsSchema, ActaVoteSchema } from "./Acta.schema";
+export type { ActaNode, ActaProps, ActaVote } from "./Acta.schema";
 export { Chart } from "./Chart";
 export { ChartNodeSchema, ChartPropsSchema, ChartSeriesSchema } from "./Chart.schema";
 export type { ChartNode, ChartProps, ChartSeries } from "./Chart.schema";

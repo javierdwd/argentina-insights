@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
 import type { z } from "zod";
+import { Acta } from "./Acta";
+import { ActaNodeSchema } from "./Acta.schema";
 import { Chart } from "./Chart";
 import { ChartNodeSchema } from "./Chart.schema";
 import { List } from "./List";
@@ -23,6 +25,7 @@ import { TextNodeSchema } from "./Text.schema";
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const REGISTRY: Record<string, ComponentType<any>> = {
+  Acta,
   Chart,
   List,
   Metric,
@@ -35,6 +38,7 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
  * Per-type Zod node schemas — used by DynamicRenderer for props validation.
  */
 export const NODE_SCHEMAS = {
+  Acta: ActaNodeSchema,
   Chart: ChartNodeSchema,
   List: ListNodeSchema,
   Metric: MetricNodeSchema,
