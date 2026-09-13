@@ -1,18 +1,8 @@
-"""Match queries against a compact id+label directory via the fast model.
+"""Match queries against a short candidate list via an LLM pick.
 
-Used for legislator names and law titles: order, typos, and commas are
-language problems, not string-filter problems. The model sees lines of
-``id\\tlabel`` and returns matching ids.
-
-Prompt shape (cache-friendly):
-  1. system — fixed instructions
-  2. human  — the full directory (stable until the upstream list refreshes)
-  3. human  — the query / queries (varies every call)
-
-OpenAI prompt caching keys off a shared prefix. Keeping the directory in
-message 2 and the query last means repeat searches reuse the cached
-catalog tokens. ``prompt_cache_key`` routes related calls to the same
-cache shard.
+Used after vector retrieval for legislator names and law titles: the model
+sees only top-k ``id\\tlabel`` lines (never the full catalog) and returns
+matching ids.
 """
 
 from __future__ import annotations
@@ -23,18 +13,26 @@ from typing import Sequence
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from ..models import get_model
+from ..models import ModelRole, get_model
 
 _SYSTEM = """\
-You match user queries against a directory.
+You match user queries against a short candidate list (already retrieved).
 
-Each directory line is `id<TAB>label`. A query matches a line if it refers \
-to the same thing — typos, accents, given/family-name order, and extra \
-filler words do not matter.
+Each line is `id<TAB>label`. A query matches a line if it refers to the \
+same thing — typos, accents, given/family-name order, and extra filler \
+words do not matter.
 
-Return only ids that appear in the directory. Prefer the best matches; \
-skip queries that match nobody. Never invent an id. If nothing matches, \
-return an empty list.
+For named laws/bills: if a label clearly contains the name the user gave \
+(e.g. query "joaquin" and a label with "LEY JOAQUÍN"), that id MUST be \
+returned. Prefer 1 best match; return a few only when several candidates \
+are truly ambiguous. Do not return the whole list.
+
+If NONE of the candidate labels clearly refers to the named law (shared \
+distinctive tokens like a proper name), return an empty list — never pick \
+a vaguely related title just to return something.
+
+Return only ids that appear in the list. Never invent an id. If none of \
+the candidates is clearly the same entity, return an empty list.
 """
 
 
@@ -53,8 +51,9 @@ async def match_directory(
     lines: Sequence[str],
     queries: Sequence[str],
     by_id: dict[str, dict],
+    role: ModelRole = "default",
 ) -> list[dict]:
-    """Return rows from *by_id* whose ids the fast model picked for *queries*."""
+    """Return rows from *by_id* whose ids the model picked for *queries*."""
     clean = [str(q).strip() for q in queries if str(q).strip()]
     if not clean:
         return list(by_id.values())
@@ -62,13 +61,12 @@ async def match_directory(
         return []
 
     catalog = "\n".join(lines)
-    llm = get_model("fast").with_structured_output(
+    llm = get_model(role).with_structured_output(
         DirectoryMatch, method="function_calling"
     )
     result: DirectoryMatch = await llm.ainvoke(
         [
             SystemMessage(content=_SYSTEM),
-            # Stable prefix → OpenAI prompt cache on repeat searches.
             HumanMessage(content=f"Directory ({kind}):\n{catalog}"),
             HumanMessage(
                 content="Queries:\n" + "\n".join(f"- {q}" for q in clean)
