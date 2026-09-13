@@ -10,8 +10,7 @@ const GAP: Record<string, string> = {
 /**
  * Stack container — vertical flex column.
  *
- * Accepts DynamicRenderer-rendered children.
- * No card chrome; consistent with the cold-bulletin shell.
+ * Accepts DynamicRenderer-rendered children (each leaf brings its own panel).
  */
 export function Stack({ gap = "md", children }: StackProps & { children?: ReactNode }) {
   return (

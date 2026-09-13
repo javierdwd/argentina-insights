@@ -1,5 +1,6 @@
 import { formatDelta, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import type { MetricProps } from "./Metric.schema";
 
 const TREND_CLASS: Record<string, string> = {
@@ -39,8 +40,16 @@ export function Metric({
 
       {typeof delta === "number" ? (
         <p
-          className={cn("mt-1.5 text-sm font-medium tabular-nums", trendClass)}
+          className={cn(
+            "mt-1.5 inline-flex items-center gap-1 text-sm font-medium tabular-nums",
+            trendClass,
+          )}
         >
+          {trend === "up" ? (
+            <TrendUp size={14} weight="regular" aria-hidden />
+          ) : trend === "down" ? (
+            <TrendDown size={14} weight="regular" aria-hidden />
+          ) : null}
           {formatDelta(delta)}%
         </p>
       ) : null}
