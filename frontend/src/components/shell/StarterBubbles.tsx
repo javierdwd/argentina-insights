@@ -27,9 +27,9 @@ import {
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
 import {
-  buildEconomiaTree,
-  ECONOMIA_QUERY,
-} from "@/lib/destinations/economia";
+  DESTINATIONS,
+  type DestinationId,
+} from "@/lib/destinations";
 import { saveLastCanvas } from "@/lib/workspace";
 import {
   PREVIEW_LABEL,
@@ -46,6 +46,12 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 const TOPIC_ICON: Record<StarterTopic, Icon> = {
   historico: HourglassHigh,
   cruce: GitMerge,
+  economia: ChartLineUp,
+  politica: Scales,
+  cine: FilmSlate,
+};
+
+const DEST_ICON: Record<DestinationId, Icon> = {
   economia: ChartLineUp,
   politica: Scales,
   cine: FilmSlate,
@@ -77,9 +83,8 @@ function TopicIcon({ icon: PhosphorIcon }: { icon: Icon }) {
 }
 
 /**
- * Empty-stage starters as a topic grid (Histórico · Cruce / Economía ·
- * Política · Cine). Destination Economía loads without a chat turn;
- * prompts remain secondary onboarding.
+ * Empty-stage starters: destination dashboards (Economía · Política · Cine)
+ * plus the topic prompt grid as secondary onboarding.
  */
 export function StarterBubbles() {
   const reduce = useReducedMotion();
@@ -89,34 +94,40 @@ export function StarterBubbles() {
   });
   const { copilotkit } = useCopilotKit();
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [destinoBusy, setDestinoBusy] = useState(false);
+  const [destinoBusy, setDestinoBusy] = useState<DestinationId | null>(null);
 
-  const busy = Boolean(agent.isRunning) || pendingId !== null || destinoBusy;
+  const busy =
+    Boolean(agent.isRunning) || pendingId !== null || destinoBusy !== null;
 
-  const onOpenEconomia = useCallback(async () => {
-    if (busy) return;
-    setDestinoBusy(true);
-    try {
-      const tree = await buildEconomiaTree();
-      const current =
-        agent.state && typeof agent.state === "object"
-          ? (agent.state as Record<string, unknown>)
-          : {};
-      const next = {
-        ...current,
-        ui_tree: tree,
-        ui_tree_unbound: tree,
-      };
-      queueMicrotask(() => {
-        agent.setState(next);
-      });
-      saveLastCanvas(tree, ECONOMIA_QUERY);
-    } catch (error) {
-      console.error("StarterBubbles: Economía destination failed", error);
-    } finally {
-      setDestinoBusy(false);
-    }
-  }, [agent, busy]);
+  const onOpenDestination = useCallback(
+    async (id: DestinationId) => {
+      if (busy) return;
+      const dest = DESTINATIONS.find((d) => d.id === id);
+      if (!dest) return;
+      setDestinoBusy(id);
+      try {
+        const tree = await dest.build();
+        const current =
+          agent.state && typeof agent.state === "object"
+            ? (agent.state as Record<string, unknown>)
+            : {};
+        const next = {
+          ...current,
+          ui_tree: tree,
+          ui_tree_unbound: tree,
+        };
+        queueMicrotask(() => {
+          agent.setState(next);
+        });
+        saveLastCanvas(tree, dest.title);
+      } catch (error) {
+        console.error(`StarterBubbles: ${dest.title} destination failed`, error);
+      } finally {
+        setDestinoBusy(null);
+      }
+    },
+    [agent, busy],
+  );
 
   const onPick = useCallback(
     async (prompt: StarterPrompt) => {
@@ -144,29 +155,39 @@ export function StarterBubbles() {
         initial={reduce ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: EASE }}
-        className="flex flex-wrap items-center gap-3"
+        className="flex flex-col gap-3"
       >
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void onOpenEconomia()}
-          className={[
-            "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-left",
-            "bg-accent text-accent-foreground shadow-[0_14px_36px_-20px_color-mix(in_oklab,var(--accent)_70%,transparent)]",
-            "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            "hover:opacity-95 active:scale-[0.99]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
-            "disabled:cursor-not-allowed disabled:opacity-45",
-          ].join(" ")}
-        >
-          <ChartLineUp size={18} weight="regular" className="shrink-0" />
-          <span className="font-display text-sm font-semibold tracking-tight">
-            {destinoBusy ? "Cargando Economía…" : "Economía"}
-          </span>
-          <ArrowRight size={14} weight="regular" className="opacity-80" />
-        </button>
-        <p className="max-w-[28ch] text-xs leading-relaxed text-muted-foreground">
-          Blue vs oficial, inflación y riesgo — listo para explorar.
+        <div className="flex flex-wrap gap-2">
+          {DESTINATIONS.map((dest) => {
+            const Icon = DEST_ICON[dest.id];
+            const loading = destinoBusy === dest.id;
+            return (
+              <button
+                key={dest.id}
+                type="button"
+                disabled={busy}
+                onClick={() => void onOpenDestination(dest.id)}
+                className={[
+                  "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-left",
+                  "bg-accent text-accent-foreground shadow-[0_14px_36px_-20px_color-mix(in_oklab,var(--accent)_70%,transparent)]",
+                  "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                  "hover:opacity-95 active:scale-[0.99]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                  "disabled:cursor-not-allowed disabled:opacity-45",
+                ].join(" ")}
+              >
+                <Icon size={18} weight="regular" className="shrink-0" />
+                <span className="font-display text-sm font-semibold tracking-tight">
+                  {loading ? `Cargando ${dest.title}…` : dest.title}
+                </span>
+                <ArrowRight size={14} weight="regular" className="opacity-80" />
+              </button>
+            );
+          })}
+        </div>
+        <p className="max-w-[42ch] text-xs leading-relaxed text-muted-foreground">
+          {DESTINATIONS.map((d) => d.title).join(" · ")} — dashboards listos;
+          abajo, preguntas para el chat.
         </p>
       </motion.div>
 

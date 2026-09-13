@@ -9,9 +9,9 @@ import {
 import { CopilotChat } from "@copilotkit/react-core/v2";
 import { DynamicRenderer } from "@/components/registry/DynamicRenderer";
 import {
-  ECONOMIA_QUERY,
-  isEconomiaDestination,
-} from "@/lib/destinations/economia";
+  followUpsFor,
+  queryForDestination,
+} from "@/lib/destinations";
 import type { UINode } from "@/lib/uitree";
 import { getWorkspace, saveLastCanvas } from "@/lib/workspace";
 import { HomeStage } from "./HomeStage";
@@ -95,11 +95,12 @@ function AgentCanvas({
     ? ((agent.state as Record<string, unknown>).ui_tree as UINode)
     : null;
 
+  const displayTree = agentTree ?? workspace.lastCanvas?.uiTree ?? null;
   const query =
     lastUserQuery(agent.messages) ??
     workspace.lastCanvas?.query ??
-    (isEconomiaDestination(agentTree) ? ECONOMIA_QUERY : undefined);
-  const displayTree = agentTree ?? workspace.lastCanvas?.uiTree ?? null;
+    queryForDestination(agentTree ?? displayTree);
+  const followUps = followUpsFor(displayTree);
 
   useEffect(() => {
     onHasCanvas?.(Boolean(displayTree));
@@ -135,12 +136,13 @@ function AgentCanvas({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <WorkspaceDock uiTree={displayTree} query={query} />
-      <div className="min-h-0 flex-1 overflow-y-auto pt-6 pb-6 md:pt-8 md:pb-8">
+      {/* Horizontal inset so widget rings/shadows are not clipped by overflow-y. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-6 pb-6 md:pt-8 md:pb-8">
         {displayTree ? (
           <>
             <MemoCanvasTree tree={displayTree} />
-            {isEconomiaDestination(displayTree) ? (
-              <DestinationFollowUps />
+            {followUps.length ? (
+              <DestinationFollowUps prompts={followUps} />
             ) : null}
           </>
         ) : (

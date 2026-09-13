@@ -107,14 +107,17 @@ function buildCartesian(
       : undefined,
     grid: {
       top: 8,
-      right: dual ? 48 : 16,
-      bottom: hasLegend ? 36 : 8,
-      left: 0,
+      // Keep plot + last tick labels inside the canvas (overflow clips otherwise).
+      right: dual ? 56 : 28,
+      bottom: hasLegend ? 36 : 24,
+      left: 8,
       containLabel: true,
     },
     xAxis: {
       type: "category",
       data: xData,
+      // Inset categories so first/last points (and tick labels) are not clipped.
+      boundaryGap: true,
       axisLabel: {
         ...axisLabel,
         interval: kind === "bar" && xData.length <= 20 ? 0 : axisLabel.interval,
@@ -151,7 +154,7 @@ function buildScatter(
 
   return {
     tooltip: { trigger: "item" },
-    grid: { top: 8, right: 16, bottom: 8, left: 0, containLabel: true },
+    grid: { top: 8, right: 28, bottom: 28, left: 8, containLabel: true },
     xAxis: {
       type: "value",
       name: series[0]?.label ?? xKey,
@@ -209,7 +212,7 @@ function buildHeatmap(
 
   return {
     tooltip: { position: "top" },
-    grid: { top: 8, right: 24, bottom: 48, left: 0, containLabel: true },
+    grid: { top: 8, right: 28, bottom: 48, left: 8, containLabel: true },
     xAxis: {
       type: "category",
       data: xCats,
