@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 import type { ActaProps } from "./Acta.schema";
+import {
+  useCanvasActionOptional,
+  useCanvasBrush,
+  useCanvasNode,
+} from "@/components/shell/useCanvasAction";
+import { textMatchesBrush } from "@/components/shell/canvas-brush";
 
 /**
  * Acta widget — one legislative vote: header once (date, result, title),
@@ -115,6 +121,9 @@ function flatten(data: Record<string, unknown>[]): RollRow[] {
 export function Acta({ data }: ActaProps) {
   const rows = useMemo(() => flatten(data ?? []), [data]);
   const header = rows[0];
+  const canvas = useCanvasActionOptional();
+  const brush = useCanvasBrush();
+  const node = useCanvasNode();
   const tallies = useMemo(() => {
     const counts = new Map<string, number>();
     for (const row of rows) {
@@ -160,12 +169,42 @@ export function Acta({ data }: ActaProps) {
     (safePage + 1) * PAGE_SIZE,
   );
 
+  const selectVoter = (voter: string, vote?: string) => {
+    if (!canvas || !voter.trim()) return;
+    const facts = [
+      vote ? { label: "Voto", value: voteLabel(vote) } : null,
+      header?.date ? { label: "Fecha", value: header.date.slice(0, 10) } : null,
+      header?.result ? { label: "Resultado", value: header.result } : null,
+    ].filter((f): f is { label: string; value: string } => Boolean(f));
+    canvas.selectLocal({
+      tipo: "persona",
+      valor: voter.trim(),
+      widget: "Acta",
+      contexto: node?.title ?? header?.title,
+      facts,
+    });
+  };
+
   if (!header) {
+    const sample = (data ?? []).find(
+      (row) =>
+        asText(row.title ?? row.titulo) ||
+        asText(row.date ?? row.fecha),
+    );
+    const sampleTitle = sample
+      ? asText(sample.title ?? sample.titulo)
+      : "";
     return (
-      <div className="flex h-24 items-center justify-center border-t border-rule">
-        <p className="text-xs text-muted-foreground/50 select-none">
-          Sin votos
+      <div className="flex min-h-24 flex-col items-center justify-center gap-1 border-t border-rule px-4 py-6 text-center">
+        <p className="text-xs text-muted-foreground/70 select-none">
+          Sin registro de votos en esta vista
         </p>
+        {sampleTitle ? (
+          <p className="max-w-md text-[0.7rem] leading-snug text-muted-foreground/45 select-none">
+            Tenemos el acta «{sampleTitle}», pero no el detalle de cómo votó
+            cada legislador. Pedí el roll call o profundizá de nuevo.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -173,6 +212,7 @@ export function Acta({ data }: ActaProps) {
   const from = safePage * PAGE_SIZE + 1;
   const to = Math.min(filtered.length, (safePage + 1) * PAGE_SIZE);
   const showPager = filtered.length > PAGE_SIZE;
+  const selectable = Boolean(canvas);
 
   return (
     <div className="border-t border-rule pt-4">
@@ -221,10 +261,31 @@ export function Acta({ data }: ActaProps) {
       ) : null}
 
       <ol className="mt-3 divide-y divide-rule/60 border-t border-rule">
-        {slice.map((row, i) => (
+        {slice.map((row, i) => {
+          const brushed = textMatchesBrush(row.voter, brush);
+          return (
           <li
             key={`${row.voter}-${safePage * PAGE_SIZE + i}`}
-            className="flex items-baseline justify-between gap-4 py-2 text-sm"
+            role={selectable ? "button" : undefined}
+            tabIndex={selectable ? 0 : undefined}
+            onClick={
+              selectable ? () => selectVoter(row.voter, row.vote) : undefined
+            }
+            onKeyDown={
+              selectable
+                ? (event: KeyboardEvent) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    selectVoter(row.voter, row.vote);
+                  }
+                : undefined
+            }
+            className={cn(
+              "flex items-baseline justify-between gap-4 py-2 text-sm outline-none",
+              selectable &&
+                "cursor-pointer transition-colors hover:bg-secondary/60 focus-visible:bg-secondary/60",
+              brushed && "bg-accent-soft/70",
+            )}
           >
             <span className="min-w-0 text-foreground">{row.voter}</span>
             <span
@@ -236,7 +297,8 @@ export function Acta({ data }: ActaProps) {
               {voteLabel(row.vote)}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ol>
 
       {showPager ? (

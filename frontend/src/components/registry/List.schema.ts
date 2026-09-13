@@ -5,6 +5,11 @@ export const ListColumnSchema = z.object({
   key: z.string(),
   /** Column header shown to the user */
   label: z.string(),
+  /**
+   * How to render the cell. Omit to infer: `imagen`/`foto`/`photoUrl` keys
+   * and `https://…/*.jpg` values become thumbnails, not truncated URLs.
+   */
+  kind: z.enum(["text", "image", "date", "url", "number"]).optional(),
 });
 
 export const ListPropsSchema = z.object({
