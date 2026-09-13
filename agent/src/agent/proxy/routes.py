@@ -71,7 +71,9 @@ def fields_spec(example: str) -> ParamSpec:
     return ParamSpec(name="fields", type="string", hint=_FIELDS_HINT, example=example)
 
 
-FIELDS_ROSTER = fields_spec("id,nombre,provincia,bloque,foto")
+FIELDS_ROSTER = fields_spec(
+    "id,nombre,provincia,partido,bloque,foto,email,telefono,redes,bio"
+)
 FIELDS_VOTES = fields_spec("nombre,voto")
 
 #: Consumed by the proxy on every path but never advertised to the model:
@@ -287,9 +289,11 @@ for _actas in ACTAS_FAMILIES:
         ttl=TTL_ACTAS,
         summary=(
             f"How each {_actas.chamber} legislator voted on one acta, as a "
-            "flat list of {nombre, voto} rows — THE endpoint for 'cómo votó "
-            "cada uno' / 'quiénes votaron a favor|en contra'. Pass vote= to "
-            "keep only one side"
+            "flat list of rows with nombre, voto, plus bloque/partido/foto|"
+            "imagen/provincia stamped from the chamber roster when matched — "
+            "THE endpoint for 'cómo votó cada uno' / 'quiénes votaron a "
+            "favor|en contra' (PersonCard-ready). Pass vote= to keep only "
+            "one side"
         ),
         params=(VOTE, FIELDS_VOTES),
         subfield=_actas.votes_field,
@@ -341,8 +345,415 @@ for _path in DATE_SERIES_PATHS:
     PARAM_SPECS[_path] = (DESDE, HASTA)
 
 PARAM_SPECS["/v1/presidentes"] = (
-    fields_spec("nombre,inicio,fin,partido,imagen"),
+    NAME,
+    NAMES,
+    fields_spec("nombre,inicio,fin,partido,imagen,bio"),
 )
+
+
+# ── External upstream routes (BCRA / Series / Open-Meteo) ─────────────────────
+
+
+@dataclass(frozen=True)
+class ExternalRoute:
+    """A proxy path served by a non-ArgentinaDatos upstream."""
+
+    path: str
+    domain: str  # finance | politics | other
+    summary: str
+    params: tuple[ParamSpec, ...] = field(default_factory=tuple)
+    #: path-param names (e.g. alias, serieId) — required when present
+    path_params: tuple[str, ...] = ()
+
+
+PROVINCIA = ParamSpec(
+    name="provincia",
+    type="string",
+    hint="Argentine province name (or CABA). Omit to return all 24 jurisdictions",
+    example="Córdoba",
+)
+DIAS = ParamSpec(
+    name="dias",
+    type="integer",
+    hint="forecast horizon in days (1–16, default 7)",
+    example="7",
+)
+Q_SEARCH = ParamSpec(
+    name="q",
+    type="string",
+    hint=(
+        "Spanish search text for Series de Tiempo (e.g. 'EMAE', 'desempleo'). "
+        "Returns top matches with serieId — then fetch /v1/series/id/{serieId}"
+    ),
+    example="EMAE",
+)
+FECHA = ParamSpec(
+    name="fecha",
+    type="string",
+    hint="ISO date (YYYY-MM-DD) for a curated historical day",
+    example="2023-12-10",
+)
+Q_WIKI = ParamSpec(
+    name="q",
+    type="string",
+    hint="Spanish Wikipedia article title for REST summary (extract, foto, url)",
+    example="Presidencia de Javier Milei",
+)
+Q_CINE = ParamSpec(
+    name="q",
+    type="string",
+    hint="Search text for Argentine films or people (TMDB)",
+    example="Relatos salvajes",
+)
+ANIO_CINE = ParamSpec(
+    name="anio",
+    type="integer",
+    hint="Release year filter (YYYY)",
+    example="2014",
+)
+GENERO_CINE = ParamSpec(
+    name="genero",
+    type="string",
+    hint=(
+        "Genre name (drama, comedia, documental, thriller, terror, romance, "
+        "accion, …) or TMDB genre id"
+    ),
+    example="drama",
+)
+SORT_CINE = ParamSpec(
+    name="sort",
+    type="string",
+    hint=(
+        "TMDB sort_by (default popularity.desc). Also: vote_average.desc, "
+        "primary_release_date.desc, title.asc"
+    ),
+    example="popularity.desc",
+)
+PAGE_CINE = ParamSpec(
+    name="page",
+    type="integer",
+    hint="TMDB page (default 1)",
+    example="1",
+)
+REM_ALIAS = ParamSpec(
+    name="alias",
+    type="string",
+    hint=(
+        "Curated REM indicator: ipc, ipc_nucleo, tc, desempleo. "
+        "Omit on /v1/rem/ultimo|/informe to return every indicador"
+    ),
+    example="ipc",
+    enum=("ipc", "ipc_nucleo", "tc", "desempleo"),
+)
+REM_MUESTRA = ParamSpec(
+    name="muestra",
+    type="string",
+    hint="REM sample: todos (default) or top_10",
+    enum=("todos", "top_10"),
+    example="todos",
+)
+REM_HORIZON = ParamSpec(
+    name="horizon",
+    type="string",
+    hint=(
+        "vs-real join: 1m = forecast from the previous month (default), "
+        "nowcast = same-month forecast, all = every past forecast"
+    ),
+    enum=("1m", "nowcast", "all"),
+    example="1m",
+)
+REM_ANIO = ParamSpec(
+    name="año",
+    type="integer",
+    hint="REM informe year (2016+)",
+    example="2024",
+)
+REM_MES = ParamSpec(
+    name="mes",
+    type="string",
+    hint="REM informe month as two digits (01–12)",
+    example="06",
+)
+
+EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
+    "/v1/bcra/variables": ExternalRoute(
+        path="/v1/bcra/variables",
+        domain="finance",
+        summary=(
+            "Curated BCRA monetary variables (reservas, base_monetaria, "
+            "depositos_privados, depositos_plazo, tasa_depositos_30d). "
+            "Use the alias on /v1/bcra/{alias}"
+        ),
+    ),
+    "/v1/bcra/{alias}": ExternalRoute(
+        path="/v1/bcra/{alias}",
+        domain="finance",
+        summary=(
+            "BCRA daily series as {fecha, valor, unidad, kind}. "
+            "Aliases: reservas, base_monetaria, depositos_privados, "
+            "depositos_plazo, tasa_depositos_30d. Stocks (reservas, "
+            "depósitos, base) → pair with /v1/presidentes for mandate "
+            "levels (last/delta). Pass desde/hasta ISO"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("alias",),
+    ),
+    "/v1/cammesa": ExternalRoute(
+        path="/v1/cammesa",
+        domain="finance",
+        summary=(
+            "Curated CAMMESA electricity aliases (demanda, residencial, "
+            "comercio, grandes_usuarios, temperatura, potencia_maxima). "
+            "Monthly GWh / °C / MW from datos.gob.ar (SSPM). Prefer "
+            "/v1/cammesa/demanda for demanda×temperatura on one Chart"
+        ),
+    ),
+    "/v1/cammesa/demanda": ExternalRoute(
+        path="/v1/cammesa/demanda",
+        domain="finance",
+        summary=(
+            "Wide monthly rows: fecha, demanda_total, demanda_residencial, "
+            "comercio_industria, grandes_usuarios, temperatura, "
+            "potencia_maxima. Chart dual series demanda_total+temperatura "
+            "(heatwave × load). Pass desde/hasta. Attribution: CAMMESA"
+        ),
+        params=(DESDE, HASTA),
+    ),
+    "/v1/cammesa/{alias}": ExternalRoute(
+        path="/v1/cammesa/{alias}",
+        domain="finance",
+        summary=(
+            "One CAMMESA monthly series as {fecha, valor, unidad}. "
+            "Aliases: demanda, residencial, comercio, grandes_usuarios, "
+            "temperatura, potencia_maxima. Pair with /v1/clima/historico "
+            "or EMAE for cruces"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("alias",),
+    ),
+    "/v1/series": ExternalRoute(
+        path="/v1/series",
+        domain="finance",
+        summary=(
+            "Curated INDEC/MECON Series de Tiempo aliases (emae, emae_var, "
+            "desempleo, pobreza, ripte, ipc, exportaciones, importaciones). "
+            "For anything else use /v1/series/search?q="
+        ),
+    ),
+    "/v1/series/search": ExternalRoute(
+        path="/v1/series/search",
+        domain="finance",
+        summary=(
+            "Text search over the Series de Tiempo catalog. Returns top "
+            "hits with serieId/titulo/unidades — then fetch "
+            "/v1/series/id/{serieId}"
+        ),
+        params=(Q_SEARCH,),
+    ),
+    "/v1/series/{alias}": ExternalRoute(
+        path="/v1/series/{alias}",
+        domain="finance",
+        summary=(
+            "One curated series as {fecha, valor, titulo, unidad}. "
+            "Aliases: emae, emae_var, desempleo, pobreza, ripte, ipc, "
+            "exportaciones, importaciones. Pass desde/hasta. Pair with "
+            "presidentes for per-mandate levels"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("alias",),
+    ),
+    "/v1/series/id/{serieId}": ExternalRoute(
+        path="/v1/series/id/{serieId}",
+        domain="finance",
+        summary=(
+            "Raw Series de Tiempo id (from /v1/series/search). Same "
+            "{fecha, valor} shape as curated aliases"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("serieId",),
+    ),
+    "/v1/clima/historico": ExternalRoute(
+        path="/v1/clima/historico",
+        domain="other",
+        summary=(
+            "Daily historical weather by province capital (Open-Meteo). "
+            "Rows: fecha, provincia, tmin, tmax, temperatura, precipitacion, "
+            "weather_code, valor(=temp media). Requires desde+hasta. "
+            "Omit provincia for all 24. Bind WeatherUnit. "
+            "Join with actas/FX on fecha. Attribution: Open-Meteo"
+        ),
+        params=(PROVINCIA, DESDE, HASTA),
+    ),
+    "/v1/clima/pronostico": ExternalRoute(
+        path="/v1/clima/pronostico",
+        domain="other",
+        summary=(
+            "Daily forecast (1–16 days, default 7) by province capital. "
+            "Same row shape as historico. Bind WeatherUnit. "
+            "Omit provincia for all 24"
+        ),
+        params=(PROVINCIA, DIAS),
+    ),
+    "/v1/clima/actual": ExternalRoute(
+        path="/v1/clima/actual",
+        domain="other",
+        summary=(
+            "Current temperature + weather_code by province. One place → "
+            "WeatherUnit; all 24 → ProvinceMap (provincia, temperatura)"
+        ),
+        params=(PROVINCIA,),
+    ),
+    "/v1/historico/dias": ExternalRoute(
+        path="/v1/historico/dias",
+        domain="other",
+        summary=(
+            "Curated Argentine historical days (2016–2024): fecha, titulo, "
+            "categoria, wiki title, series_sugeridas, provincia, optional "
+            "persona. Browse before /v1/historico/dia"
+        ),
+        params=(DESDE, HASTA),
+    ),
+    "/v1/historico/dia": ExternalRoute(
+        path="/v1/historico/dia",
+        domain="other",
+        summary=(
+            "One curated day + Wikipedia extract (bio), foto, wikipedia_url, "
+            "provincia, optional persona. Requires fecha=ISO. SAME turn: "
+            "FX/riesgo/reservas ±7d, /v1/clima/historico for provincia+fecha, "
+            "and if persona is set /v1/presidentes name= for PersonCard. "
+            "Compose Stack: PersonCard, Text, WeatherUnit, Chart"
+        ),
+        params=(FECHA,),
+    ),
+    "/v1/wiki/summary": ExternalRoute(
+        path="/v1/wiki/summary",
+        domain="other",
+        summary=(
+            "Wikipedia REST summary for any Spanish article title (q=). "
+            "Returns extract, foto, url — use for ad-hoc context when the "
+            "day is not in /v1/historico/dias"
+        ),
+        params=(Q_WIKI,),
+    ),
+    "/v1/cine/discover": ExternalRoute(
+        path="/v1/cine/discover",
+        domain="other",
+        summary=(
+            "Argentine cinema browse (TMDB discover, origin_country=AR fixed). "
+            "Rows: id, titulo, fecha, overview, foto, valor(=vote_average), "
+            "votos, popularidad. Optional anio, genero, sort, page. "
+            "Compose List with foto + titulo + valor. Attribution: TMDB"
+        ),
+        params=(ANIO_CINE, GENERO_CINE, SORT_CINE, PAGE_CINE),
+    ),
+    "/v1/cine/search": ExternalRoute(
+        path="/v1/cine/search",
+        domain="other",
+        summary=(
+            "Search Argentine films by title (q= required). Filters to "
+            "origin_country AR. Same row shape as discover. Then "
+            "/v1/cine/pelicula/{id} for cast + synopsis"
+        ),
+        params=(Q_CINE, ANIO_CINE),
+    ),
+    "/v1/cine/pelicula/{id}": ExternalRoute(
+        path="/v1/cine/pelicula/{id}",
+        domain="other",
+        summary=(
+            "One Argentine film: overview, runtime, generos, valor, foto, "
+            "elenco (PersonCard: name, photoUrl, role), trailer_url. "
+            "Rejects non-AR origin. Stack: Text + MetricRow + PersonCards"
+        ),
+        path_params=("id",),
+    ),
+    "/v1/cine/persona/search": ExternalRoute(
+        path="/v1/cine/persona/search",
+        domain="other",
+        summary=(
+            "Search people (actors/directors) by name (q=). Rows: id, nombre, "
+            "foto, conocido_por. Then /v1/cine/persona/{id} (PersonCard) and "
+            "/v1/cine/persona/{id}/filmografia (List)"
+        ),
+        params=(Q_CINE,),
+    ),
+    "/v1/cine/persona/{id}": ExternalRoute(
+        path="/v1/cine/persona/{id}",
+        domain="other",
+        summary=(
+            "Person bio for PersonCard (nombre, foto, bio). Also embeds "
+            "filmografia[] — do NOT List that nested array (shows a count); "
+            "fetch …/filmografia for flat movie rows, or bind List columns "
+            "titulo/foto/valor (bind expands filmografia)"
+        ),
+        path_params=("id",),
+    ),
+    "/v1/cine/persona/{id}/filmografia": ExternalRoute(
+        path="/v1/cine/persona/{id}/filmografia",
+        domain="other",
+        summary=(
+            "FLAT Argentine-origin films for one person (titulo, fecha, foto, "
+            "valor, overview). Prefer this for List over nested filmografia "
+            "on /v1/cine/persona/{id}. Columns: foto + titulo + fecha + valor"
+        ),
+        path_params=("id",),
+    ),
+    "/v1/rem": ExternalRoute(
+        path="/v1/rem",
+        domain="finance",
+        summary=(
+            "Curated BCRA REM aliases (ipc, ipc_nucleo, tc, desempleo) with "
+            "the realized series each joins against. Prefer these over raw "
+            "/v1/finanzas/rem for charts and vs-real"
+        ),
+    ),
+    "/v1/rem/ultimo": ExternalRoute(
+        path="/v1/rem/ultimo",
+        domain="finance",
+        summary=(
+            "Latest REM survey rows. Pass alias=ipc|tc|desempleo to keep one "
+            "indicator (muestra=todos default). Snapshot / ComparisonTable / "
+            "MetricRow — not a long Chart"
+        ),
+        params=(REM_ALIAS, REM_MUESTRA),
+    ),
+    "/v1/rem/informe": ExternalRoute(
+        path="/v1/rem/informe",
+        domain="finance",
+        summary=(
+            "One REM informe by año+mes (e.g. 2024 + 06). Optional alias= / "
+            "muestra=. Use before vs-real when the user names a survey month"
+        ),
+        params=(REM_ANIO, REM_MES, REM_ALIAS, REM_MUESTRA),
+    ),
+    "/v1/rem/{alias}": ExternalRoute(
+        path="/v1/rem/{alias}",
+        domain="finance",
+        summary=(
+            "REM nowcast mediana over successive informes as {fecha, mediana, "
+            "valor, unidad}. Aliases: ipc, ipc_nucleo, tc, desempleo. Chart "
+            "kind=line. Pass desde/hasta on informe months"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("alias",),
+    ),
+    "/v1/rem/vs-real/{alias}": ExternalRoute(
+        path="/v1/rem/vs-real/{alias}",
+        domain="finance",
+        summary=(
+            "REM expectation vs realized outcome. Rows: fecha, esperado, real, "
+            "error, error_abs, error_pct, informe. Aliases: ipc (vs inflación "
+            "mensual), tc (vs oficial venta), desempleo (vs EPH). "
+            "horizon=1m|nowcast|all (default 1m). Chart dual series "
+            "esperado+real OR error; ComparisonTable for a short window"
+        ),
+        params=(DESDE, HASTA, REM_HORIZON),
+        path_params=("alias",),
+    ),
+}
+
+for _ext in EXTERNAL_ROUTES.values():
+    if _ext.params:
+        PARAM_SPECS[_ext.path] = _ext.params
 
 
 #: param name → spec, so the catalog can render each hint once in a legend
