@@ -1,0 +1,337 @@
+/**
+ * Default conversation starters — Cruce is the product hook; Economía /
+ * Política / Histórico / Cine are short onboarding ramps.
+ *
+ * `preview` hints which canvas widget the first answer usually opens —
+ * used only for the starter row icon, not sent to the agent.
+ */
+
+export type StarterTopic =
+  | "economia"
+  | "politica"
+  | "cruce"
+  | "historico"
+  | "cine";
+
+/** Primary widget the first turn tends to draw. */
+export type StarterPreview =
+  | "bars"
+  | "line"
+  | "metrics"
+  | "people"
+  | "map"
+  | "donut"
+  | "list"
+  | "timeline"
+  | "text"
+  | "weather";
+
+export type StarterPrompt = {
+  id: string;
+  text: string;
+  topic: StarterTopic;
+  preview: StarterPreview;
+};
+
+export const STARTER_PROMPTS: StarterPrompt[] = [
+  // Cruce — hero section
+  {
+    id: "blue-por-mandato",
+    text: "Máximo del dólar blue en cada uno de los últimos 4 mandatos presidenciales",
+    topic: "cruce",
+    preview: "bars",
+  },
+  {
+    id: "blue-lineas-mandato",
+    text: "Evolución del blue con una línea por mandato reciente en el mismo gráfico",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "inflacion-mandatos",
+    text: "Inflación interanual: compará el tramo del gobierno actual con el anterior",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "riesgo-vs-confianza",
+    text: "Poné riesgo país y confianza en el gobierno en la misma línea de tiempo para 2026",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "blue-dia-laboral",
+    text: "El día que el Senado aceptó la modernización laboral, ¿a cuánto cerraron blue y riesgo país?",
+    topic: "cruce",
+    preview: "metrics",
+  },
+  {
+    id: "blue-semana-votacion",
+    text: "Semana de la modernización laboral en el Senado: ¿cómo se movió el blue los 7 días previos?",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "negativos-y-blue",
+    text: "Quiénes votaron en contra de la modernización laboral en el Senado: listalos con bloque y provincia, y decime el blue de ese día",
+    topic: "cruce",
+    preview: "people",
+  },
+  {
+    id: "presidente-al-votar",
+    text: "En la modernización laboral del Senado, mapa de votos negativos por provincia y el blue de ese día",
+    topic: "cruce",
+    preview: "map",
+  },
+  {
+    id: "uva-en-mandato",
+    text: "¿Cómo evolucionó el UVA desde el inicio del mandato actual hasta hoy?",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "confianza-vs-blue",
+    text: "Cuando sube la confianza en el gobierno en 2026, ¿el blue suele bajar? Mostrame ambas series",
+    topic: "cruce",
+    preview: "line",
+  },
+  {
+    id: "riesgo-pico-y-votos",
+    text: "El día de máximo riesgo país en 2026, ¿había sesión en el Senado? Si sí, qué se votó",
+    topic: "cruce",
+    preview: "timeline",
+  },
+  {
+    id: "margen-y-mep",
+    text: "En las últimas actas del Senado con resultado cerrado, ¿cómo estaba el MEP ese mismo día?",
+    topic: "cruce",
+    preview: "list",
+  },
+  // Economía — ramp
+  {
+    id: "fx-spread",
+    text: "¿Cuánto es el spread blue vs oficial hoy, y cómo se compara con el MEP?",
+    topic: "economia",
+    preview: "metrics",
+  },
+  {
+    id: "blue-vs-inflacion",
+    text: "En los últimos 12 meses, ¿el blue corrió más rápido que la inflación interanual?",
+    topic: "economia",
+    preview: "line",
+  },
+  {
+    id: "uva-vs-plazofijo",
+    text: "Compará el ritmo del UVA este año con las tasas de plazo fijo actuales",
+    topic: "economia",
+    preview: "metrics",
+  },
+  {
+    id: "rem-vs-inflacion",
+    text: "¿Cuánto se equivocó el REM en inflación mensual durante 2024?",
+    topic: "economia",
+    preview: "line",
+  },
+  {
+    id: "demanda-vs-temperatura",
+    text: "En los últimos 5 años, ¿cómo se movieron la demanda eléctrica y la temperatura juntas?",
+    topic: "economia",
+    preview: "line",
+  },
+  {
+    id: "demanda-ola-calor",
+    text: "En el verano 2024, ¿pico de demanda eléctrica y cómo estaba la temperatura ese mes?",
+    topic: "cruce",
+    preview: "metrics",
+  },
+  {
+    id: "brokers-comisiones",
+    text: "Compará comisiones de brokers para CEDEARs en pesos",
+    topic: "economia",
+    preview: "list",
+  },
+  {
+    id: "reservas-por-mandato",
+    text: "En la modernización laboral del Senado, distribución del voto y el MEP de ese día",
+    topic: "cruce",
+    preview: "donut",
+  },
+  {
+    id: "emae-vs-inflacion",
+    text: "Contexto de la modernización laboral y cómo se movió el blue esa semana",
+    topic: "cruce",
+    preview: "text",
+  },
+  {
+    id: "clima-dia-votacion",
+    text: "El día que el Senado votó la modernización laboral, ¿qué temperatura hizo en CABA?",
+    topic: "cruce",
+    preview: "weather",
+  },
+  // Histórico — Wikipedia + series. Mixed Macri / kirchnerismo / actual;
+  // first two also feed the chat pills.
+  {
+    id: "historico-holdouts-2016",
+    text: "1 de marzo de 2016 — acuerdo con los holdouts: qué pasó y cómo se movieron blue y riesgo país esa semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-cuarentena",
+    text: "20 de marzo de 2020 — inicio de la cuarentena: qué pasó y cómo cerraron blue y MEP ese día",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-fmi-2018",
+    text: "8 de mayo de 2018 — acuerdo con el FMI: qué pasó y cómo reaccionaron blue y riesgo país",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-atentado-cfk",
+    text: "1 de septiembre de 2022 — atentado a Cristina Fernández: contexto histórico y cotizaciones del blue esa semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-paso-2019",
+    text: "11 de agosto de 2019 — el shock de las PASO: resumen del día y evolución del blue y el riesgo país en la semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-canje-deuda",
+    text: "22 de mayo de 2020 — oferta de canje de deuda: contexto y riesgo país + blue en la semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-asuncion-milei",
+    // Same user-facing text; the agent recipe also fetches PersonCard + CABA weather.
+    text: "10 de diciembre de 2023 — asunción de Milei: contame qué pasó ese día y mostrame cómo se movió el blue la semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-corralito-2018",
+    text: "30 de agosto de 2018 — corralito cambiario: contexto y movimiento del blue y el MEP en la semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-legislativas-2017",
+    text: "22 de octubre de 2017 — elecciones legislativas: resumen del día y el blue esa semana",
+    topic: "historico",
+    preview: "text",
+  },
+  {
+    id: "historico-generales-2019",
+    text: "27 de octubre de 2019 — elecciones generales: contexto y evolución del blue y el riesgo país en la semana",
+    topic: "historico",
+    preview: "text",
+  },
+  // Política — ramp. Self-contained: no "esa votación" / "tomá uno".
+  {
+    id: "laboral-por-bloque",
+    text: "En la modernización laboral del Senado, ¿cómo se partió el voto por bloque parlamentario?",
+    topic: "politica",
+    preview: "donut",
+  },
+  {
+    id: "laboral-por-provincia",
+    text: "En la modernización laboral del Senado, ¿qué provincias inclinaron más al negativo?",
+    topic: "politica",
+    preview: "list",
+  },
+  {
+    id: "laboral-mapa-negativos",
+    text: "En la modernización laboral del Senado, mostrame en un mapa cuántos votos negativos hubo por provincia",
+    topic: "politica",
+    preview: "map",
+  },
+  {
+    id: "historial-senador-sf",
+    text: "Listá los senadores de Santa Fe y mostrá el historial de votos del primero en el mandato actual",
+    topic: "politica",
+    preview: "people",
+  },
+  // Cine — TMDB Argentine cinema only (origin AR).
+  {
+    id: "cine-descubrir",
+    text: "Mostrame películas argentinas populares: póster, título y rating",
+    topic: "cine",
+    preview: "list",
+  },
+  {
+    id: "cine-drama-2020s",
+    text: "Películas argentinas de drama de los últimos años, ordenadas por rating",
+    topic: "cine",
+    preview: "list",
+  },
+  {
+    id: "cine-nueve-reinas",
+    text: "Ficha de Nueve reinas: sinopsis, rating y elenco",
+    topic: "cine",
+    preview: "people",
+  },
+  {
+    id: "cine-darin",
+    text: "Filmografía argentina de Ricardo Darín",
+    topic: "cine",
+    preview: "list",
+  },
+  {
+    id: "cine-martel",
+    text: "Quién es Lucrecia Martel y qué películas argentinas dirigió",
+    topic: "cine",
+    preview: "people",
+  },
+];
+
+/** Grid: Histórico · Cruce / Economía · Política / Cine. */
+export const TOPIC_ORDER: StarterTopic[] = [
+  "historico",
+  "cruce",
+  "economia",
+  "politica",
+  "cine",
+];
+
+export const TOPIC_LABEL: Record<StarterTopic, string> = {
+  cruce: "Cruce",
+  historico: "Histórico",
+  economia: "Economía",
+  politica: "Política",
+  cine: "Cine",
+};
+
+export const PREVIEW_LABEL: Record<StarterPreview, string> = {
+  bars: "Barras",
+  line: "Líneas",
+  metrics: "Indicadores",
+  people: "Personas",
+  map: "Mapa",
+  donut: "Distribución",
+  list: "Tabla",
+  timeline: "Línea de tiempo",
+  text: "Contexto",
+  weather: "Clima",
+};
+
+/** Chat welcome pills: historico + cruce first, then economia / politica / cine. */
+export function chatSuggestionPrompts(limit = 6): StarterPrompt[] {
+  const historico = STARTER_PROMPTS.filter((p) => p.topic === "historico");
+  const cruce = STARTER_PROMPTS.filter((p) => p.topic === "cruce");
+  const economia = STARTER_PROMPTS.filter((p) => p.topic === "economia");
+  const politica = STARTER_PROMPTS.filter((p) => p.topic === "politica");
+  const cine = STARTER_PROMPTS.filter((p) => p.topic === "cine");
+  const mixed = [
+    ...historico.slice(0, 2),
+    ...cruce.slice(0, Math.max(0, limit - 5)),
+    ...economia.slice(0, 1),
+    ...politica.slice(0, 1),
+    ...cine.slice(0, 1),
+  ];
+  return mixed.slice(0, limit);
+}

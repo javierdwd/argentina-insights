@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Box host fallback — classes authored at runtime by compose_ui (see host.ts). */
+@source inline("flex flex-col flex-row flex-wrap items-start items-center items-end items-baseline justify-start justify-center justify-between justify-end self-center grid grid-cols-1 grid-cols-2 grid-cols-3 md:grid-cols-2 md:grid-cols-3 gap-1 gap-1.5 gap-2 gap-3 gap-4 gap-6 gap-8 gap-10 min-w-0 min-w-[12rem] max-w-xl max-w-2xl max-w-3xl shrink-0 grow w-full w-4 w-6 w-8 w-10 w-12 h-4 h-6 h-8 h-10 h-12 h-auto relative absolute overflow-hidden overflow-x-auto mt-1 mt-1.5 mt-2 mt-3 mt-4 mb-1 mb-2 mb-3 mb-4 ml-2 mr-2 mx-auto pl-4 pr-4 pt-2 pt-3 pt-4 pb-2 pb-3 pb-4 py-1 py-2 py-3 py-4 px-2 px-3 px-4 font-display font-sans font-medium font-normal font-semibold text-xs text-sm text-base text-lg text-xl text-2xl text-4xl text-5xl md:text-5xl text-center text-left leading-relaxed leading-snug leading-tight tracking-tight tracking-wide uppercase tabular-nums whitespace-pre-wrap text-foreground text-muted-foreground text-accent text-sky text-trend-up text-trend-down text-destructive bg-muted bg-card bg-secondary bg-accent-soft border border-t border-b border-l-2 border-l-4 border-rule border-border border-accent border-destructive rounded-md rounded-lg rounded-xl list-disc list-decimal list-inside list-none");
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -43,6 +46,9 @@
   --color-trend-up: var(--trend-up);
   --color-trend-down: var(--trend-down);
   --color-rule: var(--rule);
+  --color-sky: var(--sky);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-hover: var(--accent-soft-hover);
   --ease-out-expo: cubic-bezier(0.32, 0.72, 0, 1);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -53,80 +59,86 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Cold bulletin — cool paper, deep teal accent, no cream / purple */
+/* Argentine sky — cool paper, celeste accent, no cream / purple / teal */
 :root {
-  --background: #eef1f4;
+  --background: #eef3f8;
   --foreground: #121820;
-  --card: #f6f8fa;
+  --card: #f7fafc;
   --card-foreground: #121820;
-  --popover: #f6f8fa;
+  --popover: #f7fafc;
   --popover-foreground: #121820;
   --primary: #121820;
-  --primary-foreground: #eef1f4;
-  --secondary: #e0e6ed;
+  --primary-foreground: #eef3f8;
+  --secondary: #e2eaf2;
   --secondary-foreground: #121820;
-  --muted: #e0e6ed;
-  --muted-foreground: #5c6b7a;
-  --accent: #1f6b5c;
-  --accent-foreground: #f4faf8;
+  --muted: #e2eaf2;
+  --muted-foreground: #5a6b7c;
+  --accent: #1868a0;
+  --accent-foreground: #f3f8fc;
+  --accent-soft: #d6e8f6;
+  --accent-soft-hover: #c3dced;
+  --sky: #74acdf;
   --destructive: #9b3b3b;
-  --border: #c9d3de;
-  --input: #c9d3de;
-  --ring: #1f6b5c;
-  --rule: #c9d3de;
-  --trend-up: #1f6b5c;
+  --border: #c5d3e0;
+  --input: #c5d3e0;
+  --ring: #1868a0;
+  --rule: #c5d3e0;
+  --trend-up: #2a8a62;
   --trend-down: #9b3b3b;
-  --chart-1: #1f6b5c;
-  --chart-2: #5c6b7a;
+  --chart-1: #1868a0;
+  --chart-2: #5a6b7c;
   --chart-3: #121820;
-  --chart-4: #8a9aab;
-  --chart-5: #c9d3de;
+  --chart-4: #74acdf;
+  --chart-5: #c5d3e0;
   --radius: 0.75rem;
-  --sidebar: #e8edf2;
+  --sidebar: #e8f0f6;
   --sidebar-foreground: #121820;
-  --sidebar-primary: #1f6b5c;
-  --sidebar-primary-foreground: #f4faf8;
-  --sidebar-accent: #e0e6ed;
+  --sidebar-primary: #1868a0;
+  --sidebar-primary-foreground: #f3f8fc;
+  --sidebar-accent: #e2eaf2;
   --sidebar-accent-foreground: #121820;
-  --sidebar-border: #c9d3de;
-  --sidebar-ring: #1f6b5c;
+  --sidebar-border: #c5d3e0;
+  --sidebar-ring: #1868a0;
 }
 
 .dark {
-  --background: #0e1318;
-  --foreground: #e8edf2;
-  --card: #161c24;
-  --card-foreground: #e8edf2;
-  --popover: #161c24;
-  --popover-foreground: #e8edf2;
-  --primary: #e8edf2;
-  --primary-foreground: #0e1318;
-  --secondary: #1c2530;
-  --secondary-foreground: #e8edf2;
-  --muted: #1c2530;
+  --background: #0e141c;
+  --foreground: #e8eef4;
+  --card: #151c26;
+  --card-foreground: #e8eef4;
+  --popover: #151c26;
+  --popover-foreground: #e8eef4;
+  --primary: #e8eef4;
+  --primary-foreground: #0e141c;
+  --secondary: #1b2633;
+  --secondary-foreground: #e8eef4;
+  --muted: #1b2633;
   --muted-foreground: #8a9aab;
-  --accent: #2a8f7a;
-  --accent-foreground: #0e1318;
+  --accent: #74acdf;
+  --accent-foreground: #0e141c;
+  --accent-soft: #1a3348;
+  --accent-soft-hover: #23425c;
+  --sky: #4a8ec4;
   --destructive: #c45c5c;
-  --border: #2a3544;
-  --input: #2a3544;
-  --ring: #2a8f7a;
-  --rule: #2a3544;
-  --trend-up: #2a8f7a;
+  --border: #2a3a4c;
+  --input: #2a3a4c;
+  --ring: #74acdf;
+  --rule: #2a3a4c;
+  --trend-up: #3da87a;
   --trend-down: #c45c5c;
-  --chart-1: #2a8f7a;
+  --chart-1: #74acdf;
   --chart-2: #8a9aab;
-  --chart-3: #e8edf2;
-  --chart-4: #5c6b7a;
-  --chart-5: #2a3544;
+  --chart-3: #e8eef4;
+  --chart-4: #4a8ec4;
+  --chart-5: #2a3a4c;
   --sidebar: #121820;
-  --sidebar-foreground: #e8edf2;
-  --sidebar-primary: #2a8f7a;
-  --sidebar-primary-foreground: #0e1318;
-  --sidebar-accent: #1c2530;
-  --sidebar-accent-foreground: #e8edf2;
-  --sidebar-border: #2a3544;
-  --sidebar-ring: #2a8f7a;
+  --sidebar-foreground: #e8eef4;
+  --sidebar-primary: #74acdf;
+  --sidebar-primary-foreground: #0e141c;
+  --sidebar-accent: #1b2633;
+  --sidebar-accent-foreground: #e8eef4;
+  --sidebar-border: #2a3a4c;
+  --sidebar-ring: #74acdf;
 }
 
 @layer base {
@@ -139,4 +151,84 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Paper grain — fixed overlay, never on scrolling containers */
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+}
+
+.dark body::after {
+  mix-blend-mode: overlay;
+  opacity: 0.07;
+}
+
+/*
+ * CopilotKit v2 resets tokens on [data-copilotkit] to generic zinc.
+ * Re-bind them to the Argentine sky palette so the chat is the same product.
+ */
+[data-copilotkit] {
+  --background: #f7fafc;
+  --foreground: #121820;
+  --card: #f7fafc;
+  --card-foreground: #121820;
+  --popover: #f7fafc;
+  --popover-foreground: #121820;
+  --primary: #1868a0;
+  --primary-foreground: #f3f8fc;
+  --secondary: #e2eaf2;
+  --secondary-foreground: #121820;
+  --muted: #e2eaf2;
+  --muted-foreground: #5a6b7c;
+  --accent: #d6e8f6;
+  --accent-foreground: #121820;
+  --destructive: #9b3b3b;
+  --border: #c5d3e0;
+  --input: #c5d3e0;
+  --ring: #1868a0;
+}
+
+.dark [data-copilotkit],
+[data-copilotkit].dark {
+  --background: #151c26;
+  --foreground: #e8eef4;
+  --card: #151c26;
+  --card-foreground: #e8eef4;
+  --popover: #151c26;
+  --popover-foreground: #e8eef4;
+  --primary: #74acdf;
+  --primary-foreground: #0e141c;
+  --secondary: #1b2633;
+  --secondary-foreground: #e8eef4;
+  --muted: #1b2633;
+  --muted-foreground: #8a9aab;
+  --accent: #1a3348;
+  --accent-foreground: #e8eef4;
+  --destructive: #c45c5c;
+  --border: #2a3a4c;
+  --input: #2a3a4c;
+  --ring: #74acdf;
+}
+
+.cpk-intelligence-indicator__chrome {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--sky) 28%, white),
+    color-mix(in oklab, var(--accent-soft) 70%, white)
+  ) !important;
+  border-color: color-mix(in oklab, var(--sky) 45%, transparent) !important;
+  box-shadow:
+    0 1px 2px color-mix(in oklab, var(--sky) 12%, transparent),
+    inset 0 1px rgba(255, 255, 255, 0.7) !important;
+}
+
+.cpk-intelligence-indicator__content {
+  color: var(--accent) !important;
 }
