@@ -2,18 +2,38 @@ import type { ComponentType } from "react";
 import type { z } from "zod";
 import { Acta } from "./Acta";
 import { ActaNodeSchema } from "./Acta.schema";
+import { AnnotatedTimeline } from "./AnnotatedTimeline";
+import { AnnotatedTimelineNodeSchema } from "./AnnotatedTimeline.schema";
+import { Box } from "./Box";
+import { BoxNodeSchema } from "./Box.schema";
+import { Callout } from "./Callout";
+import { CalloutNodeSchema } from "./Callout.schema";
 import { Chart } from "./Chart";
 import { ChartNodeSchema } from "./Chart.schema";
+import { ComparisonTable } from "./ComparisonTable";
+import { ComparisonTableNodeSchema } from "./ComparisonTable.schema";
+import { Grid } from "./Grid";
+import { GridNodeSchema } from "./Grid.schema";
 import { List } from "./List";
 import { ListNodeSchema } from "./List.schema";
 import { Metric } from "./Metric";
 import { MetricNodeSchema } from "./Metric.schema";
+import { MetricRow } from "./MetricRow";
+import { MetricRowNodeSchema } from "./MetricRow.schema";
+import { PeriodBars } from "./PeriodBars";
+import { PeriodBarsNodeSchema } from "./PeriodBars.schema";
 import { PersonCard } from "./PersonCard";
 import { PersonCardNodeSchema } from "./PersonCard.schema";
+import { ProvinceMap } from "./ProvinceMap";
+import { ProvinceMapNodeSchema } from "./ProvinceMap.schema";
 import { Stack } from "./Stack";
 import { StackNodeSchema } from "./Stack.schema";
 import { Text } from "./Text";
 import { TextNodeSchema } from "./Text.schema";
+import { VoteBreakdown } from "./VoteBreakdown";
+import { VoteBreakdownNodeSchema } from "./VoteBreakdown.schema";
+import { WeatherUnit } from "./WeatherUnit";
+import { WeatherUnitNodeSchema } from "./WeatherUnit.schema";
 
 /**
  * Component registry — map UITree `type` → React component.
@@ -26,12 +46,22 @@ import { TextNodeSchema } from "./Text.schema";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const REGISTRY: Record<string, ComponentType<any>> = {
   Acta,
+  AnnotatedTimeline,
+  Box,
+  Callout,
   Chart,
+  ComparisonTable,
+  Grid,
   List,
   Metric,
+  MetricRow,
+  PeriodBars,
   PersonCard,
+  ProvinceMap,
   Stack,
   Text,
+  VoteBreakdown,
+  WeatherUnit,
 };
 
 /**
@@ -39,10 +69,20 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
  */
 export const NODE_SCHEMAS = {
   Acta: ActaNodeSchema,
+  AnnotatedTimeline: AnnotatedTimelineNodeSchema,
+  Box: BoxNodeSchema,
+  Callout: CalloutNodeSchema,
   Chart: ChartNodeSchema,
+  ComparisonTable: ComparisonTableNodeSchema,
+  Grid: GridNodeSchema,
   List: ListNodeSchema,
   Metric: MetricNodeSchema,
+  MetricRow: MetricRowNodeSchema,
+  PeriodBars: PeriodBarsNodeSchema,
   PersonCard: PersonCardNodeSchema,
+  ProvinceMap: ProvinceMapNodeSchema,
   Stack: StackNodeSchema,
   Text: TextNodeSchema,
+  VoteBreakdown: VoteBreakdownNodeSchema,
+  WeatherUnit: WeatherUnitNodeSchema,
 } as const satisfies Record<string, z.ZodType>;
