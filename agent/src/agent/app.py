@@ -2,22 +2,26 @@
 
 Endpoints:
     GET  /health                          — liveness check
+    GET  /api/data                        — catalog-gated proxy bridge (no LLM)
     POST /argentina_insights              — AG-UI LangGraph agent (CopilotKit)
     GET  /argentina_insights/health       — agent health (from ag-ui-langgraph)
 """
 
 import os
 from contextlib import asynccontextmanager
+from typing import Any
 
 from ag_ui_langgraph import add_langgraph_fastapi_endpoint
 from copilotkit import LangGraphAGUIAgent
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load .env before importing modules that read env vars at definition time.
 load_dotenv()
 
+from . import proxy  # noqa: E402
+from .catalog import catalog  # noqa: E402
 from .graph import graph  # noqa: E402
 
 
@@ -45,6 +49,38 @@ app.add_middleware(
 def health() -> dict:
     """Liveness check."""
     return {"status": "ok"}
+
+
+@app.get("/api/data")
+async def api_data(
+    request: Request,
+    path: str = Query(..., description="Catalog path template or filled path"),
+) -> Any:
+    """Thin HTTP bridge to ``proxy.resolve`` — same allowlist as the fetch tool.
+
+    Used by the Next.js ``/api/data`` route so destinations can load series
+    without a chat turn. Browser must not call this URL directly in prod;
+    go through the Next proxy.
+    """
+    matched = catalog.match(path)
+    if matched is None:
+        raise HTTPException(status_code=404, detail=f"Path not in catalog: {path}")
+    op, from_path = matched
+
+    params: dict[str, Any] = {**from_path}
+    for key, value in request.query_params.multi_items():
+        if key == "path":
+            continue
+        params[key] = value
+
+    try:
+        return await proxy.resolve(op.path, params)
+    except proxy.NoMatch as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except proxy.ProxyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except proxy.UpstreamError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # ── CopilotKit / AG-UI ────────────────────────────────────────────────────────
