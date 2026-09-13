@@ -26,10 +26,13 @@ async def fetch_argentinadatos(
     path: str,
     params: dict[str, Any] | None = None,
 ) -> str:
-    """Fetch Argentine public/financial data.
+    """Fetch Argentine public/financial data from the catalog.
 
     Pick a path from the catalog in the system prompt and pass its params.
     Filtering is done server-side, so ask for exactly what you need.
+    Covers ArgentinaDatos plus BCRA stocks, Series de Tiempo (INDEC),
+    Open-Meteo climate, curated historical days (Wikipedia), wiki
+    summaries, and TMDB Argentine cinema — all under the same path surface.
 
     Named laws go through search_actas, not this tool. Use this for series,
     rosters, "últimas leyes", and a roll call once you already have an acta id:
@@ -44,6 +47,14 @@ async def fetch_argentinadatos(
     Series (pass a date range to keep full resolution):
         {"path": "/v1/cotizaciones/dolares/{casa}",
          "params": {"casa": "blue", "desde": "2026-08-01", "hasta": "2026-08-31"}}
+        {"path": "/v1/bcra/{alias}", "params": {"alias": "reservas", "desde": "2019-12-10"}}
+        {"path": "/v1/series/{alias}", "params": {"alias": "emae", "desde": "2020-01-01"}}
+        {"path": "/v1/historico/dia",
+         "params": {"fecha": "2023-12-10"}}
+        {"path": "/v1/presidentes", "params": {"name": "Javier Milei"}}
+        {"path": "/v1/clima/historico",
+         "params": {"provincia": "CABA", "desde": "2023-12-10", "hasta": "2023-12-10"}}
+        {"path": "/v1/wiki/summary", "params": {"q": "Presidencia de Javier Milei"}}
 
     An empty list or a "No records" error means nothing matched the criteria —
     the dataset itself is available, so say that nothing matched instead of
