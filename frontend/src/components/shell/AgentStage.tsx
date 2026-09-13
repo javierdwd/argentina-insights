@@ -199,7 +199,7 @@ function ChatWithStarters() {
  * Full-page orchestrator — brand + stage (left) · CopilotChat (right).
  *
  * CanvasActionProvider wraps ONLY the stage so run-status re-renders do not
- * remount the chat. FloatingComposer talks to the agent directly.
+ * remount the chat. Agent turns reopen the chat column if it was collapsed.
  */
 export function AgentStage() {
   "use no memo";

@@ -1,13 +1,36 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { ChatCircle, ChatCircleSlash } from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
-import { FloatingComposer } from "./FloatingComposer";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 const CHAT_PREF_KEY = "argentina-insights.chat-collapsed";
 const MD_QUERY = "(min-width: 768px)";
+
+type ChatShellValue = {
+  chatHidden: boolean;
+  /** Reopen the full chat column (clears collapsed pref). */
+  showChat: () => void;
+};
+
+const ChatShellContext = createContext<ChatShellValue>({
+  chatHidden: false,
+  showChat: () => {},
+});
+
+/** Desktop chat column visibility — reopen when starting an agent turn. */
+export function useChatShell(): ChatShellValue {
+  return useContext(ChatShellContext);
+}
 
 interface HomeStageProps {
   /** CopilotChat panel rendered in the right column. */
@@ -77,10 +100,9 @@ function useIsDesktop(): boolean {
 /**
  * Two-column shell: brand + stage (left) · chat panel (right).
  *
- * With a canvas: compact brand (smaller mark + title, no blurb) so the
- * stage gets the vertical room. Chat collapse on desktop uses `hidden`
- * so the tray never stacks under the stage. When chat is hidden, a
- * floating composer stays available at the bottom of the stage.
+ * Chat stays visible by default. Collapse only via Ocultar. There is no
+ * floating composer — replies live in the chat column, so agent turns
+ * reopen it when it was hidden.
  */
 export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
   const reduce = useReducedMotion();
@@ -90,19 +112,10 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
 
   useEffect(() => {
     const pref = readChatPref();
-    if (pref !== null) {
-      setCollapsed(pref);
-    } else {
-      setCollapsed(hasCanvas);
-    }
+    // Only honor an explicit user choice — never auto-collapse on canvas.
+    if (pref !== null) setCollapsed(pref);
     setHydrated(true);
   }, []);
-
-  useEffect(() => {
-    if (!hydrated || !hasCanvas) return;
-    if (readChatPref() !== null) return;
-    setCollapsed(true);
-  }, [hasCanvas, hydrated]);
 
   const toggleChat = () => {
     setCollapsed((prev) => {
@@ -112,118 +125,127 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
     });
   };
 
-  const showChat = () => {
+  const showChat = useCallback(() => {
     setCollapsed(false);
     writeChatPref(false);
-  };
+  }, []);
 
   const chatHidden = hydrated && collapsed && isDesktop;
   const compact = hasCanvas;
 
+  const shell = useMemo<ChatShellValue>(
+    () => ({ chatHidden, showChat }),
+    [chatHidden, showChat],
+  );
+
   return (
-    <main
-      className={[
-        "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden",
-        chatHidden
-          ? "md:block"
-          : "md:grid md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
-      ].join(" ")}
-    >
-      <div
+    <ChatShellContext.Provider value={shell}>
+      <main
         className={[
-          "relative flex flex-col md:h-full md:min-h-0 md:overflow-hidden",
-          compact
-            ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
-            : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
-          chatHidden ? "pb-24" : "",
+          "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden",
+          chatHidden
+            ? "md:block"
+            : "md:grid md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
         ].join(" ")}
       >
         <div
-          aria-hidden
           className={[
-            "pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_at_top_left,color-mix(in_oklab,var(--sky)_42%,transparent),transparent_68%)]",
-            compact ? "h-40" : "h-72",
+            "relative flex flex-col md:h-full md:min-h-0 md:overflow-hidden",
+            compact
+              ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
+              : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
           ].join(" ")}
-        />
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="relative shrink-0"
         >
           <div
+            aria-hidden
             className={[
-              "flex items-start",
-              compact ? "gap-2.5" : "gap-3.5",
+              "pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_at_top_left,color-mix(in_oklab,var(--sky)_42%,transparent),transparent_68%)]",
+              compact ? "h-40" : "h-72",
             ].join(" ")}
+          />
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE }}
+            className="relative shrink-0"
           >
-            <BrandMark compact={compact} />
-            <div className={["min-w-0 flex-1", compact ? "" : "pt-0.5"].join(" ")}>
-              <div className="flex items-center justify-between gap-3">
-                <h1
-                  className={[
-                    "font-display font-semibold tracking-tight text-foreground",
-                    compact
-                      ? "text-xl md:text-2xl leading-tight"
-                      : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.05]",
-                  ].join(" ")}
-                >
-                  Argentina Insights
-                </h1>
-                {isDesktop ? (
-                  <button
-                    type="button"
-                    onClick={toggleChat}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                    aria-pressed={chatHidden}
-                    aria-label={chatHidden ? "Mostrar chat" : "Ocultar chat"}
+            <div
+              className={[
+                "flex items-start",
+                compact ? "gap-2.5" : "gap-3.5",
+              ].join(" ")}
+            >
+              <BrandMark compact={compact} />
+              <div className={["min-w-0 flex-1", compact ? "" : "pt-0.5"].join(" ")}>
+                <div className="flex items-center justify-between gap-3">
+                  <h1
+                    className={[
+                      "font-display font-semibold tracking-tight text-foreground",
+                      compact
+                        ? "text-xl md:text-2xl leading-tight"
+                        : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.05]",
+                    ].join(" ")}
                   >
-                    {chatHidden ? (
-                      <ChatCircle size={16} weight="regular" />
-                    ) : (
-                      <ChatCircleSlash size={16} weight="regular" />
-                    )}
-                    {chatHidden ? "Chat" : "Ocultar"}
-                  </button>
+                    Argentina Insights
+                  </h1>
+                  {isDesktop ? (
+                    <button
+                      type="button"
+                      onClick={toggleChat}
+                      className={[
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                        chatHidden
+                          ? "bg-accent text-accent-foreground hover:opacity-95"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                      ].join(" ")}
+                      aria-pressed={chatHidden}
+                      aria-label={chatHidden ? "Mostrar chat" : "Ocultar chat"}
+                    >
+                      {chatHidden ? (
+                        <ChatCircle size={16} weight="regular" />
+                      ) : (
+                        <ChatCircleSlash size={16} weight="regular" />
+                      )}
+                      {chatHidden ? "Mostrar chat" : "Ocultar"}
+                    </button>
+                  ) : null}
+                </div>
+                {!compact ? (
+                  <p className="mt-2.5 max-w-[36ch] text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
+                    Economía, política, cine argentino, días históricos y cruces
+                    entre todo eso. Elegí una pregunta o escribí en el chat.
+                  </p>
                 ) : null}
               </div>
-              {!compact ? (
-                <p className="mt-2.5 max-w-[36ch] text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
-                  Economía, política, cine argentino, días históricos y cruces
-                  entre todo eso. Elegí una pregunta o escribí en el chat.
-                </p>
-              ) : null}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
-          className={[
-            "relative flex min-h-0 flex-1 flex-col md:overflow-hidden",
-            compact ? "mt-4 md:mt-5" : "mt-10 md:mt-12",
-          ].join(" ")}
-        >
-          {stage ?? (
-            <p className="text-xs text-muted-foreground/50 select-none">
-              La vista aparece acá.
-            </p>
-          )}
-        </motion.div>
-      </div>
-
-      <div
-        hidden={chatHidden}
-        className="flex h-[70dvh] shrink-0 flex-col border-t border-border bg-card md:h-full md:min-h-0 md:border-l md:border-t-0 md:bg-transparent md:p-4 lg:p-5"
-      >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-4 md:rounded-2xl md:pt-0 md:shadow-[0_24px_56px_-28px_color-mix(in_oklab,var(--foreground)_30%,transparent),inset_0_1px_0_rgba(255,255,255,0.65)] md:ring-1 md:ring-border">
-          {chat}
+          <motion.div
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
+            className={[
+              "relative flex min-h-0 flex-1 flex-col md:overflow-hidden",
+              compact ? "mt-4 md:mt-5" : "mt-10 md:mt-12",
+            ].join(" ")}
+          >
+            {stage ?? (
+              <p className="text-xs text-muted-foreground/50 select-none">
+                La vista aparece acá.
+              </p>
+            )}
+          </motion.div>
         </div>
-      </div>
 
-      {chatHidden ? <FloatingComposer onShowChat={showChat} /> : null}
-    </main>
+        <div
+          hidden={chatHidden}
+          className="flex h-[70dvh] shrink-0 flex-col border-t border-border bg-card md:h-full md:min-h-0 md:border-l md:border-t-0 md:bg-transparent md:p-4 lg:p-5"
+        >
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-4 md:rounded-2xl md:pt-0 md:shadow-[0_24px_56px_-28px_color-mix(in_oklab,var(--foreground)_30%,transparent),inset_0_1px_0_rgba(255,255,255,0.65)] md:ring-1 md:ring-border">
+            {chat}
+          </div>
+        </div>
+      </main>
+    </ChatShellContext.Provider>
   );
 }

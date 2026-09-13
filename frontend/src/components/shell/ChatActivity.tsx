@@ -185,7 +185,8 @@ function thinkingLabel(isStreaming?: boolean, label?: string): string {
   return "Pensó un momento";
 }
 
-function clipReasoning(text: string): string {
+/** One short prose line from a reasoning blob (shared with floating status). */
+export function clipReasoning(text: string): string {
   const cleaned = text
     .replace(/\/v1\/\S+/g, "")
     .replace(/[*_`#>]+/g, " ")
@@ -195,6 +196,22 @@ function clipReasoning(text: string): string {
   const first = cleaned.split(/(?<=[.!?])\s+/)[0] ?? cleaned;
   if (first.length <= 72) return first;
   return `${first.slice(0, 70).trimEnd()}…`;
+}
+
+/** Latest non-empty reasoning in the current turn (after the last user msg). */
+export function latestTurnReasoning(
+  messages: { role?: string; content?: unknown }[] | undefined,
+): string {
+  if (!messages?.length) return "";
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === "user") break;
+    if (message.role !== "reasoning") continue;
+    const raw = typeof message.content === "string" ? message.content : "";
+    const line = clipReasoning(raw);
+    if (line) return line;
+  }
+  return "";
 }
 
 export function ReasoningContent({

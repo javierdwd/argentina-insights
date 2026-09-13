@@ -26,10 +26,7 @@ import {
   useCopilotKit,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
-import {
-  DESTINATIONS,
-  type DestinationId,
-} from "@/lib/destinations";
+import { DESTINATIONS, type DestinationId } from "@/lib/destinations";
 import { saveLastCanvas } from "@/lib/workspace";
 import {
   PREVIEW_LABEL,
@@ -90,7 +87,10 @@ export function StarterBubbles() {
   const reduce = useReducedMotion();
   const { agent } = useAgent({
     agentId: "argentina_insights",
-    updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
+    updates: [
+      UseAgentUpdate.OnMessagesChanged,
+      UseAgentUpdate.OnRunStatusChanged,
+    ],
   });
   const { copilotkit } = useCopilotKit();
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -121,7 +121,10 @@ export function StarterBubbles() {
         });
         saveLastCanvas(tree, dest.title);
       } catch (error) {
-        console.error(`StarterBubbles: ${dest.title} destination failed`, error);
+        console.error(
+          `StarterBubbles: ${dest.title} destination failed`,
+          error,
+        );
       } finally {
         setDestinoBusy(null);
       }
@@ -186,8 +189,7 @@ export function StarterBubbles() {
           })}
         </div>
         <p className="max-w-[42ch] text-xs leading-relaxed text-muted-foreground">
-          {DESTINATIONS.map((d) => d.title).join(" · ")} — dashboards listos;
-          abajo, preguntas para el chat.
+          {DESTINATIONS.map((d) => d.title).join(" · ")} — dashboards listos.
         </p>
       </motion.div>
 

@@ -17,6 +17,7 @@ import {
 } from "@copilotkit/react-core/v2";
 import type { CanvasTipo } from "./infer-canvas-tipo";
 import type { CanvasBrush } from "./canvas-brush";
+import { useChatShell } from "./HomeStage";
 
 export type { CanvasTipo } from "./infer-canvas-tipo";
 export type { CanvasBrush } from "./canvas-brush";
@@ -160,6 +161,7 @@ export function CanvasActionProvider({ children }: { children: ReactNode }) {
     updates: [UseAgentUpdate.OnRunStatusChanged],
   });
   const { copilotkit } = useCopilotKit();
+  const { showChat } = useChatShell();
   const [pending, setPending] = useState<string | null>(null);
   const [selected, setSelected] = useState<CanvasSelection | null>(null);
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
@@ -188,6 +190,8 @@ export function CanvasActionProvider({ children }: { children: ReactNode }) {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || busyRef.current) return;
+      // Replies live in the chat column — reopen if the user had collapsed it.
+      showChat();
       setPending(trimmed);
       try {
         agent.addMessage({
@@ -202,7 +206,7 @@ export function CanvasActionProvider({ children }: { children: ReactNode }) {
         setPending(null);
       }
     },
-    [agent, copilotkit],
+    [agent, copilotkit, showChat],
   );
 
   const selectLocal = useCallback((selection: CanvasSelection) => {
