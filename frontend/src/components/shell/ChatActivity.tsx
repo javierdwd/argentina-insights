@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, HTMLAttributes } from "react";
+import { useEffect, type ComponentProps, type HTMLAttributes } from "react";
 import {
   ArrowsClockwise,
   CloudArrowDown,
@@ -9,8 +9,23 @@ import {
 } from "@phosphor-icons/react";
 import {
   CopilotChatReasoningMessage,
+  useAgent,
   useDefaultRenderTool,
 } from "@copilotkit/react-core/v2";
+
+const TEMP_RUN_ERROR =
+  "Hubo un error temporal. Probá de nuevo en unos minutos.";
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { name, message } = error as { name?: string; message?: string };
+  return (
+    name === "AbortError" ||
+    message === "Fetch is aborted" ||
+    message === "signal is aborted without reason" ||
+    message === "component unmounted"
+  );
+}
 
 type ToolStatus = "inProgress" | "executing" | "complete";
 
@@ -166,6 +181,45 @@ function renderToolActivity({
 /** Register a wildcard tool renderer so fetches aren't a blank wait. */
 export function ChatToolActivity() {
   useDefaultRenderTool({ render: renderToolActivity }, []);
+  return null;
+}
+
+/**
+ * Surface RUN_ERROR / run failures as an assistant bubble. CopilotKit
+ * otherwise ends the turn silently when the agent stream dies (e.g. missing
+ * AGENT_URL on Vercel).
+ */
+export function ChatRunErrors() {
+  const { agent } = useAgent({ agentId: "argentina_insights" });
+
+  useEffect(() => {
+    let lastPostedAt = 0;
+    const postTempError = () => {
+      const now = Date.now();
+      // RUN_ERROR event and onRunFailed can both fire for one failed turn.
+      if (now - lastPostedAt < 1500) return;
+      lastPostedAt = now;
+      queueMicrotask(() => {
+        agent.addMessage({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: TEMP_RUN_ERROR,
+        });
+      });
+    };
+
+    const { unsubscribe } = agent.subscribe({
+      onRunErrorEvent: () => {
+        postTempError();
+      },
+      onRunFailed: ({ error }) => {
+        if (isAbortError(error)) return;
+        postTempError();
+      },
+    });
+    return unsubscribe;
+  }, [agent]);
+
   return null;
 }
 

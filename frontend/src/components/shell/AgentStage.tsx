@@ -19,6 +19,7 @@ import { StarterBubbles } from "./StarterBubbles";
 import { DestinationFollowUps } from "./DestinationFollowUps";
 import { AssistantWithActions } from "./AssistantWithActions";
 import {
+  ChatRunErrors,
   ChatToolActivity,
   ReasoningContent,
   ReasoningHeader,
@@ -190,6 +191,7 @@ function ChatWithStarters() {
     <div className="relative h-full min-h-0">
       <ChatSuggestions />
       <ChatToolActivity />
+      <ChatRunErrors />
       <CopilotChatPanel />
     </div>
   );
