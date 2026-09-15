@@ -5,9 +5,12 @@ from __future__ import annotations
 from agent.catalog import catalog
 from agent.graph import (
     _CAPABILITIES,
+    _CAPABILITIES_COMPOSE,
     _COMPOSE_SYSTEM,
+    _EARLIER_DATASET_CAP,
     _RESPOND_SYSTEM,
     _build_compose_system,
+    _compact_datasets,
     _ensure_brief_actions,
     _message_text,
     _next_to_actions_block,
@@ -1179,3 +1182,117 @@ def test_message_text_skips_reasoning_blocks() -> None:
         {"type": "text", "text": "Acá va el brief."},
     ]
     assert _message_text(content) == "Acá va el brief."
+
+
+def test_compose_uses_slim_capabilities_not_fetch_recipes() -> None:
+    """Compose grounds suggestions without paying for respond's fetch recipes."""
+    slim = _CAPABILITIES_COMPOSE.casefold()
+    full = _CAPABILITIES.casefold()
+    assert "merval" in slim
+    assert "emae" in slim
+    assert "reservas" in slim
+    # Full recipes stay on respond only.
+    assert "/v1/historico/dia" in full or "historico/dia" in full
+    assert "includevotes=true" not in slim
+    assert len(_CAPABILITIES_COMPOSE) < len(_CAPABILITIES) * 0.55
+    compose = _build_compose_system(
+        {
+            "messages": [],
+            "datasets": {},
+            "respond_note": "",
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+        }
+    )
+    assert "Families we CAN suggest" in compose
+    assert "Families we CAN fetch" not in compose
+
+
+def test_respond_datasets_index_caps_earlier_and_samples() -> None:
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    from agent.graph import _dataset_id
+
+    earlier = {}
+    for i in range(_EARLIER_DATASET_CAP + 4):
+        path = f"/v1/finanzas/extra/{i}"
+        ds_id = _dataset_id(path, {})
+        earlier[ds_id] = {
+            "id": ds_id,
+            "path": path,
+            "params": {},
+            "N": 10,
+            "keys": ["fecha", "valor"],
+            "rows": [{"fecha": f"2024-01-{j+1:02d}", "valor": j} for j in range(8)],
+        }
+
+    path, params = "/v1/cotizaciones/dolares", {"casa": "blue"}
+    now_id = _dataset_id(path, params)
+    datasets = {
+        **earlier,
+        now_id: {
+            "id": now_id,
+            "path": path,
+            "params": params,
+            "N": 3,
+            "keys": ["fecha", "venta"],
+            "rows": [
+                {"fecha": "2024-06-01", "venta": 1000},
+                {"fecha": "2024-06-02", "venta": 1010},
+                {"fecha": "2024-06-03", "venta": 1020},
+            ],
+        },
+    }
+    messages = [
+        HumanMessage(content="mostrá el blue"),
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "c1",
+                    "name": "fetch_argentinadatos",
+                    "args": {"path": path, "params": params},
+                }
+            ],
+        ),
+    ]
+    text = _system_message("data", datasets, messages).content
+    assert "This turn:" in text
+    assert "Earlier (memory" in text
+    assert now_id in text
+    # Oldest earlier datasets age out.
+    dropped = list(earlier.keys())[0]
+    kept = list(earlier.keys())[-1]
+    assert dropped not in text
+    assert kept in text
+    # Sample rows capped (3 this-turn / 2 earlier) — not the old 8.
+    assert text.count('"fecha":') <= (_EARLIER_DATASET_CAP * 2) + 3 + 5
+
+
+def test_compact_datasets_respond_keeps_earlier_when_this_turn_hits() -> None:
+    """Unlike compose, respond must still see earlier memory for follow-ups."""
+    now = {
+        "id": "now",
+        "path": "/v1/a",
+        "params": {},
+        "N": 1,
+        "keys": ["x"],
+        "rows": [{"x": 1}],
+    }
+    old = {
+        "id": "old",
+        "path": "/v1/b",
+        "params": {},
+        "N": 1,
+        "keys": ["y"],
+        "rows": [{"y": 2}],
+    }
+    respond = _compact_datasets(
+        {"now": now, "old": old}, this_turn={"now"}, audience="respond"
+    )
+    compose = _compact_datasets(
+        {"now": now, "old": old}, this_turn={"now"}, audience="compose"
+    )
+    assert "old" in respond
+    assert "hidden" not in respond.casefold()
+    assert "old" not in compose or "hidden" in compose.casefold()
