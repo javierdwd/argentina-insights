@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Outfit, Source_Sans_3 } from "next/font/google";
 import { Providers } from "./providers";
 import "@copilotkit/react-core/v2/styles.css";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${outfit.variable} ${sourceSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <Analytics />
         <Providers>{children}</Providers>
       </body>
     </html>
