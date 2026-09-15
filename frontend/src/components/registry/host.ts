@@ -310,7 +310,7 @@ export function sanitizeHostClass(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
   const kept = value
     .split(/\s+/)
-    .filter((token) => HOST_CLASS_VOCAB.has(token));
+    .filter((token) => HOST_CLASS_VOCAB.has(token as HostClass));
   return kept.length > 0 ? kept.join(" ") : undefined;
 }
 

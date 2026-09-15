@@ -7,7 +7,7 @@ import {
   isSvgHostType,
   sanitizeHostClass,
   sanitizeHostProps,
-} from "./host.ts";
+} from "./host";
 
 test("sanitizeHostClass keeps vocab tokens and drops unknowns", () => {
   const out = sanitizeHostClass(
@@ -56,7 +56,7 @@ test("HOST_CLASS_VOCAB includes core bulletin layout tokens", () => {
     "border-rule",
     "font-display",
     "tabular-nums",
-  ]) {
+  ] as const) {
     assert.ok(HOST_CLASS_VOCAB.has(token), `missing ${token}`);
   }
 });

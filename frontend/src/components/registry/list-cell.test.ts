@@ -5,7 +5,7 @@ import {
   inferColumnKind,
   looksLikeImageUrl,
   pickListSelectionLead,
-} from "./list-cell.ts";
+} from "./list-cell";
 
 test("looksLikeImageUrl matches common image paths", () => {
   assert.equal(

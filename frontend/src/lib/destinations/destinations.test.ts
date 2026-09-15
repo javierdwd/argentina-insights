@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { latestActas, polishDiscover } from "./shared.ts";
+import { latestActas, polishDiscover } from "./shared";
 
 test("latestActas sorts newest first and caps", () => {
   const rows = latestActas(

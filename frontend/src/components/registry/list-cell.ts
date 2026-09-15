@@ -144,7 +144,7 @@ export function foldImageColumns<T extends { key: string; kind?: ListCellKind }>
  */
 export function pickListSelectionLead(
   row: Record<string, unknown>,
-  columns: { key: string; kind?: ListCellKind }[],
+  columns: { key: string; kind?: ListCellKind; label?: string }[],
   data?: Record<string, unknown>[],
   format: (value: unknown) => string = (v) =>
     v == null || v === "" ? "" : String(v),

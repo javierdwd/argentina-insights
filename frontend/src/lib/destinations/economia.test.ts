@@ -5,8 +5,8 @@ import test from "node:test";
 import {
   alignBlueOficial,
   isEconomiaDestination,
-} from "./economia-shared.ts";
-import type { UINode } from "../uitree.ts";
+} from "./economia-shared";
+import type { UINode } from "../uitree";
 
 test("alignBlueOficial joins by fecha and drops non-overlap", () => {
   const rows = alignBlueOficial(

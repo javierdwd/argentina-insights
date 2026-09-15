@@ -4,7 +4,7 @@ import {
   embedOffersInProse,
   parseChatActions,
   parseInlineButtons,
-} from "./parse-chat-actions.ts";
+} from "./parse-chat-actions";
 
 test("double-wrapped [boton] yields a clean label", () => {
   const raw =

@@ -4,7 +4,7 @@ import {
   factsFromCategoryRow,
   inferCanvasTipo,
   looksLikePersonName,
-} from "./infer-canvas-tipo.ts";
+} from "./infer-canvas-tipo";
 
 test("looksLikePersonName matches Spanish compound names", () => {
   assert.equal(looksLikePersonName("Javier Milei"), true);

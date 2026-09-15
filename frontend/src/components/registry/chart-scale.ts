@@ -55,7 +55,7 @@ export function seriesOverlapRatio(
  */
 export function withAutoDualAxis<
   T extends { key: string; yAxisIndex?: 0 | 1 },
->(series: T[], data: Record<string, unknown>[]): T[] {
+>(series: T[], data: Record<string, unknown>[]): (T & { yAxisIndex?: 0 | 1 })[] {
   if (series.length < 2 || data.length === 0) return series;
   if (series.some((s) => s.yAxisIndex === 1)) return series;
   if (seriesOverlapRatio(data, series.map((s) => s.key)) < 0.1) return series;

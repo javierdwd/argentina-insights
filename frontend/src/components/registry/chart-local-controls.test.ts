@@ -4,11 +4,11 @@ import {
   filterRowsByRelativeRange,
   parseIsoDay,
   xKeyLooksDated,
-} from "./chart-local-controls.ts";
+} from "./chart-local-controls";
 import {
   rowMatchesBrush,
   textMatchesBrush,
-} from "../shell/canvas-brush.ts";
+} from "../shell/canvas-brush";
 
 test("parseIsoDay parses valid days", () => {
   assert.ok(parseIsoDay("2024-06-15")?.toISOString().startsWith("2024-06-15"));

@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { withAutoDualAxis } from "./chart-scale.ts";
+import { withAutoDualAxis } from "./chart-scale";
 import {
   resolveChartSeries,
   trimEmptyMeasureEdges,
-} from "./chart-series.ts";
+} from "./chart-series";
 import {
   pivotCategoryVoteCounts,
   seriesLookLikeVotes,
   sortVoteCategoryRows,
-} from "./vote-pivot.ts";
+} from "./vote-pivot";
 
 test("withAutoDualAxis puts % scale on the right when vs ARS", () => {
   const data = [
