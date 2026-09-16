@@ -387,6 +387,19 @@ _SUMMARY_HINTS: dict[str, str] = {
         "Google News headlines by topic. Choose short q keywords; optional "
         "desde/hasta for history. News widget, never generic List"
     ),
+    "/v1/football/league/team-stats": (
+        "One team across seasons or two-team comparison. Use teams=A|B and "
+        "seasons=YYYY|YYYY; direct meetings only → headToHead=true. "
+        "The Statistical Analyst interprets uncertainty and trends"
+    ),
+    "/v1/football/league/latest-lineup": (
+        "Latest available lineup for one club by name. Use this directly for "
+        "'última alineación de River'; the proxy resolves the team and match"
+    ),
+    "/v1/football/matches/{matchId}/lineup": (
+        "Fetch after a match row supplies matchId; compose FootballLineup, "
+        "not PersonCard or a generic List"
+    ),
     "/v1/cine/discover": (
         "Browse AR films (TMDB). List foto+titulo+valor; then pelicula/{id}"
     ),
@@ -486,7 +499,7 @@ def _client_param(spec: ParamSpec) -> Param:
     return Param(
         name=spec.name,
         location="client",
-        required=False,
+        required=spec.required,
         type=spec.type,
         enum=list(spec.enum) if spec.enum else None,
         example=spec.example,

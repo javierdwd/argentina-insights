@@ -53,6 +53,7 @@ class ParamSpec:
     hint: str  # short phrase shown to the LLM in the catalog
     enum: tuple[str, ...] | None = None
     example: str | None = None
+    required: bool = False
 
 
 _FIELDS_HINT = (
@@ -80,8 +81,8 @@ FIELDS_VOTES = fields_spec("nombre,voto")
 #: ``fields`` is offered per endpoint with a real example (see above), and
 #: ``refresh`` is an operational escape hatch, not a modelling decision.
 ALWAYS_CLIENT: tuple[str, ...] = ("fields", "refresh")
-DESDE = ParamSpec(name="desde", type="string", hint="ISO date lower bound (inclusive)")
-HASTA = ParamSpec(name="hasta", type="string", hint="ISO date upper bound (inclusive)")
+DATE_FROM = ParamSpec(name="desde", type="string", hint="ISO date lower bound (inclusive)")
+DATE_TO = ParamSpec(name="hasta", type="string", hint="ISO date upper bound (inclusive)")
 TITLE = ParamSpec(
     name="title",
     type="string",
@@ -320,7 +321,7 @@ PARAM_SPECS: dict[str, tuple[ParamSpec, ...]] = {}
 for _actas in ACTAS_FAMILIES:
     _fields = fields_spec(f"{_actas.id_field},titulo,fecha")
     for _path in (_actas.list_path, _actas.year_path):
-        PARAM_SPECS[_path] = (TITLE, VOTE, INCLUDE_VOTES, DESDE, HASTA, _fields)
+        PARAM_SPECS[_path] = (TITLE, VOTE, INCLUDE_VOTES, DATE_FROM, DATE_TO, _fields)
 
 for _roster in ROSTER_FAMILIES:
     PARAM_SPECS[_roster.list_path] = (ACTIVE, PROVINCE, NAME, NAMES, FIELDS_ROSTER)
@@ -349,11 +350,11 @@ CALENDAR_PATHS: tuple[str, ...] = (
 )
 
 for _path in DATE_SERIES_PATHS:
-    PARAM_SPECS[_path] = (DESDE, HASTA)
+    PARAM_SPECS[_path] = (DATE_FROM, DATE_TO)
 
-PARAM_SPECS["/v1/eventos/presidenciales"] = (DESDE, HASTA)
-PARAM_SPECS["/v1/feriados/{año}"] = (DESDE, HASTA)
-PARAM_SPECS["/v1/feriados-bancarios/{año}"] = (DESDE, HASTA)
+PARAM_SPECS["/v1/eventos/presidenciales"] = (DATE_FROM, DATE_TO)
+PARAM_SPECS["/v1/feriados/{año}"] = (DATE_FROM, DATE_TO)
+PARAM_SPECS["/v1/feriados-bancarios/{año}"] = (DATE_FROM, DATE_TO)
 
 PARAM_SPECS["/v1/presidentes"] = (
     NAME,
@@ -377,19 +378,19 @@ class ExternalRoute:
     path_params: tuple[str, ...] = ()
 
 
-PROVINCIA = ParamSpec(
+WEATHER_PROVINCE = ParamSpec(
     name="provincia",
     type="string",
     hint="Argentine province name (or CABA). Omit to return all 24 jurisdictions",
     example="Córdoba",
 )
-DIAS = ParamSpec(
+FORECAST_DAYS = ParamSpec(
     name="dias",
     type="integer",
     hint="forecast horizon in days (1–16, default 7)",
     example="7",
 )
-Q_SEARCH = ParamSpec(
+SERIES_SEARCH_QUERY = ParamSpec(
     name="q",
     type="string",
     hint=(
@@ -398,19 +399,19 @@ Q_SEARCH = ParamSpec(
     ),
     example="EMAE",
 )
-FECHA = ParamSpec(
+HISTORICAL_DATE = ParamSpec(
     name="fecha",
     type="string",
     hint="ISO date (YYYY-MM-DD) for a curated historical day",
     example="2023-12-10",
 )
-Q_WIKI = ParamSpec(
+WIKI_QUERY = ParamSpec(
     name="q",
     type="string",
     hint="Spanish Wikipedia article title for REST summary (extract, foto, url)",
     example="Presidencia de Javier Milei",
 )
-NAMES_WIKI = ParamSpec(
+WIKI_NAMES = ParamSpec(
     name="names",
     type="string",
     hint=(
@@ -419,7 +420,7 @@ NAMES_WIKI = ParamSpec(
     ),
     example="Luis Caputo|Kristalina Georgieva",
 )
-Q_NEWS = ParamSpec(
+NEWS_QUERY = ParamSpec(
     name="q",
     type="string",
     hint=(
@@ -429,19 +430,19 @@ Q_NEWS = ParamSpec(
     ),
     example="Milei inflación",
 )
-Q_CINE = ParamSpec(
+CINEMA_QUERY = ParamSpec(
     name="q",
     type="string",
     hint="Search text for Argentine films or people (TMDB)",
     example="Relatos salvajes",
 )
-ANIO_CINE = ParamSpec(
+CINEMA_YEAR = ParamSpec(
     name="anio",
     type="integer",
     hint="Release year filter (YYYY)",
     example="2014",
 )
-GENERO_CINE = ParamSpec(
+CINEMA_GENRE = ParamSpec(
     name="genero",
     type="string",
     hint=(
@@ -450,7 +451,7 @@ GENERO_CINE = ParamSpec(
     ),
     example="drama",
 )
-SORT_CINE = ParamSpec(
+CINEMA_SORT = ParamSpec(
     name="sort",
     type="string",
     hint=(
@@ -459,11 +460,102 @@ SORT_CINE = ParamSpec(
     ),
     example="popularity.desc",
 )
-PAGE_CINE = ParamSpec(
+CINEMA_PAGE = ParamSpec(
     name="page",
     type="integer",
     hint="TMDB page (default 1)",
     example="1",
+)
+FOOTBALL_SEASON = ParamSpec(
+    name="season",
+    type="string",
+    hint=(
+        "season label exactly as listed by the corresponding /seasons "
+        "route (for example 2023 or 2019/2020)"
+    ),
+    example="2023",
+    required=True,
+)
+FOOTBALL_OPTIONAL_SEASON = ParamSpec(
+    name="season",
+    type="string",
+    hint="optional season label; defaults to the newest available season",
+    example="2026",
+)
+FOOTBALL_WEEK = ParamSpec(
+    name="week",
+    type="string",
+    hint="optional Argentine League matchday/round filter",
+    example="1",
+)
+FOOTBALL_START_DATE = ParamSpec(
+    name="startDate",
+    type="string",
+    hint="inclusive ISO date lower bound (YYYY-MM-DD)",
+    example="2023-01-01",
+)
+FOOTBALL_END_DATE = ParamSpec(
+    name="endDate",
+    type="string",
+    hint="inclusive ISO date upper bound (YYYY-MM-DD)",
+    example="2023-12-31",
+)
+FOOTBALL_TEAMS = ParamSpec(
+    name="teams",
+    type="string",
+    hint="one or two pipe-separated team names (accent/case-insensitive)",
+    example="River Plate|Boca Juniors",
+    required=True,
+)
+FOOTBALL_TEAM = ParamSpec(
+    name="team",
+    type="string",
+    hint="one Liga Profesional team name; common short names are accepted",
+    example="River",
+    required=True,
+)
+FOOTBALL_SEASONS = ParamSpec(
+    name="seasons",
+    type="string",
+    hint="one to ten pipe-separated season labels",
+    example="2022|2023|2024",
+    required=True,
+)
+FOOTBALL_HEAD_TO_HEAD = ParamSpec(
+    name="headToHead",
+    type="boolean",
+    hint=(
+        "with exactly two teams, keep only matches played directly between them"
+    ),
+    example="false",
+)
+FOOTBALL_HOME_TEAM = ParamSpec(
+    name="homeTeam",
+    type="string",
+    hint="optional home-team name copied from the selected match row",
+    example="River Plate",
+)
+FOOTBALL_AWAY_TEAM = ParamSpec(
+    name="awayTeam",
+    type="string",
+    hint="optional away-team name copied from the selected match row",
+    example="Boca Juniors",
+)
+FOOTBALL_HOME_TEAM_LOGO = ParamSpec(
+    name="homeTeamLogo",
+    type="string",
+    hint="optional home-team logo URL copied from the selected match row",
+)
+FOOTBALL_AWAY_TEAM_LOGO = ParamSpec(
+    name="awayTeamLogo",
+    type="string",
+    hint="optional away-team logo URL copied from the selected match row",
+)
+FOOTBALL_AS_OF = ParamSpec(
+    name="asOf",
+    type="string",
+    hint="optional inclusive ISO cutoff date; defaults to today",
+    example="2026-09-16",
 )
 REM_ALIAS = ParamSpec(
     name="alias",
@@ -475,7 +567,7 @@ REM_ALIAS = ParamSpec(
     example="ipc",
     enum=("ipc", "ipc_nucleo", "tc", "desempleo"),
 )
-REM_MUESTRA = ParamSpec(
+REM_SAMPLE = ParamSpec(
     name="muestra",
     type="string",
     hint="REM sample: todos (default) or top_10",
@@ -492,25 +584,25 @@ REM_HORIZON = ParamSpec(
     enum=("1m", "nowcast", "all"),
     example="1m",
 )
-REM_ANIO = ParamSpec(
+REM_YEAR = ParamSpec(
     name="año",
     type="integer",
     hint="REM informe year (2016+)",
     example="2024",
 )
-REM_MES = ParamSpec(
+REM_MONTH = ParamSpec(
     name="mes",
     type="string",
     hint="REM informe month as two digits (01–12)",
     example="06",
 )
-Q_FCI = ParamSpec(
+FCI_QUERY = ParamSpec(
     name="q",
     type="string",
     hint="Spanish fund name fragment (e.g. 'Delta Pesos'). All words must match",
     example="Delta Pesos",
 )
-LIMIT_PLAZOS = ParamSpec(
+FIXED_TERM_LIMIT = ParamSpec(
     name="limit",
     type="integer",
     hint="Max banks to return (default 25, max 40)",
@@ -518,6 +610,96 @@ LIMIT_PLAZOS = ParamSpec(
 )
 
 EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
+    "/v1/football/league/seasons": ExternalRoute(
+        path="/v1/football/league/seasons",
+        domain="other",
+        summary=(
+            "Available historical seasons for Liga Profesional Argentina. "
+            "Browse this before requesting matches or standings"
+        ),
+    ),
+    "/v1/football/league/matches": ExternalRoute(
+        path="/v1/football/league/matches",
+        domain="other",
+        summary=(
+            "Historical Liga Profesional Argentina fixtures and results. "
+            "Compact rows include date, week, home/away teams, scores, "
+            "team ids and logos"
+        ),
+        params=(
+            FOOTBALL_SEASON,
+            FOOTBALL_WEEK,
+            FOOTBALL_START_DATE,
+            FOOTBALL_END_DATE,
+        ),
+    ),
+    "/v1/football/league/standings": ExternalRoute(
+        path="/v1/football/league/standings",
+        domain="other",
+        summary=(
+            "Final/current Liga Profesional standings for one historical "
+            "season: position, team, W-D-L, goals, points and form"
+        ),
+        params=(FOOTBALL_SEASON,),
+    ),
+    "/v1/football/league/team-stats": ExternalRoute(
+        path="/v1/football/league/team-stats",
+        domain="other",
+        summary=(
+            "Flat per-team, per-season Liga Profesional statistics with "
+            "results, goals, rates, home/away splits, streaks and sample flags"
+        ),
+        params=(
+            FOOTBALL_TEAMS,
+            FOOTBALL_SEASONS,
+            FOOTBALL_START_DATE,
+            FOOTBALL_END_DATE,
+            FOOTBALL_HEAD_TO_HEAD,
+        ),
+    ),
+    "/v1/football/matches/{matchId}/lineup": ExternalRoute(
+        path="/v1/football/matches/{matchId}/lineup",
+        domain="other",
+        summary=(
+            "Confirmed or projected match lineup for FootballLineup: two rows "
+            "with team, side, formation, starting players, substitutes and coach"
+        ),
+        path_params=("matchId",),
+        params=(
+            FOOTBALL_HOME_TEAM,
+            FOOTBALL_AWAY_TEAM,
+            FOOTBALL_HOME_TEAM_LOGO,
+            FOOTBALL_AWAY_TEAM_LOGO,
+        ),
+    ),
+    "/v1/football/league/latest-lineup": ExternalRoute(
+        path="/v1/football/league/latest-lineup",
+        domain="other",
+        summary=(
+            "Latest available confirmed or projected lineup for one Liga "
+            "Profesional team. Resolves the team and newest eligible match "
+            "server-side; use this for requests such as 'última alineación de River'"
+        ),
+        params=(FOOTBALL_TEAM, FOOTBALL_OPTIONAL_SEASON, FOOTBALL_AS_OF),
+    ),
+    "/v1/football/national-team/seasons": ExternalRoute(
+        path="/v1/football/national-team/seasons",
+        domain="other",
+        summary=(
+            "Available historical seasons for the Argentina men's national "
+            "team"
+        ),
+    ),
+    "/v1/football/national-team/matches": ExternalRoute(
+        path="/v1/football/national-team/matches",
+        domain="other",
+        summary=(
+            "Argentina men's national-team historical matches across World "
+            "Cup, qualifiers, Copa América and friendlies; includes opponent, "
+            "score, competition and won/drew/lost result"
+        ),
+        params=(FOOTBALL_SEASON, FOOTBALL_START_DATE, FOOTBALL_END_DATE),
+    ),
     "/v1/bcra/variables": ExternalRoute(
         path="/v1/bcra/variables",
         domain="finance",
@@ -537,7 +719,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "depósitos, base) → pair with /v1/presidentes for mandate "
             "levels (last/delta). Pass desde/hasta ISO"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("alias",),
     ),
     "/v1/cammesa": ExternalRoute(
@@ -559,7 +741,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "potencia_maxima. Chart dual series demanda_total+temperatura "
             "(heatwave × load). Pass desde/hasta. Attribution: CAMMESA"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
     ),
     "/v1/cammesa/{alias}": ExternalRoute(
         path="/v1/cammesa/{alias}",
@@ -570,7 +752,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "temperatura, potencia_maxima. Pair with /v1/clima/historico "
             "or EMAE for cruces"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("alias",),
     ),
     "/v1/series": ExternalRoute(
@@ -590,7 +772,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "hits with serieId/titulo/unidades — then fetch "
             "/v1/series/id/{serieId}"
         ),
-        params=(Q_SEARCH,),
+        params=(SERIES_SEARCH_QUERY,),
     ),
     "/v1/series/{alias}": ExternalRoute(
         path="/v1/series/{alias}",
@@ -601,7 +783,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "exportaciones, importaciones. Pass desde/hasta. Pair with "
             "presidentes for per-mandate levels"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("alias",),
     ),
     "/v1/series/id/{serieId}": ExternalRoute(
@@ -611,7 +793,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Raw Series de Tiempo id (from /v1/series/search). Same "
             "{fecha, valor} shape as curated aliases"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("serieId",),
     ),
     "/v1/clima/historico": ExternalRoute(
@@ -624,7 +806,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Omit provincia for all 24. Bind WeatherUnit. "
             "Join with actas/FX on fecha. Attribution: Open-Meteo"
         ),
-        params=(PROVINCIA, DESDE, HASTA),
+        params=(WEATHER_PROVINCE, DATE_FROM, DATE_TO),
     ),
     "/v1/clima/pronostico": ExternalRoute(
         path="/v1/clima/pronostico",
@@ -634,7 +816,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Same row shape as historico. Bind WeatherUnit. "
             "Omit provincia for all 24"
         ),
-        params=(PROVINCIA, DIAS),
+        params=(WEATHER_PROVINCE, FORECAST_DAYS),
     ),
     "/v1/clima/actual": ExternalRoute(
         path="/v1/clima/actual",
@@ -643,7 +825,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Current temperature + weather_code by province. One place → "
             "WeatherUnit; all 24 → ProvinceMap (provincia, temperatura)"
         ),
-        params=(PROVINCIA,),
+        params=(WEATHER_PROVINCE,),
     ),
     "/v1/historico/dias": ExternalRoute(
         path="/v1/historico/dias",
@@ -653,7 +835,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "categoria, wiki title, series_sugeridas, provincia, optional "
             "persona. Browse before /v1/historico/dia"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
     ),
     "/v1/historico/dia": ExternalRoute(
         path="/v1/historico/dia",
@@ -665,7 +847,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "context, and an official roster or /v1/wiki/personas for requested "
             "public-figure PersonCards"
         ),
-        params=(FECHA,),
+        params=(HISTORICAL_DATE,),
     ),
     "/v1/wiki/summary": ExternalRoute(
         path="/v1/wiki/summary",
@@ -675,7 +857,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Returns extract, foto, url — use for ad-hoc context when the "
             "day is not in /v1/historico/dias"
         ),
-        params=(Q_WIKI,),
+        params=(WIKI_QUERY,),
     ),
     "/v1/wiki/personas": ExternalRoute(
         path="/v1/wiki/personas",
@@ -686,7 +868,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Use for PersonCard when the figure is not available from the "
             "official president or congressional rosters"
         ),
-        params=(NAMES_WIKI,),
+        params=(WIKI_NAMES,),
     ),
     "/v1/noticias": ExternalRoute(
         path="/v1/noticias",
@@ -697,7 +879,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "keywords from the user's topic; optional desde/hasta ISO dates "
             "support historical search. Bind News (client-side pagination)."
         ),
-        params=(Q_NEWS, DESDE, HASTA),
+        params=(NEWS_QUERY, DATE_FROM, DATE_TO),
     ),
     "/v1/cine/discover": ExternalRoute(
         path="/v1/cine/discover",
@@ -708,7 +890,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "votos, popularidad. Optional anio, genero, sort, page. "
             "Compose List with foto + titulo + valor. Attribution: TMDB"
         ),
-        params=(ANIO_CINE, GENERO_CINE, SORT_CINE, PAGE_CINE),
+        params=(CINEMA_YEAR, CINEMA_GENRE, CINEMA_SORT, CINEMA_PAGE),
     ),
     "/v1/cine/search": ExternalRoute(
         path="/v1/cine/search",
@@ -718,7 +900,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "origin_country AR. Same row shape as discover. Then "
             "/v1/cine/pelicula/{id} for cast + synopsis"
         ),
-        params=(Q_CINE, ANIO_CINE),
+        params=(CINEMA_QUERY, CINEMA_YEAR),
     ),
     "/v1/cine/pelicula/{id}": ExternalRoute(
         path="/v1/cine/pelicula/{id}",
@@ -738,7 +920,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "foto, conocido_por. Then /v1/cine/persona/{id} (PersonCard) and "
             "/v1/cine/persona/{id}/filmografia (List)"
         ),
-        params=(Q_CINE,),
+        params=(CINEMA_QUERY,),
     ),
     "/v1/cine/persona/{id}": ExternalRoute(
         path="/v1/cine/persona/{id}",
@@ -778,7 +960,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "indicator (muestra=todos default). Snapshot / ComparisonTable / "
             "MetricRow — not a long Chart"
         ),
-        params=(REM_ALIAS, REM_MUESTRA),
+        params=(REM_ALIAS, REM_SAMPLE),
     ),
     "/v1/rem/informe": ExternalRoute(
         path="/v1/rem/informe",
@@ -787,7 +969,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "One REM informe by año+mes (e.g. 2024 + 06). Optional alias= / "
             "muestra=. Use before vs-real when the user names a survey month"
         ),
-        params=(REM_ANIO, REM_MES, REM_ALIAS, REM_MUESTRA),
+        params=(REM_YEAR, REM_MONTH, REM_ALIAS, REM_SAMPLE),
     ),
     "/v1/rem/{alias}": ExternalRoute(
         path="/v1/rem/{alias}",
@@ -797,7 +979,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "valor, unidad}. Aliases: ipc, ipc_nucleo, tc, desempleo. Chart "
             "kind=line. Pass desde/hasta on informe months"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("alias",),
     ),
     "/v1/rem/vs-real/{alias}": ExternalRoute(
@@ -810,7 +992,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "horizon=1m|nowcast|all (default 1m). Chart dual series "
             "esperado+real OR error; ComparisonTable for a short window"
         ),
-        params=(DESDE, HASTA, REM_HORIZON),
+        params=(DATE_FROM, DATE_TO, REM_HORIZON),
         path_params=("alias",),
     ),
     "/v1/plazos": ExternalRoute(
@@ -830,7 +1012,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "valor(=tna), unidad. ComparisonTable highlight max tna; "
             "MetricRow for top bank vs inflación. Optional limit="
         ),
-        params=(LIMIT_PLAZOS,),
+        params=(FIXED_TERM_LIMIT,),
     ),
     "/v1/hipotecarios-uva": ExternalRoute(
         path="/v1/hipotecarios-uva",
@@ -857,7 +1039,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "Search FCI by Spanish name (q=). Rows: slug, nombre, tipoRenta, "
             "horizonte, administradora. Then /v1/fci/{slug} or …/historico"
         ),
-        params=(Q_FCI,),
+        params=(FCI_QUERY,),
     ),
     "/v1/fci/{slug}": ExternalRoute(
         path="/v1/fci/{slug}",
@@ -875,7 +1057,7 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "FCI cuotaparte history as {fecha, valor}. Chart kind=line. "
             "Slug from /v1/fci/search or curated alias. Pass desde/hasta"
         ),
-        params=(DESDE, HASTA),
+        params=(DATE_FROM, DATE_TO),
         path_params=("slug",),
     ),
 }

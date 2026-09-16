@@ -32,6 +32,10 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
+from .analytics.report import (
+    StatisticalReport,
+    build_football_analysis_context,
+)
 from .catalog import catalog
 from .models import get_model
 from .state import AgentState
@@ -67,11 +71,12 @@ logger = logging.getLogger(__name__)
 _SCOPE = """\
 ## Scope (hard rule)
 Answer ONLY from available sources: the injected catalog (ArgentinaDatos, BCRA, Series de Tiempo /
-INDEC, Congreso, Open-Meteo, Google News, histórico/Wikipedia, TMDB AR cinema) and
+INDEC, Congreso, Open-Meteo, Google News, histórico/Wikipedia, TMDB AR cinema,
+and Live Football API for Liga Profesional / Argentina national team) and
 datasets already fetched this session.
 
 - Out of scope → short Spanish refusal + optional 1–2 ``[boton]``. No general knowledge.
-  Out of scope: trivia (Pokémon, sports, recipes, Hollywood), code, homework
+  Out of scope: trivia (Pokémon, non-Argentine sports, recipes, Hollywood), code, homework
   outside Argentine public data, medical/legal advice. TMDB Argentine film
   IS in scope.
 - Explainers (e.g. blue vs oficial) only to clarify catalog terms — fetch
@@ -150,6 +155,14 @@ Argentine cinema (TMDB, origin AR only): /v1/cine/discover, /search?q=,
 foto, titulo, fecha, valor). NEVER List nested filmografia[]. Mention TMDB once.
 No Hollywood / non-AR.
 
+Football (Live Football API, Argentina only): Liga Profesional seasons,
+matches, standings and team-stats; Argentina national-team seasons and matches.
+One club over time or two-club comparison → team-stats with pipe-separated
+teams/seasons. Direct meetings only → headToHead=true. Latest lineup for a
+named club → league/latest-lineup directly; do not scan league matches. A
+specific match lineup → fetch by matchId. Compose FootballLineup. Do not offer
+foreign leagues.
+
 Politics: presidentes (term dates — join key for "por mandato"); ICG confianza
 en el gobierno; eventos presidenciales; Senado/Diputados actas, roll call,
 roster, comisiones, viajes/misiones (declared viáticos only — NEVER ticket
@@ -180,7 +193,9 @@ comisiones, cuentas remuneradas, REM (ipc/tc/desempleo).
 Plazos ranking, hipotecarios UVA, FCI search/historico (estratega).
 BCRA: reservas, base monetaria, depósitos, tasa 30d. CAMMESA electricity.
 INDEC/MECON: EMAE, desempleo, pobreza, RIPTE, IPC, exportaciones/importaciones.
-Weather (Open-Meteo); histórico Wikipedia days; TMDB AR cinema only.
+Weather (Open-Meteo); histórico Wikipedia days; TMDB AR cinema.
+Football: Liga Profesional and Argentina national team only; historical
+team comparisons, standings, matches and lineups.
 News: Google News headlines by topic/date → News.
 Politics: presidentes, ICG confianza, eventos, feriados, Senado/Diputados
 actas/votos/roster/comisiones/viajes (viáticos only — never ticket prices).
@@ -209,7 +224,7 @@ also dump the same offers as a ``- `` bullet list; never write "Usa /v1/…".
 - search_actas(query, chamber?): named law/bill ("ley X"). Compact summary —
   not the roll call.
 - fetch_argentinadatos(path, params): everything else in the catalog, including
-  …/actas/id/{{id}}/votos, BCRA, series, climate, TMDB.
+  …/actas/id/{{id}}/votos, BCRA, series, climate, TMDB, and Argentine football.
 - transform_dataset(...): reshape a dataset ALREADY in the index (no HTTP).
   One nesting level — see Reshape.
 
@@ -336,6 +351,8 @@ Natural fits (compose picks the widget — honor a named form first):
   roster (nombre+foto) → PersonCard; time series → Chart; levels → Chart bar
   one number → Metric; tabular non-people → List; fees/remesas → ComparisonTable
   clima → WeatherUnit; noticias → News; derived/transform / titulo+fecha+voto → List
+  football lineup rows → FootballLineup; football team-season metrics → Chart
+  or ComparisonTable
   structured comparison / "dibujame…" / custom visual → Box (HTML+SVG).
   Do NOT dump a markdown table into chat.
 
@@ -525,6 +542,12 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   measures on one visual when that improves comparison; separate genuinely
   different layers. Use Box only for authored diagrams, never as a substitute
   for a data-bound widget.
+- Editorial value: visualize metrics that answer a question a person would
+  naturally care about. Prefer strongest/weakest periods, magnitude of a gap,
+  consistency, trajectory, home/away contrast, or direct-match performance.
+  Do not chart a metric merely because it exists. Avoid redundant generic
+  rates when a more interpretable points, goal, or split comparison answers
+  the same question.
 - HARD geography rule: if the user asks for a comparison "por provincia",
   across provinces, or by district and a fetched dataset has a provincia/
   province field, the canvas MUST include ProvinceMap. When the request also
@@ -1298,6 +1321,60 @@ def _tree_has_type(tree: object, widget_type: str) -> bool:
     )
 
 
+def _append_statistical_callout(
+    tree: dict | None,
+    report: dict | None,
+) -> dict | None:
+    """Anchor the expert interpretation below its charts without another LLM call."""
+    if (
+        not isinstance(tree, dict)
+        or not isinstance(report, dict)
+        or not _tree_has_type(tree, "Chart")
+        or _tree_has_type(tree, "Callout")
+    ):
+        return tree
+
+    parts: list[str] = []
+    summary = str(report.get("summary") or "").strip()
+    if summary:
+        parts.append(summary)
+    for finding in (report.get("findings") or [])[:2]:
+        if not isinstance(finding, dict):
+            continue
+        conclusion = str(finding.get("conclusion") or "").strip()
+        if conclusion and conclusion not in parts:
+            parts.append(conclusion)
+    limitations = report.get("limitations") or []
+    if limitations:
+        limitation = str(limitations[0]).strip()
+        if limitation:
+            parts.append(f"Límite: {limitation}")
+    if not parts:
+        return tree
+
+    callout = {
+        "id": "statistical_analysis_summary",
+        "type": "Callout",
+        "title": "Lectura del analista",
+        "props": {
+            "eyebrow": "Conclusión experta",
+            "content": " ".join(parts),
+            "tone": "insight",
+        },
+        "children": [],
+    }
+    if tree.get("type") == "Stack":
+        output = dict(tree)
+        output["children"] = [*(tree.get("children") or []), callout]
+        return output
+    return {
+        "id": "statistical_analysis_with_context",
+        "type": "Stack",
+        "props": {"gap": "md"},
+        "children": [tree, callout],
+    }
+
+
 def _province_map_error(state: AgentState, candidate: object) -> str | None:
     """Require geographic output when the current ask compares provinces."""
     last_human = next(
@@ -1634,6 +1711,120 @@ def index_datasets_node(state: AgentState) -> dict:
     return out
 
 
+def _current_football_stats_dataset(state: AgentState) -> dict | None:
+    """Return this turn's team-statistics dataset when one was fetched."""
+    current_ids = _this_turn_dataset_ids(state.get("messages") or [])
+    datasets = state.get("datasets") or {}
+    for dataset_id in current_ids:
+        dataset = datasets.get(dataset_id)
+        if (
+            dataset
+            and dataset.get("path") == "/v1/football/league/team-stats"
+            and dataset.get("status", "hit") == "hit"
+            and dataset.get("N")
+        ):
+            return dataset
+    return None
+
+
+def _format_statistical_report(report: StatisticalReport) -> str:
+    lines = [report.summary.strip()]
+    for finding in report.findings:
+        evidence = "; ".join(finding.evidence)
+        line = (
+            f"{finding.title}: {finding.conclusion} "
+            f"Evidencia ({finding.strength}): {evidence}."
+        )
+        if finding.caveat:
+            line += f" Límite: {finding.caveat}."
+        lines.append(line)
+    if report.limitations:
+        lines.append("Limitaciones: " + "; ".join(report.limitations) + ".")
+    lines.append(
+        "Internal composition directive for team-stats: rows are long-format. "
+        "For team comparisons in Chart use xKey=season, seriesBy=team, "
+        "valueKey=pointsPerGame or goalDifferencePerGame, and one series per "
+        "team using its exact name as key. Prioritize an interpretable story "
+        "(gap, trajectory, consistency, or home/away split); do not add a "
+        "generic win-rate chart unless it supports a distinct conclusion. "
+        "For home-vs-away metric columns across two teams, emit one Chart per "
+        "team with a scalar where filter; never select both teams in one Chart "
+        "because that creates duplicate season values."
+    )
+    if report.nextSteps:
+        lines.extend(
+            [
+                "[[next]]",
+                *(f"- {step}" for step in report.nextSteps),
+                "[[/next]]",
+            ]
+        )
+    lines.append("[[route]] compose [[/route]]")
+    return "\n".join(lines)
+
+
+def statistical_analysis_node(state: AgentState) -> dict:
+    """Interpret deterministic football statistics with bounded evidence."""
+    dataset = _current_football_stats_dataset(state)
+    if dataset is None:
+        return {}
+    question = next(
+        (
+            _message_text(message.content)
+            for message in reversed(state.get("messages") or [])
+            if isinstance(message, HumanMessage)
+        ),
+        "",
+    )
+    rows = [
+        row
+        for row in (dataset.get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    context = build_football_analysis_context(question=question, rows=rows)
+    system = """\
+You are the Statistical Analyst for Argentina Insights. Interpret football
+statistics already calculated deterministically in Python. Write in Spanish.
+Return only the requested structured object.
+
+Rules:
+- Make 1–4 concrete conclusions, each backed by supplied metrics or matches.
+- Rank findings by human interest, not field availability. Prioritize: a
+  meaningful advantage and its magnitude; strongest/weakest season; sustained
+  improvement or deterioration; consistency/volatility; home-vs-away contrast;
+  and direct-match performance when requested.
+- A metric is not a finding. Explain why the difference matters in football
+  terms. Omit generic win-rate charts when points per game, goal difference,
+  a venue split, or a clearly identified turning season tells the story better.
+- Avoid showing two highly correlated metrics unless their disagreement is
+  itself the insight.
+- Quantify magnitude and sample size; use the supplied 95% intervals.
+- Treat interval overlap and trends as descriptive evidence, not proof.
+- Never claim causality. Mention schedule/format differences and small samples.
+- Do not recalculate or invent values, players, seasons, or matches.
+- Strength means evidential strength: weak, moderate, or strong.
+- Next steps must be executable Spanish analysis requests, not chart cosmetics.
+"""
+    try:
+        structured = get_model("strong").with_structured_output(
+            StatisticalReport,
+            method="function_calling",
+        )
+        report = structured.invoke(
+            [SystemMessage(content=system), HumanMessage(content=context)],
+            config={"metadata": {"emit-messages": False}},
+        )
+    except Exception:
+        logger.exception("statistical analysis structured output failed")
+        return {}
+    if not isinstance(report, StatisticalReport):
+        report = StatisticalReport.model_validate(report)
+    return {
+        "statistical_report": report.model_dump(),
+        "respond_note": _format_statistical_report(report),
+    }
+
+
 def compose_ui_node(state: AgentState) -> dict:
     """Compose, validate, repair once, then keep the previous canvas on failure."""
     role = "fast" if state.get("query_type") == "ui" else "default"
@@ -1826,10 +2017,16 @@ def compose_ui_node(state: AgentState) -> dict:
             "No pude actualizar el canvas de forma segura. "
             "Probá de nuevo o reformulá la consulta."
         )
+    else:
+        tree_dict = _append_statistical_callout(
+            tree_dict,
+            state.get("statistical_report"),
+        )
 
     update: dict = {
         "messages": [AIMessage(content=brief)],
         "respond_note": "",
+        "statistical_report": None,
     }
     previous = state.get("ui_tree_unbound") or state.get("ui_tree")
     if tree_dict is not None and isinstance(previous, dict) and not from_patch:
@@ -1886,6 +2083,8 @@ def _respond_router(state: AgentState) -> str:
         return "tools"
     if state.get("skip_compose"):
         return END
+    if _current_football_stats_dataset(state) is not None:
+        return "statistical_analysis"
     return "compose_ui"
 
 
@@ -1900,6 +2099,7 @@ def build_graph() -> StateGraph:
     builder.add_node("respond", respond_node)
     builder.add_node("tools", _tool_node)
     builder.add_node("index_datasets", index_datasets_node)
+    builder.add_node("statistical_analysis", statistical_analysis_node)
     builder.add_node("compose_ui", compose_ui_node)
     builder.add_node("bind_data", bind_data_node)
 
@@ -1915,6 +2115,9 @@ def build_graph() -> StateGraph:
     # Tool loop: execute → index → back to respond.
     builder.add_edge("tools", "index_datasets")
     builder.add_edge("index_datasets", "respond")
+
+    # Statistical football turns are interpreted before UI composition.
+    builder.add_edge("statistical_analysis", "compose_ui")
 
     # UI composition pipeline: compose → bind data → end.
     builder.add_edge("compose_ui", "bind_data")

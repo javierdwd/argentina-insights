@@ -17,6 +17,11 @@ export const ChartPropsSchema = z.object({
   /** Key in each data row used as the x-axis (e.g. "fecha") */
   xKey: z.string(),
   /**
+   * Long-format category whose values become series columns. Pair with
+   * valueKey, e.g. seriesBy="team", valueKey="pointsPerGame".
+   */
+  seriesBy: z.string().optional(),
+  /**
    * Second dimension: required for scatter (y numeric) and heatmap
    * (y category). Ignored for line/bar/area.
    */

@@ -242,6 +242,7 @@ export function HomeStage({
       <main
         className={[
           "flex h-[100dvh] min-h-0 flex-col overflow-hidden md:grid md:transition-[grid-template-columns] md:duration-700 md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          hasStarted ? "stage-started" : "",
           chatHidden || entry
             ? "md:grid-cols-[minmax(0,1fr)_minmax(0,0fr)]"
             : "md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
@@ -344,8 +345,9 @@ export function HomeStage({
                 </div>
                 {!compact && !entry ? (
                   <p className="mt-2.5 max-w-[36ch] text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
-                    Economía, política, cine argentino, días históricos y cruces
-                    entre todo eso. Elegí una pregunta o escribí en el chat.
+                    Economía, política, fútbol, cine argentino, días históricos
+                    y cruces entre todo eso. Elegí una pregunta o escribí en el
+                    chat.
                   </p>
                 ) : null}
               </div>

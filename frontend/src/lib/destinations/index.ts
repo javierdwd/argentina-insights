@@ -17,6 +17,13 @@ import {
   isEconomiaDestination,
 } from "./economia";
 import {
+  buildFootballTree,
+  FOOTBALL_DESTINATION_ID,
+  FOOTBALL_FOLLOW_UPS,
+  FOOTBALL_QUERY,
+  isFootballDestination,
+} from "./football";
+import {
   buildPoliticaTree,
   POLITICA_DESTINATION_ID,
   POLITICA_FOLLOW_UPS,
@@ -25,7 +32,7 @@ import {
 } from "./politica";
 import { destinationIdOf } from "./shared";
 
-export type DestinationId = "economia" | "politica" | "cine";
+export type DestinationId = "economia" | "politica" | "cine" | "football";
 
 export type DestinationDef = {
   id: DestinationId;
@@ -68,6 +75,14 @@ export const DESTINATIONS: DestinationDef[] = [
     followUps: CINE_FOLLOW_UPS,
     build: buildCineTree,
   },
+  {
+    id: "football",
+    title: FOOTBALL_QUERY,
+    blurb: "Tabla actual y evolución reciente de los equipos que lideran.",
+    highlights: ["Liga Profesional", "Historial", "Selección"],
+    followUps: FOOTBALL_FOLLOW_UPS,
+    build: buildFootballTree,
+  },
 ];
 
 export function getDestination(id: DestinationId): DestinationDef {
@@ -80,10 +95,18 @@ export function getDestinationId(
   tree: UINode | null | undefined,
 ): DestinationId | null {
   const raw = destinationIdOf(tree);
-  if (raw === "economia" || raw === "politica" || raw === "cine") return raw;
+  if (
+    raw === "economia" ||
+    raw === "politica" ||
+    raw === "cine" ||
+    raw === "football"
+  ) {
+    return raw;
+  }
   if (isEconomiaDestination(tree)) return "economia";
   if (isPoliticaDestination(tree)) return "politica";
   if (isCineDestination(tree)) return "cine";
+  if (isFootballDestination(tree)) return "football";
   return null;
 }
 
@@ -108,4 +131,6 @@ export {
   POLITICA_QUERY,
   CINE_DESTINATION_ID,
   CINE_QUERY,
+  FOOTBALL_DESTINATION_ID,
+  FOOTBALL_QUERY,
 };

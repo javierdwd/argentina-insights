@@ -43,6 +43,9 @@ class AgentState(MessagesState):
         respond_note:   Factual note from respond after a successful fetch turn.
                         Not shown in chat; compose reads it for aggregates the
                         dataset index cannot show (compose only sees samples).
+        statistical_report:
+                        Structured evidence-based interpretation produced for
+                        football analytics turns before UI composition.
     """
 
     query_type: str
@@ -52,3 +55,4 @@ class AgentState(MessagesState):
     has_tool_calls: bool
     skip_compose: bool
     respond_note: str
+    statistical_report: dict | None

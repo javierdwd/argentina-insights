@@ -40,13 +40,11 @@ export function StarterBubbles({
       if (busy) return;
       setPending(true);
       try {
-        await runViewTransition(() => {
-          onStart?.(text);
-          agent.addMessage({
-            id: crypto.randomUUID(),
-            role: "user",
-            content: text,
-          });
+        onStart?.(text);
+        agent.addMessage({
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text,
         });
         await copilotkit.runAgent({ agent });
       } finally {
@@ -91,7 +89,7 @@ export function StarterBubbles({
   );
 
   return (
-    <div className="mx-auto w-full max-w-[86rem] pb-12">
+    <div className="home-onboarding mx-auto w-full max-w-[86rem] pb-12">
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(28rem,1.08fr)] lg:gap-16 xl:gap-20">
         <motion.div
           initial={false}

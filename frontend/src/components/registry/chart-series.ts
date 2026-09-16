@@ -59,6 +59,40 @@ export function collectRowKeys(data: Record<string, unknown>[]): string[] {
   return [...keys];
 }
 
+/**
+ * Pivot long-format rows into one row per x value and one column per series.
+ * Example: {season, team, pointsPerGame} → {season, River: 2.1, Boca: 1.8}.
+ */
+export function pivotLongSeries(
+  rows: Record<string, unknown>[],
+  xKey: string,
+  seriesBy: string | null | undefined,
+  valueKey: string | null | undefined,
+  series: Array<{ key: string }>,
+): Record<string, unknown>[] {
+  if (!seriesBy || !valueKey || !rows.length) return rows;
+  const allowed = new Set(series.map((entry) => entry.key));
+  const grouped = new Map<string, Record<string, unknown>>();
+  for (const source of rows) {
+    const xValue = source[xKey];
+    const category = source[seriesBy];
+    const value = source[valueKey];
+    if (
+      xValue == null ||
+      category == null ||
+      value == null ||
+      !allowed.has(String(category))
+    ) {
+      continue;
+    }
+    const identity = String(xValue);
+    const row = grouped.get(identity) ?? { [xKey]: xValue };
+    row[String(category)] = value;
+    grouped.set(identity, row);
+  }
+  return [...grouped.values()];
+}
+
 export function resolveSeriesKey(
   wanted: string,
   columns: string[],

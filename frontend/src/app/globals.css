@@ -204,9 +204,22 @@ body::after {
   }
 }
 
+/*
+ * AnimatePresence may retain the onboarding tree for its exit frame. Once the
+ * shell opens the chat column, remove that wide composition synchronously so
+ * its preview can never overlap the incoming stage.
+ */
+.stage-started .home-onboarding {
+  display: none;
+}
+
 @supports (view-transition-name: none) {
   .canvas-transition-surface {
     view-transition-name: insights-canvas;
+  }
+
+  .entry-preview-transition-surface {
+    view-transition-name: insights-entry-preview;
   }
 
   ::view-transition-group(insights-canvas) {
@@ -221,6 +234,23 @@ body::after {
   ::view-transition-new(insights-canvas) {
     animation: canvas-transition-in 520ms var(--ease-out-expo) both;
   }
+
+  /*
+   * The home preview is not the resulting canvas. Keeping a separate identity
+   * prevents its snapshot from flying across the layout above the opening chat.
+   */
+  ::view-transition-group(insights-entry-preview) {
+    animation-duration: 220ms;
+    animation-timing-function: var(--ease-out-expo);
+  }
+
+  ::view-transition-old(insights-entry-preview) {
+    animation: entry-preview-transition-out 140ms ease-in both;
+  }
+
+  ::view-transition-new(insights-entry-preview) {
+    animation: entry-preview-transition-in 220ms var(--ease-out-expo) both;
+  }
 }
 
 @keyframes canvas-transition-out {
@@ -234,6 +264,19 @@ body::after {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.985);
+  }
+}
+
+@keyframes entry-preview-transition-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes entry-preview-transition-in {
+  from {
+    opacity: 0;
+    transform: scale(0.992);
   }
 }
 

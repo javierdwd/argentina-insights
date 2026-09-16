@@ -1,8 +1,28 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, MagnifyingGlass, Sparkle } from "@phosphor-icons/react";
-import type { StarterPrompt } from "./starter-prompts";
+import {
+  ArrowRight,
+  ArrowsLeftRight,
+  ChartLineUp,
+  ClockCounterClockwise,
+  FilmSlate,
+  MagnifyingGlass,
+  Scales,
+  SoccerBall,
+  Sparkle,
+  type Icon,
+} from "@phosphor-icons/react";
+import type { StarterPrompt, StarterTopic } from "./starter-prompts";
+
+const TOPIC_ICON: Record<StarterTopic, Icon> = {
+  economia: ChartLineUp,
+  politica: Scales,
+  cruce: ArrowsLeftRight,
+  historico: ClockCounterClockwise,
+  cine: FilmSlate,
+  football: SoccerBall,
+};
 
 interface PromptComposerProps {
   busy: boolean;
@@ -48,8 +68,8 @@ export function PromptComposer({
         </span>
       </h2>
       <p className="mt-5 max-w-[50ch] text-base leading-relaxed text-muted-foreground md:text-lg">
-        Cruzá economía, política, historia y cultura en visualizaciones hechas
-        para tu consulta.
+        Cruzá economía, política, fútbol, historia y cultura en visualizaciones
+        hechas para tu consulta.
       </p>
 
       <form onSubmit={onFormSubmit} className="mt-8">
@@ -92,18 +112,22 @@ export function PromptComposer({
       </form>
 
       <div className="mt-5 flex flex-wrap gap-2" aria-label="Consultas destacadas">
-        {featured.map((prompt) => (
-          <button
-            key={prompt.id}
-            type="button"
-            disabled={busy}
-            onClick={() => void send(prompt.text)}
-            title={prompt.text}
-            className="rounded-full border border-border bg-card/65 px-3 py-1.5 text-left text-xs leading-snug text-muted-foreground transition-[color,background-color,border-color,transform] hover:border-accent/35 hover:bg-accent-soft hover:text-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {prompt.entryLabel ?? prompt.text}
-          </button>
-        ))}
+        {featured.map((prompt) => {
+          const TopicIcon = TOPIC_ICON[prompt.topic];
+          return (
+            <button
+              key={prompt.id}
+              type="button"
+              disabled={busy}
+              onClick={() => void send(prompt.text)}
+              title={prompt.text}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/65 px-3 py-1.5 text-left text-xs leading-snug text-muted-foreground transition-[color,background-color,border-color,transform] hover:border-accent/35 hover:bg-accent-soft hover:text-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <TopicIcon size={13} weight="regular" aria-hidden />
+              {prompt.entryLabel ?? prompt.text}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

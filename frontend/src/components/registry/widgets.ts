@@ -12,6 +12,8 @@ import { Chart } from "./Chart";
 import { ChartNodeSchema } from "./Chart.schema";
 import { ComparisonTable } from "./ComparisonTable";
 import { ComparisonTableNodeSchema } from "./ComparisonTable.schema";
+import { FootballLineup } from "./FootballLineup";
+import { FootballLineupNodeSchema } from "./FootballLineup.schema";
 import { Grid } from "./Grid";
 import { GridNodeSchema } from "./Grid.schema";
 import { List } from "./List";
@@ -53,6 +55,7 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
   Callout,
   Chart,
   ComparisonTable,
+  FootballLineup,
   Grid,
   List,
   Metric,
@@ -77,6 +80,7 @@ export const NODE_SCHEMAS = {
   Callout: CalloutNodeSchema,
   Chart: ChartNodeSchema,
   ComparisonTable: ComparisonTableNodeSchema,
+  FootballLineup: FootballLineupNodeSchema,
   Grid: GridNodeSchema,
   List: ListNodeSchema,
   Metric: MetricNodeSchema,

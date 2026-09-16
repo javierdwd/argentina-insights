@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowRight, ChartLineUp, FilmSlate, Scales } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  ChartLineUp,
+  FilmSlate,
+  Scales,
+  SoccerBall,
+} from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
 import {
   DESTINATIONS,
@@ -11,6 +17,7 @@ const DESTINATION_ICON: Record<DestinationId, Icon> = {
   economia: ChartLineUp,
   politica: Scales,
   cine: FilmSlate,
+  football: SoccerBall,
 };
 
 interface DestinationStripProps {
@@ -41,7 +48,7 @@ export function DestinationStrip({
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 pb-3 md:grid-cols-[1.25fr_1fr_1fr]">
+      <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2 xl:grid-cols-4">
         {DESTINATIONS.map((destination) => {
           const Glyph = DESTINATION_ICON[destination.id];
           const loading = activeId === destination.id;

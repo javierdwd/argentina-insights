@@ -48,9 +48,9 @@ const CHAT_SUGGESTIONS = {
 };
 
 const CHAT_LABELS = {
-  chatInputPlaceholder: "Cotización, inflación, cine, senadores…",
+  chatInputPlaceholder: "Cotización, fútbol, cine, senadores…",
   welcomeMessageText:
-    "¿Economía, política, cine argentino, un día histórico, o un cruce?",
+    "¿Economía, política, fútbol, cine argentino, un día histórico o un cruce?",
   chatDisclaimerText:
     "La IA puede cometer errores. Verificá la información importante.",
 };
@@ -229,10 +229,16 @@ function AgentCanvas({
             exit={
               reduceMotion
                 ? { opacity: 1 }
+                : stageKey === "onboarding"
+                  ? { opacity: 0 }
                 : { opacity: 0, y: -14, scale: 0.992 }
             }
             transition={{
-              duration: reduceMotion ? 0 : 0.52,
+              // Remove the wide home composition before the shell opens its
+              // chat column. Keeping it mounted during the grid resize makes
+              // the preview slide over the incoming stage and chat.
+              duration:
+                reduceMotion || stageKey === "onboarding" ? 0 : 0.52,
               ease: [0.16, 1, 0.3, 1],
             }}
           >

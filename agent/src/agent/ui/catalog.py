@@ -188,7 +188,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
         ),
         props=(
             "kind(line|bar|area|scatter|heatmap*); xKey(str*); "
-            "yKey?(str — scatter/heatmap); valueKey?(str — heatmap); "
+            "yKey?(str — scatter/heatmap); "
+            "seriesBy?(str — long-format category); "
+            "valueKey?(str — long-format measure or heatmap value); "
             "series([{key,label,color?,yAxisIndex?(0|1)}]*); "
             "selectAs?(persona|provincia|fecha|fila); dataRef(str*); "
             "sort?({key,dir}); limit?(int). Omit color unless user names hex."
@@ -196,6 +198,14 @@ WIDGET_CATALOG: list[WidgetDef] = [
         data=(
             "dataRef = dataset id. series[].key must exist OR be vote labels "
             "when xKey=bloque|partido. "
+            "Long-format team-season rows: xKey=season, seriesBy=team, "
+            "valueKey=the metric (for example pointsPerGame or "
+            "goalDifferencePerGame), and one series key per exact team value. "
+            "Never use team names as series keys without seriesBy+valueKey; "
+            "never bind two teams to one winRate series. For home/away columns "
+            "such as homePointsPerGame and awayPointsPerGame, use one Chart per "
+            "team with scalar where={team: exactName}; do not put two teams in "
+            "the same Chart because season repeats. "
             "derived/series_overlay: xKey=params.x; one series per other key; "
             "labels from params.labels. "
             "derived/fx_spread: xKey=params.x; series spread|spread_pct. "
@@ -382,6 +392,31 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "links": ("redes", "links"),
             "bio": ("bio", "extract"),
         },
+    ),
+    WidgetDef(
+        type="FootballLineup",
+        role="leaf",
+        purpose=(
+            "Confirmed or projected football lineups on a responsive pitch, "
+            "with player portraits/names, formations, coaches and substitutes."
+        ),
+        when_to_use=(
+            "Only for /v1/football/matches/{matchId}/lineup or "
+            "/v1/football/league/latest-lineup. For a specific match, pass "
+            "homeTeam/awayTeam and logos from its result when available. Show "
+            "the two returned side rows together in one FootballLineup."
+        ),
+        when_not=(
+            "Standings, results or team-season statistics → ComparisonTable, "
+            "Chart or MetricRow. Do not render eleven PersonCards, a generic "
+            "List, authored SVG players, or invented positions."
+        ),
+        props="dataRef(str*)",
+        data=(
+            "dataRef = lineup dataset. It already contains 1–2 rows shaped as "
+            "side(home|away), team, logo?, formation?, isProjected, starting[], "
+            "substitutes[] and coach?. No fields map and no authored player data."
+        ),
     ),
     WidgetDef(
         type="Acta",

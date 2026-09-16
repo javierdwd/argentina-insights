@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage
 from pydantic import ValidationError
 
 from agent.graph import compose_ui_node
+from agent.ui.pipeline import validate_tree
 from agent.ui.schemas import ComposeOutput
 
 
@@ -26,6 +27,76 @@ class _Model:
 
     def with_structured_output(self, *_: object, **__: object) -> _StructuredModel:
         return self.structured
+
+
+def test_long_format_chart_requires_series_by_and_value_key() -> None:
+    dataset = {
+        "ds_stats": {
+            "status": "hit",
+            "rows": [
+                {
+                    "season": "2024",
+                    "team": "River Plate",
+                    "pointsPerGame": 2.1,
+                },
+                {
+                    "season": "2024",
+                    "team": "Boca Juniors",
+                    "pointsPerGame": 1.7,
+                },
+            ],
+        }
+    }
+    invalid = {
+        "id": "comparison",
+        "type": "Chart",
+        "title": "Comparación",
+        "props": {
+            "dataRef": "ds_stats",
+            "kind": "line",
+            "xKey": "season",
+            "series": [
+                {"key": "River Plate", "label": "River Plate"},
+                {"key": "Boca Juniors", "label": "Boca Juniors"},
+            ],
+        },
+    }
+    result = validate_tree(invalid, dataset)
+    assert any("seriesBy" in error for error in result.errors)
+
+    valid = {
+        **invalid,
+        "props": {
+            **invalid["props"],
+            "seriesBy": "team",
+            "valueKey": "pointsPerGame",
+        },
+    }
+    assert validate_tree(valid, dataset).errors == ()
+
+    split = {
+        "id": "home_away",
+        "type": "Stack",
+        "props": {"gap": "md"},
+        "children": [
+            {
+                "id": team.lower().replace(" ", "_"),
+                "type": "Chart",
+                "title": f"{team}: local y visitante",
+                "props": {
+                    "dataRef": "ds_stats",
+                    "where": {"team": team},
+                    "kind": "line",
+                    "xKey": "season",
+                    "series": [
+                        {"key": "pointsPerGame", "label": "Puntos por partido"},
+                    ],
+                },
+            }
+            for team in ("River Plate", "Boca Juniors")
+        ],
+    }
+    assert validate_tree(split, dataset).errors == ()
 
 
 def _dataset() -> dict:

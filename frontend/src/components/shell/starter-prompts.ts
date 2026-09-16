@@ -11,7 +11,8 @@ export type StarterTopic =
   | "politica"
   | "cruce"
   | "historico"
-  | "cine";
+  | "cine"
+  | "football";
 
 /** Primary widget the first turn tends to draw. */
 export type StarterPreview =
@@ -296,6 +297,7 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
     text: "Mostrame películas argentinas populares: póster, título y rating",
     topic: "cine",
     preview: "list",
+    entryLabel: "Argentina en pantalla",
   },
   {
     id: "cine-drama-2020s",
@@ -321,15 +323,48 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
     topic: "cine",
     preview: "people",
   },
+  // Fútbol — Liga Profesional and Argentina national team.
+  {
+    id: "football-standings",
+    text: "Tabla actual de la Liga Profesional y evolución reciente de los equipos que lideran",
+    topic: "football",
+    preview: "line",
+  },
+  {
+    id: "football-team-history",
+    text: "Mostrame la evolución de River Plate en las últimas cinco temporadas",
+    topic: "football",
+    preview: "line",
+  },
+  {
+    id: "football-river-boca",
+    text: "Compará a River Plate y Boca Juniors en las últimas cinco temporadas",
+    topic: "football",
+    preview: "line",
+    entryLabel: "Dos equipos, una historia",
+  },
+  {
+    id: "football-h2h",
+    text: "Historial reciente de enfrentamientos entre River Plate y Boca Juniors",
+    topic: "football",
+    preview: "list",
+  },
+  {
+    id: "football-seleccion",
+    text: "Últimos partidos y evolución de la Selección Argentina",
+    topic: "football",
+    preview: "list",
+  },
 ];
 
-/** Grid: Histórico · Cruce / Economía · Política / Cine. */
+/** Topic ordering used by onboarding and suggestion helpers. */
 export const TOPIC_ORDER: StarterTopic[] = [
   "historico",
   "cruce",
   "economia",
   "politica",
   "cine",
+  "football",
 ];
 
 export const TOPIC_LABEL: Record<StarterTopic, string> = {
@@ -338,6 +373,7 @@ export const TOPIC_LABEL: Record<StarterTopic, string> = {
   economia: "Economía",
   politica: "Política",
   cine: "Cine",
+  football: "Fútbol",
 };
 
 export const PREVIEW_LABEL: Record<StarterPreview, string> = {
@@ -357,6 +393,8 @@ const FEATURED_STARTER_IDS = new Set([
   "blue-por-mandato",
   "riesgo-vs-confianza",
   "blue-dia-laboral",
+  "cine-descubrir",
+  "football-river-boca",
 ]);
 
 /** Short, high-signal examples shown beside the primary entry input. */
@@ -364,19 +402,21 @@ export const FEATURED_STARTERS = STARTER_PROMPTS.filter((prompt) =>
   FEATURED_STARTER_IDS.has(prompt.id),
 );
 
-/** Chat welcome pills: historico + cruce first, then economia / politica / cine. */
+/** Chat welcome pills: broad coverage across all available topics. */
 export function chatSuggestionPrompts(limit = 6): StarterPrompt[] {
   const historico = STARTER_PROMPTS.filter((p) => p.topic === "historico");
   const cruce = STARTER_PROMPTS.filter((p) => p.topic === "cruce");
   const economia = STARTER_PROMPTS.filter((p) => p.topic === "economia");
   const politica = STARTER_PROMPTS.filter((p) => p.topic === "politica");
   const cine = STARTER_PROMPTS.filter((p) => p.topic === "cine");
+  const football = STARTER_PROMPTS.filter((p) => p.topic === "football");
   const mixed = [
-    ...historico.slice(0, 2),
+    ...historico.slice(0, 1),
     ...cruce.slice(0, Math.max(0, limit - 5)),
     ...economia.slice(0, 1),
     ...politica.slice(0, 1),
     ...cine.slice(0, 1),
+    ...football.slice(0, 1),
   ];
   return mixed.slice(0, limit);
 }

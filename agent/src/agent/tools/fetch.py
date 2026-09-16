@@ -32,8 +32,9 @@ async def fetch_argentinadatos(
     Filtering is done server-side, so ask for exactly what you need.
     Covers ArgentinaDatos plus BCRA stocks, Series de Tiempo (INDEC),
     Open-Meteo climate, curated historical days (Wikipedia), wiki
-    summaries, Google News headlines, and TMDB Argentine cinema — all under
-    the same path surface.
+    summaries, Google News headlines, TMDB Argentine cinema, and historical
+    Liga Profesional / Argentina national-team football — all under the same
+    path surface.
 
     Named laws go through search_actas, not this tool. Use this for series,
     rosters, "últimas leyes", and a roll call once you already have an acta id:
@@ -60,6 +61,9 @@ async def fetch_argentinadatos(
          "params": {"names": "Luis Caputo|Kristalina Georgieva"}}
         {"path": "/v1/noticias",
          "params": {"q": "Milei inflación", "desde": "2024-01-01"}}
+        {"path": "/v1/football/league/team-stats",
+         "params": {"teams": "River Plate|Boca Juniors",
+                    "seasons": "2022|2023|2024"}}
 
     An empty list or a "No records" error means nothing matched the criteria —
     the dataset itself is available, so say that nothing matched instead of

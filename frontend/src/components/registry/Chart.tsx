@@ -40,6 +40,7 @@ import {
   seriesLookLikeVotes,
   sortVoteCategoryRows,
 } from "./vote-pivot";
+import { pivotLongSeries } from "./chart-series";
 
 /**
  * Chart widget — time-series, category bars, dual-axis, scatter, heatmap.
@@ -334,31 +335,44 @@ function withCategoryBrushMark(
 }
 
 export const Chart = memo(function Chart(props: ChartProps) {
-  const { data, series: seriesProp, kind, xKey, selectAs } = props;
+  const {
+    data,
+    series: seriesProp,
+    seriesBy,
+    valueKey,
+    kind,
+    xKey,
+    selectAs,
+  } = props;
   const canvas = useCanvasWriteOptional();
   const brush = useCanvasBrush();
   const node = useCanvasNode();
   const [range, setRange] = useState<ChartRangeId>("all");
   const [hiddenKeys, setHiddenKeys] = useState<string[]>([]);
 
+  const chartSource = useMemo(
+    () => pivotLongSeries(data, xKey, seriesBy, valueKey, seriesProp),
+    [data, seriesBy, seriesProp, valueKey, xKey],
+  );
+
   const series = useMemo(
-    () => resolveChartSeries(seriesProp, data),
-    [seriesProp, data],
+    () => resolveChartSeries(seriesProp, chartSource),
+    [seriesProp, chartSource],
   );
 
   const dated = useMemo(
     () =>
       kind !== "scatter" &&
       kind !== "heatmap" &&
-      xKeyLooksDated(data, xKey),
-    [data, kind, xKey],
+      xKeyLooksDated(chartSource, xKey),
+    [chartSource, kind, xKey],
   );
 
   const rangedSource = useMemo(() => {
-    if (!data?.length) return data;
-    if (!dated || range === "all") return data;
-    return filterRowsByRelativeRange(data, xKey, range);
-  }, [data, dated, range, xKey]);
+    if (!chartSource.length) return chartSource;
+    if (!dated || range === "all") return chartSource;
+    return filterRowsByRelativeRange(chartSource, xKey, range);
+  }, [chartSource, dated, range, xKey]);
 
   const visibleSeries = useMemo(() => {
     if (!hiddenKeys.length) return series;
@@ -373,8 +387,6 @@ export const Chart = memo(function Chart(props: ChartProps) {
   const chartRows = resolved.data;
 
   const yKey = props.yKey;
-  const valueKey = props.valueKey;
-
   const brushValor = useMemo(() => {
     if (!brush?.valor || kind === "scatter" || kind === "heatmap") return null;
     const match = chartRows.find((row) => {
@@ -444,7 +456,7 @@ export const Chart = memo(function Chart(props: ChartProps) {
     );
   };
 
-  if (!data?.length || !series?.length) return <ChartEmpty />;
+  if (!chartSource.length || !series.length) return <ChartEmpty />;
   if (!option) return <ChartEmpty />;
 
   const showRange = dated;

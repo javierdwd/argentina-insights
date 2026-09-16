@@ -34,6 +34,7 @@ from . import (
     bcra,
     cammesa,
     finanzas_productos,
+    football,
     historico,
     news,
     openmeteo,
@@ -1021,6 +1022,199 @@ async def _resolve_external(
                 raise NoMatch(
                     f"No records: Google News matched no articles for q={q!r}, "
                     f"desde={desde!r}, hasta={hasta!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+
+        if path == "/v1/football/league/seasons":
+            return await football.league_seasons(refresh=refresh)
+        if path == "/v1/football/league/matches":
+            season = str(client_params.get("season") or "").strip()
+            if not season:
+                raise ProxyError(
+                    "/v1/football/league/matches requires season=…; browse "
+                    "/v1/football/league/seasons first."
+                )
+            rows = await football.league_matches(
+                season,
+                week=(
+                    str(client_params["week"])
+                    if client_params.get("week") is not None
+                    else None
+                ),
+                start_date=(
+                    str(client_params["startDate"])
+                    if client_params.get("startDate")
+                    else None
+                ),
+                end_date=(
+                    str(client_params["endDate"])
+                    if client_params.get("endDate")
+                    else None
+                ),
+                refresh=refresh,
+            )
+            if not rows:
+                raise NoMatch(
+                    f"No records: Argentine League season={season!r} "
+                    f"matched no games. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/football/league/standings":
+            season = str(client_params.get("season") or "").strip()
+            if not season:
+                raise ProxyError(
+                    "/v1/football/league/standings requires season=…; browse "
+                    "/v1/football/league/seasons first."
+                )
+            rows = await football.league_standings(season, refresh=refresh)
+            if not rows:
+                raise NoMatch(
+                    f"No records: Argentine League standings unavailable for "
+                    f"season={season!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/football/league/team-stats":
+            teams = [
+                value.strip()
+                for value in str(client_params.get("teams") or "").split("|")
+                if value.strip()
+            ]
+            seasons = [
+                value.strip()
+                for value in str(client_params.get("seasons") or "").split("|")
+                if value.strip()
+            ]
+            if not teams:
+                raise ProxyError(
+                    "/v1/football/league/team-stats requires teams=… "
+                    "(one or two pipe-separated names)."
+                )
+            if not seasons:
+                raise ProxyError(
+                    "/v1/football/league/team-stats requires seasons=… "
+                    "(one to ten pipe-separated season labels)."
+                )
+            try:
+                rows = await football.league_team_stats(
+                    teams,
+                    seasons,
+                    start_date=(
+                        str(client_params["startDate"])
+                        if client_params.get("startDate")
+                        else None
+                    ),
+                    end_date=(
+                        str(client_params["endDate"])
+                        if client_params.get("endDate")
+                        else None
+                    ),
+                    head_to_head=filters.is_true(
+                        client_params.get("headToHead", False)
+                    ),
+                    refresh=refresh,
+                )
+            except ValueError as exc:
+                raise ProxyError(str(exc)) from exc
+            if not any(row["played"] for row in rows):
+                raise NoMatch(
+                    f"No records: team statistics for teams={teams!r}, "
+                    f"seasons={seasons!r} contained no finished matches. "
+                    f"{_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/football/matches/{matchId}/lineup":
+            match_id = str(path_params.get("matchId") or "").strip()
+            if not match_id:
+                raise ProxyError(
+                    "/v1/football/matches/{matchId}/lineup requires matchId."
+                )
+            rows = await football.match_lineup(
+                match_id,
+                home_team=(
+                    str(client_params["homeTeam"])
+                    if client_params.get("homeTeam")
+                    else None
+                ),
+                away_team=(
+                    str(client_params["awayTeam"])
+                    if client_params.get("awayTeam")
+                    else None
+                ),
+                home_team_logo=(
+                    str(client_params["homeTeamLogo"])
+                    if client_params.get("homeTeamLogo")
+                    else None
+                ),
+                away_team_logo=(
+                    str(client_params["awayTeamLogo"])
+                    if client_params.get("awayTeamLogo")
+                    else None
+                ),
+                refresh=refresh,
+            )
+            if not rows or not any(row.get("starting") for row in rows):
+                raise NoMatch(
+                    f"No records: no lineup available for matchId={match_id!r}. "
+                    f"{_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/football/league/latest-lineup":
+            team = str(client_params.get("team") or "").strip()
+            if not team:
+                raise ProxyError(
+                    "/v1/football/league/latest-lineup requires team=…."
+                )
+            try:
+                rows = await football.latest_team_lineup(
+                    team,
+                    season=(
+                        str(client_params["season"])
+                        if client_params.get("season")
+                        else None
+                    ),
+                    as_of=(
+                        str(client_params["asOf"])
+                        if client_params.get("asOf")
+                        else None
+                    ),
+                    refresh=refresh,
+                )
+            except ValueError as exc:
+                raise ProxyError(str(exc)) from exc
+            if not rows:
+                raise NoMatch(
+                    f"No records: no lineup available for team={team!r}, "
+                    f"season={client_params.get('season')!r}, "
+                    f"asOf={client_params.get('asOf')!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/football/national-team/seasons":
+            return await football.national_team_seasons(refresh=refresh)
+        if path == "/v1/football/national-team/matches":
+            season = str(client_params.get("season") or "").strip()
+            if not season:
+                raise ProxyError(
+                    "/v1/football/national-team/matches requires season=…; "
+                    "browse /v1/football/national-team/seasons first."
+                )
+            rows = await football.national_team_matches(
+                season,
+                start_date=(
+                    str(client_params["startDate"])
+                    if client_params.get("startDate")
+                    else None
+                ),
+                end_date=(
+                    str(client_params["endDate"])
+                    if client_params.get("endDate")
+                    else None
+                ),
+                refresh=refresh,
+            )
+            if not rows:
+                raise NoMatch(
+                    f"No records: Argentina national team season={season!r} "
+                    f"matched no games. {_NO_MATCH_GUIDANCE}"
                 )
             return rows
 

@@ -7,6 +7,7 @@ the base URL so the same path on two hosts never collide.
 from __future__ import annotations
 
 import re
+from collections.abc import Awaitable, Callable
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -110,6 +111,7 @@ async def get(
     refresh: bool = False,
     base_url: str = BASE_URL,
     headers: dict[str, str] | None = None,
+    before_fetch: Callable[[], Awaitable[None]] | None = None,
 ) -> Any:
     """GET *url_path* on *base_url* through the cache.
 
@@ -118,9 +120,14 @@ async def get(
     but never part of the cache key.
     """
     key = _cache_key(base_url, url_path, query)
+    async def fetch() -> Any:
+        if before_fetch is not None:
+            await before_fetch()
+        return await _get(base_url, url_path, query, headers)
+
     return await cache.get_or_fetch(
         key,
         ttl=ttl,
-        fetch=lambda: _get(base_url, url_path, query, headers),
+        fetch=fetch,
         refresh=refresh,
     )

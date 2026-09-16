@@ -88,8 +88,8 @@ def validate_tree(
         return ValidationResult(None, (f"tree schema is invalid: {exc}",))
 
     errors: list[str] = []
-    identities: set[tuple[str, str, str]] = set()
-    existing_identities: set[tuple[str, str, str]] = set()
+    identities: set[tuple[str, str, str, str]] = set()
+    existing_identities: set[tuple[str, str, str, str]] = set()
     node_ids: set[str] = set()
     node_count = 0
     known_types = set(widget_types()) | HOST_TYPES
@@ -182,6 +182,7 @@ def validate_tree(
                 for row in (dataset or {}).get("rows") or []
                 if isinstance(row, dict)
             ]
+            chart_rows = rows
             if isinstance(where, dict):
                 missing = [
                     key for key in where if not any(key in row for row in rows)
@@ -191,15 +192,95 @@ def validate_tree(
                         f"{location}: where keys do not exist in {data_ref!r}: "
                         + ", ".join(repr(key) for key in missing)
                     )
-                elif not any(_matches_where(row, where) for row in rows):
-                    errors.append(
-                        f"{location}: where matches no rows in {data_ref!r}"
-                    )
-            identity = (
-                str(kind),
-                data_ref,
-                json.dumps(where or {}, ensure_ascii=False, sort_keys=True),
-            )
+                else:
+                    chart_rows = [
+                        row for row in rows if _matches_where(row, where)
+                    ]
+                    if not chart_rows:
+                        errors.append(
+                            f"{location}: where matches no rows in {data_ref!r}"
+                        )
+            if (
+                kind == "Chart"
+                and props.get("kind") in {"line", "bar", "area"}
+                and chart_rows
+            ):
+                x_key = props.get("xKey")
+                series_by = props.get("seriesBy")
+                value_key = props.get("valueKey")
+                series = props.get("series")
+                row_keys = {key for row in chart_rows for key in row}
+                series_keys = [
+                    item.get("key")
+                    for item in series or []
+                    if isinstance(item, dict) and isinstance(item.get("key"), str)
+                ]
+                if series_by:
+                    for field in (x_key, series_by, value_key):
+                        if not isinstance(field, str) or field not in row_keys:
+                            errors.append(
+                                f"{location}: long-format Chart field "
+                                f"{field!r} does not exist in {data_ref!r}"
+                            )
+                    category_values = {
+                        str(row.get(str(series_by)))
+                        for row in chart_rows
+                        if row.get(str(series_by)) is not None
+                    }
+                    unknown = [
+                        key for key in series_keys if key not in category_values
+                    ]
+                    if unknown:
+                        errors.append(
+                            f"{location}: series keys are not values of "
+                            f"{series_by!r}: {unknown!r}"
+                        )
+                else:
+                    missing_series = [
+                        key for key in series_keys if key not in row_keys
+                    ]
+                    vote_values = {
+                        str(row.get("voto"))
+                        for row in chart_rows
+                        if row.get("voto") is not None
+                    }
+                    invalid = [
+                        key for key in missing_series if key not in vote_values
+                    ]
+                    vote_chart = bool(missing_series) and not invalid
+                    if invalid:
+                        errors.append(
+                            f"{location}: series keys do not exist as columns: "
+                            f"{invalid!r}. For long-format rows use "
+                            "seriesBy=<category field> and valueKey=<metric field>."
+                        )
+                    if isinstance(x_key, str) and not vote_chart:
+                        x_values = [
+                            str(row.get(x_key))
+                            for row in chart_rows
+                            if row.get(x_key) is not None
+                        ]
+                        if len(x_values) != len(set(x_values)):
+                            selected_teams = (
+                                where.get("team")
+                                if isinstance(where, dict)
+                                else None
+                            )
+                            team_hint = (
+                                " Create one Chart per team using a scalar "
+                                'where={"team":"<exact team>"} and keep the '
+                                "home/away metric columns as series."
+                                if isinstance(selected_teams, list)
+                                and len(selected_teams) > 1
+                                else ""
+                            )
+                            errors.append(
+                                f"{location}: duplicate {x_key!r} values require "
+                                "seriesBy+valueKey or a scalar filter."
+                                + team_hint
+                            )
+            identity = _identity(node)
+            assert identity is not None
             if identity in identities:
                 errors.append(f"{location}: duplicate widget/dataRef {identity!r}")
             if identity in existing_identities:
@@ -264,12 +345,28 @@ def _children(node: dict) -> list[dict]:
     return [node]
 
 
-def _identity(node: dict) -> tuple[str, str, str] | None:
+def _identity(node: dict) -> tuple[str, str, str, str] | None:
     props = node.get("props") or {}
     data_ref = props.get("dataRef")
     if not isinstance(data_ref, str) or not data_ref:
         return None
     where = props.get("where")
+    metric_signature = ""
+    if node.get("type") == "Chart":
+        metric_signature = json.dumps(
+            {
+                "xKey": props.get("xKey"),
+                "seriesBy": props.get("seriesBy"),
+                "valueKey": props.get("valueKey"),
+                "series": [
+                    item.get("key")
+                    for item in props.get("series") or []
+                    if isinstance(item, dict)
+                ],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
     return (
         str(node.get("type") or ""),
         data_ref,
@@ -278,6 +375,7 @@ def _identity(node: dict) -> tuple[str, str, str] | None:
             ensure_ascii=False,
             sort_keys=True,
         ),
+        metric_signature,
     )
 
 
@@ -291,7 +389,7 @@ def omit_existing_data_widgets(
     and a new companion. Rejecting the whole tree makes the repair model choose
     between ``tree`` and ``patch`` even though neither can express both actions.
     """
-    existing_identities: set[tuple[str, str, str]] = set()
+    existing_identities: set[tuple[str, str, str, str]] = set()
 
     def collect(node: object) -> None:
         if not isinstance(node, dict):
