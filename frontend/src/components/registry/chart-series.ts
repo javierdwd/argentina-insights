@@ -96,7 +96,7 @@ export function resolveSeriesKey(
   return wanted;
 }
 
-export function resolveChartSeries<T extends { key: string }>(
+export function resolveChartSeries<T extends { key: string; label?: string }>(
   series: T[] | null | undefined,
   data: Record<string, unknown>[] | null | undefined,
 ): T[] {
@@ -105,7 +105,10 @@ export function resolveChartSeries<T extends { key: string }>(
   const columns = collectRowKeys(data);
   const used = new Set<string>();
   return series.map((entry) => {
-    const key = resolveSeriesKey(entry.key, columns, used);
+    let key = resolveSeriesKey(entry.key, columns, used);
+    if (!columns.includes(key) && entry.label) {
+      key = resolveSeriesKey(entry.label, columns, used);
+    }
     used.add(key);
     return key === entry.key ? entry : { ...entry, key };
   });

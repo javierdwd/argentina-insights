@@ -100,6 +100,24 @@ test("resolveChartSeries maps fernandez onto accent-stripped slug", () => {
   assert.equal(series[1]?.key, "alberto_fern_ndez");
 });
 
+test("resolveChartSeries falls back to labels for derived overlay columns", () => {
+  const series = resolveChartSeries(
+    [
+      { key: "venta", label: "Blue vendedor" },
+      { key: "valor", label: "Riesgo país" },
+    ],
+    [
+      {
+        fecha: "2026-01-01",
+        blue: 1530,
+        riesgo_pais: 571,
+      },
+    ],
+  );
+  assert.equal(series[0]?.key, "blue");
+  assert.equal(series[1]?.key, "riesgo_pais");
+});
+
 test("trimEmptyMeasureEdges drops leading empty years", () => {
   const trimmed = trimEmptyMeasureEdges(
     [

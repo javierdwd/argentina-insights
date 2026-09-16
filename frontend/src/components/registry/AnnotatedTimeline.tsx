@@ -17,6 +17,7 @@ import {
   CHART_COLORS,
   downsampleRows,
   formatAxisLabel,
+  resolveChartSeries,
   seriesColor,
   ACCENT_HEX,
 } from "./chart-utils";
@@ -134,7 +135,11 @@ export const AnnotatedTimeline = memo(function AnnotatedTimeline(
 ) {
   const canvas = useCanvasWriteOptional();
   const node = useCanvasNode();
-  const { data, series, xKey } = props;
+  const { data, series: seriesProp, xKey } = props;
+  const series = useMemo(
+    () => resolveChartSeries(seriesProp, data),
+    [seriesProp, data],
+  );
   const marks = props.marks ?? EMPTY_MARKS;
   const bands = props.bands ?? EMPTY_BANDS;
 
