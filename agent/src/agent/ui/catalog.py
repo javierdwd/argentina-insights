@@ -487,17 +487,23 @@ WIDGET_CATALOG: list[WidgetDef] = [
         type="Box",
         role="container",
         purpose=(
-            "First-class authored HTML/SVG composition for structures that fixed "
-            "widgets cannot express well: custom prose layouts, nested groups, "
-            "semantic tables, diagrams, flows, hierarchies, and visual matrices. "
+            "Exceptional authored HTML/SVG composition for structures that fixed "
+            "widgets cannot express honestly: semantic tables, diagrams, flows, "
+            "hierarchies, visual matrices, and bespoke relationships. "
             "It must look native to the existing site, not like an embedded microsite."
         ),
         when_to_use=(
-            "Use whenever authored structure communicates the answer better than "
-            "a fixed leaf, even if a generic List or Chart could technically hold "
-            "the same facts. It may be ordinary nested HTML, a semantic table, or "
-            "SVG; custom does not imply chart-like. Infer the strongest form and "
-            "honor a user-named form. "
+            "Use only when no standard semantic widget can preserve the essential "
+            "meaning, or when the user explicitly requests a bespoke relationship "
+            "or visual form, and that functional benefit clearly outweighs losing "
+            "data binding, normalization, interaction, accessibility, and tested "
+            "responsive behavior. When uncertain, use the standard widget. Custom "
+            "styling alone never justifies Box. Because Box visibly identifies "
+            "itself as AI-generated, it must provide an immediately legible visual "
+            "or structural gain—not a generic card, heading plus paragraph, or "
+            "single prose block. "
+            "It may be ordinary nested HTML, a semantic table, or SVG; custom does "
+            "not imply chart-like. Honor a user-named form. "
             "Follow the site's editorial bulletin system: restrained surfaces, "
             "font-display for headings or names, font-sans for body copy, "
             "text-muted-foreground for secondary lines, text-accent sparingly, "
@@ -519,7 +525,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "honestly → use that widget. "
             "Spot figures → Metric/MetricRow. Punchy finding → Callout. "
             "Source caveat or narrative extract → Text. "
-            "Default people roster with no special structure → PersonCard. "
+            "Plain prose, styled text, or a generic card → Text/Callout. "
+            "ANY single-person profile or people roster → PersonCard; never rebuild "
+            "name, role, party, province, vote, photo, bio, or contacts in Box. "
             "NEVER put dataRef on Box — author copy from the analyst note."
         ),
         props=(

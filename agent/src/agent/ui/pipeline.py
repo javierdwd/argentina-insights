@@ -30,6 +30,29 @@ HOST_TYPES = frozenset(
 )
 MAX_TREE_DEPTH = 12
 MAX_TREE_NODES = 100
+BOX_STRUCTURE_TYPES = frozenset({"table", "dl", "ul", "ol", "svg"})
+
+
+def _box_has_visual_structure(children: list[object]) -> bool:
+    """Reject authored cards that are only headings/paragraphs in a wrapper."""
+    section_count = 0
+
+    def inspect(node: object) -> bool:
+        nonlocal section_count
+        if not isinstance(node, dict):
+            return False
+        kind = node.get("type")
+        if kind in BOX_STRUCTURE_TYPES:
+            return True
+        if kind == "section":
+            section_count += 1
+        props = node.get("props")
+        class_name = props.get("className", "") if isinstance(props, dict) else ""
+        if isinstance(class_name, str) and "grid" in class_name.split():
+            return True
+        return any(inspect(child) for child in (node.get("children") or []))
+
+    return any(inspect(child) for child in children) or section_count >= 2
 
 
 def _filter_value(value: object) -> object:
@@ -147,6 +170,15 @@ def validate_tree(
             errors.append(f"{location}: leaf widget {kind} cannot have children")
         if kind in {"Stack", "Grid"} and not children:
             errors.append(f"{location}: container {kind} requires children")
+        if kind == "Box" and not children:
+            errors.append(
+                f"{location}: Box requires authored children; its title is not content"
+            )
+        elif kind == "Box" and not _box_has_visual_structure(children):
+            errors.append(
+                f"{location}: Box requires meaningful visual or semantic structure; "
+                "use Text or Callout for plain prose"
+            )
         if kind not in LAYOUT_TYPES and kind not in HOST_TYPES and not node.get("title"):
             errors.append(f"{location}: leaf widget {kind} requires a title")
         if "data" in props or "people" in props:

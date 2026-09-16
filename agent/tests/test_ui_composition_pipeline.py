@@ -25,7 +25,11 @@ class _Model:
     def __init__(self, structured: _StructuredModel) -> None:
         self.structured = structured
 
-    def with_structured_output(self, *_: object, **__: object) -> _StructuredModel:
+    def with_structured_output(
+        self, schema: object, method: str | None = None
+    ) -> _StructuredModel:
+        assert schema is ComposeOutput
+        assert method == "function_calling"
         return self.structured
 
 
@@ -232,6 +236,42 @@ def test_box_accepts_nested_semantic_html_table() -> None:
     }
 
     assert validate_tree(tree, {}).errors == ()
+
+
+def test_box_rejects_title_only_placeholder() -> None:
+    tree = {
+        "id": "person_placeholder",
+        "type": "Box",
+        "title": "Ficha de Romina Almeida (provincia, bloque, voto)",
+        "props": {},
+        "children": [],
+    }
+
+    assert validate_tree(tree, {}).errors == (
+        "tree: Box requires authored children; its title is not content",
+    )
+
+
+def test_box_rejects_generic_heading_and_paragraph_card() -> None:
+    tree = {
+        "id": "generic_ai_card",
+        "type": "Box",
+        "title": "Ficha personal",
+        "props": {},
+        "children": [
+            {
+                "id": "generic_copy",
+                "type": "p",
+                "props": {"text": "Un bloque de texto sin aporte visual."},
+                "children": [],
+            }
+        ],
+    }
+
+    assert validate_tree(tree, {}).errors == (
+        "tree: Box requires meaningful visual or semantic structure; "
+        "use Text or Callout for plain prose",
+    )
 
 
 def test_invalid_tree_is_repaired_once(monkeypatch) -> None:
