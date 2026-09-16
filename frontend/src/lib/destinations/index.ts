@@ -31,6 +31,7 @@ export type DestinationDef = {
   id: DestinationId;
   title: string;
   blurb: string;
+  highlights: readonly string[];
   followUps: readonly string[];
   build: () => Promise<UINode>;
 };
@@ -39,11 +40,14 @@ export const DESTINATIONS: DestinationDef[] = [
   {
     id: "economia",
     title: ECONOMIA_QUERY,
-    blurb: "Blue vs oficial, inflación y riesgo — listo para explorar.",
+    blurb: "Compará alternativas y entendé qué rendimiento o riesgo asumís.",
+    highlights: ["Plazos fijos", "Fondos comunes", "Hipotecarios UVA"],
     followUps: [
+      "¿El mejor plazo fijo le gana a la inflación interanual?",
+      "Histórico del FCI Delta Pesos Clase A este año",
+      "Compará hipotecarios UVA y cómo viene el índice UVA",
       "Superponé EMAE al blue",
-      "Compará el blue por mandato presidencial",
-      "Semana con el pico de brecha: ¿qué votó el Congreso?",
+      "Marcá en el blue los eventos presidenciales de 2024",
       "Cruzá riesgo país con confianza en el gobierno",
     ],
     build: buildEconomiaTree,
@@ -52,6 +56,7 @@ export const DESTINATIONS: DestinationDef[] = [
     id: "politica",
     title: POLITICA_QUERY,
     blurb: "Confianza, Senado y la modernización laboral.",
+    highlights: ["Votaciones", "Legisladores", "Confianza"],
     followUps: POLITICA_FOLLOW_UPS,
     build: buildPoliticaTree,
   },
@@ -59,6 +64,7 @@ export const DESTINATIONS: DestinationDef[] = [
     id: "cine",
     title: CINE_QUERY,
     blurb: "Películas argentinas, ratings y elenco.",
+    highlights: ["Películas", "Elencos", "Filmografías"],
     followUps: CINE_FOLLOW_UPS,
     build: buildCineTree,
   },

@@ -93,11 +93,17 @@ _CAPABILITIES = """\
 Families we CAN fetch (propose only from here). If not listed, do not offer it.
 
 Macro / FX: FX houses (blue, oficial, MEP, CCL, mayorista) spot + history;
-inflación mensual + interanual; UVA; riesgo país; tasas (plazo fijo, UVA,
-precancelable, depósitos 30d); créditos UVA / personales; FCI; remesas;
-comisiones (brokers/cobros → ComparisonTable); cuentas remuneradas USD.
+inflación mensual + interanual; UVA; riesgo país; remesas; comisiones
+(brokers/cobros → ComparisonTable); cuentas remuneradas USD.
+Plazos / créditos / FCI (prefer curated): /v1/plazos/ranking (TNA % —
+ComparisonTable), /v1/hipotecarios-uva (min TNA), /v1/fci/search →
+/v1/fci/{slug}/historico (Chart). Pair plazos with inflaciónInteranual or
+REM ipc for real yield; hipotecarios with UVA + REM.
 REM: /v1/rem, /v1/rem/ultimo, /v1/rem/{alias}, /v1/rem/vs-real/{alias}
-(ipc/tc/desempleo). Feriados exist — almost never the interesting next move.
+(ipc/tc/desempleo).
+Feriados / feriados bancarios by año — List; join FX that fecha for
+"mercado cerrado". Eventos presidenciales → AnnotatedTimeline marks on a
+series (desde/hasta), not a dump.
 
 BCRA: reservas internacionales, base monetaria, depósitos privados / a plazo,
 tasa depósitos 30d. Pair with presidentes for "por mandato".
@@ -139,7 +145,9 @@ reservas+blue); peak / voting day → Congreso that fecha + AnnotatedTimeline
 mark; "máximo riesgo/blue en YYYY, ¿había sesión?" → series + peak fecha +
 /v1/senado/actas desde=hasta=that day (not search_actas); series cut by
 presidential terms; acta → roll call + FX/clima that day; legislator → vote
-history; tasas/créditos → ranked List; film → discover/search then ficha.
+history; plazos ranking vs inflación; hipotecarios UVA vs UVA index; FCI
+historico; film → discover/search then ficha; feriado/evento fecha → FX that
+day.
 
 Out of catalog — NEVER propose: Merval, noticias, encuestas besides ICG,
 precios de pasajes, data municipal, ticket prices, Spotify, recaudación
@@ -151,16 +159,17 @@ _CAPABILITIES_COMPOSE = """\
 Families we CAN suggest (ground every [[actions]] / [boton] here). If not
 listed, do not offer it.
 
-Macro/FX: blue, oficial, MEP, CCL, inflación, UVA, riesgo, tasas, créditos,
-FCI, remesas, comisiones, cuentas remuneradas, REM (ipc/tc/desempleo).
+Macro/FX: blue, oficial, MEP, CCL, inflación, UVA, riesgo, remesas,
+comisiones, cuentas remuneradas, REM (ipc/tc/desempleo).
+Plazos ranking, hipotecarios UVA, FCI search/historico (estratega).
 BCRA: reservas, base monetaria, depósitos, tasa 30d. CAMMESA electricity.
 INDEC/MECON: EMAE, desempleo, pobreza, RIPTE, IPC, exportaciones/importaciones.
 Weather (Open-Meteo); histórico Wikipedia days; TMDB AR cinema only.
-Politics: presidentes, ICG confianza, eventos, Senado/Diputados actas/votos/
-roster/comisiones/viajes (viáticos only — never ticket prices).
+Politics: presidentes, ICG confianza, eventos, feriados, Senado/Diputados
+actas/votos/roster/comisiones/viajes (viáticos only — never ticket prices).
 
-Prefer cruce joins (series+mandato, peak+acta, FX/clima that day) over chart
-cosmetics.
+Prefer cruce joins (series+mandato, peak+acta, FX/clima that day,
+plazos×inflación, eventos as marks) over chart cosmetics.
 
 NEVER propose: Merval, noticias, encuestas besides ICG, ticket prices,
 data municipal, Spotify, recaudación INCAA/SINCA, Hollywood, or anything

@@ -127,6 +127,36 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
     preview: "metrics",
   },
   {
+    id: "plazos-vs-inflacion",
+    text: "¿Qué bancos pagan más de plazo fijo hoy y le ganan a la inflación interanual?",
+    topic: "economia",
+    preview: "list",
+  },
+  {
+    id: "hipotecarios-uva-ranking",
+    text: "Compará las TNA de créditos hipotecarios UVA y decime cuál es la más baja",
+    topic: "economia",
+    preview: "list",
+  },
+  {
+    id: "fci-delta-historico",
+    text: "Mostrame la evolución de la cuotaparte del FCI Delta Pesos Clase A en los últimos 12 meses",
+    topic: "economia",
+    preview: "line",
+  },
+  {
+    id: "feriados-bancarios-anio",
+    text: "Listá los feriados bancarios de este año",
+    topic: "economia",
+    preview: "list",
+  },
+  {
+    id: "blue-con-eventos",
+    text: "Marcá en el dólar blue los eventos presidenciales de 2024",
+    topic: "cruce",
+    preview: "timeline",
+  },
+  {
     id: "rem-vs-inflacion",
     text: "¿Cuánto se equivocó el REM en inflación mensual durante 2024?",
     topic: "economia",

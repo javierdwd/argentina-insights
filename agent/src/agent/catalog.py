@@ -42,11 +42,16 @@ _DOMAIN_PREFIXES: list[tuple[str, str]] = [
     ("/v1/bcra/", "finance"),
     ("/v1/cammesa", "finance"),
     ("/v1/rem", "finance"),
+    ("/v1/plazos", "finance"),
+    ("/v1/hipotecarios-uva", "finance"),
+    ("/v1/fci", "finance"),
     ("/v1/series", "finance"),
     ("/v1/senado/", "politics"),
     ("/v1/diputados/", "politics"),
     ("/v1/politica/", "politics"),
     ("/v1/presidentes", "politics"),
+    ("/v1/eventos/", "politics"),
+    ("/v1/feriados", "politics"),
     ("/v1/clima/", "other"),
     ("/v1/historico/", "other"),
     ("/v1/wiki/", "other"),
@@ -298,8 +303,35 @@ _SUMMARY_HINTS: dict[str, str] = {
         "the full list"
     ),
     "/v1/eventos/presidenciales": (
-        "Dated political events — overlay on FX/inflación/riesgo/confianza "
-        "(cruce), not a standalone dump. Pair /v1/presidentes for mandate cuts"
+        "Dated political events (fecha, tipo, evento). Pass desde/hasta to "
+        "avoid SAFETY_CAP. Overlay as AnnotatedTimeline marks on FX/"
+        "inflación/riesgo/confianza — not a standalone dump. Pair "
+        "/v1/presidentes for mandate cuts"
+    ),
+    "/v1/feriados/{año}": (
+        "National holidays for one year (fecha, tipo, nombre). List — not "
+        "Chart. Pair FX/riesgo that fecha; bank-open question → also "
+        "/v1/feriados-bancarios/{año}"
+    ),
+    "/v1/feriados-bancarios/{año}": (
+        "BCRA bank holidays for one year (fecha, nombre). Use for 'día "
+        "hábil' / mercado cerrado. List; join FX that fecha"
+    ),
+    "/v1/plazos/ranking": (
+        "Plazo fijo banks ranked by TNA %. ComparisonTable highlight max "
+        "tna; MetricRow top vs inflaciónInteranual. Prefer over raw "
+        "plazoFijo"
+    ),
+    "/v1/hipotecarios-uva": (
+        "UVA mortgage TNAs %. ComparisonTable highlight min tna. Pair UVA "
+        "index + REM for cuota risk"
+    ),
+    "/v1/fci/search": (
+        "Find FCI by name → slug. Then /v1/fci/{slug}/historico for Chart"
+    ),
+    "/v1/fci/{slug}/historico": (
+        "FCI cuotaparte {fecha, valor}. Chart kind=line. Slug from search "
+        "or aliases delta_pesos_a / mercado_fondo_a"
     ),
     "/v1/bcra/{alias}": (
         "BCRA stocks/rates (reservas, base_monetaria, depositos_*, "

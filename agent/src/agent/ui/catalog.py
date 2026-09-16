@@ -447,25 +447,29 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="leaf",
         purpose=(
             "Side-by-side comparison of alternatives — fees, brokers, remesas, "
-            "short REM vs-real windows — with optional highlight of the best "
-            "numeric value."
+            "plazos fijos, hipotecarios UVA, short REM vs-real windows — with "
+            "optional highlight of the best numeric value."
         ),
         when_to_use=(
+            "/v1/plazos/ranking, /v1/hipotecarios-uva, "
             "/v1/finanzas/brokers/comisiones, cobros/comisiones, remesas, "
             "or a short /v1/rem/vs-real/{alias} slice where rows are options "
             "to weigh. primary=true on the entity column (entidad, "
             "nombreComercial, compania, periodo). "
-            "highlight={key,direction:min|max} for cheapest fee / lowest error. "
+            "highlight={key,direction:min|max} for best TNA (max) / cheapest "
+            "fee / lowest mortgage TNA (min). "
             "Set kind explicitly per column (percent|money|number|date|url|"
             "text) — do not rely on key-name inference. "
-            "Fee tasas/aranceles are fractions (0.005); either kind=number "
-            "or pre-scale in the note — kind=percent prints the raw value + %."
+            "Curated plazos/hipotecarios already expose TNA as percent "
+            "(18.5). Raw fee tasas/aranceles are fractions (0.005); either "
+            "kind=number or pre-scale — kind=percent prints the raw value + %."
         ),
         when_not=(
             "Long time series → Chart. Generic law/session listings → List. "
             "People rosters → PersonCard. Spot KPIs → Metric/MetricRow. "
             "Full REM history vs reality as evolution → Chart on "
-            "/v1/rem/vs-real/{alias} (esperado+real or error)."
+            "/v1/rem/vs-real/{alias} (esperado+real or error). "
+            "FCI history → Chart on /v1/fci/{slug}/historico."
         ),
         props=(
             "columns([{key,label,kind?(text|number|percent|money|date|url),"
@@ -473,8 +477,10 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "highlight?({key,direction:min|max}); sort?({key,dir}); limit?(int)"
         ),
         data=(
-            "dataRef = fee/remesa/vs-real dataset. Fee endpoints return flat "
-            "rows (entidad, producto, tasa/arancel, …). vs-real keys: "
+            "dataRef = plazos/hipotecarios/fee/remesa/vs-real dataset. "
+            "Plazos keys: entidad, tna, plazoDias. Hipotecarios: entidad, "
+            "tna, plazoMaxAnios. Fee endpoints return flat rows "
+            "(entidad, producto, tasa/arancel, …). vs-real keys: "
             "periodo/fecha, esperado, real, error, error_pct."
         ),
     ),

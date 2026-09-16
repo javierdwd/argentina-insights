@@ -341,8 +341,19 @@ DATE_SERIES_PATHS: tuple[str, ...] = (
     "/v1/finanzas/rendimientos/{entidad}",
 )
 
+#: Calendars / event lists — date-filter BEFORE SAFETY_CAP (not chart series).
+CALENDAR_PATHS: tuple[str, ...] = (
+    "/v1/eventos/presidenciales",
+    "/v1/feriados/{año}",
+    "/v1/feriados-bancarios/{año}",
+)
+
 for _path in DATE_SERIES_PATHS:
     PARAM_SPECS[_path] = (DESDE, HASTA)
+
+PARAM_SPECS["/v1/eventos/presidenciales"] = (DESDE, HASTA)
+PARAM_SPECS["/v1/feriados/{año}"] = (DESDE, HASTA)
+PARAM_SPECS["/v1/feriados-bancarios/{año}"] = (DESDE, HASTA)
 
 PARAM_SPECS["/v1/presidentes"] = (
     NAME,
@@ -473,6 +484,18 @@ REM_MES = ParamSpec(
     type="string",
     hint="REM informe month as two digits (01–12)",
     example="06",
+)
+Q_FCI = ParamSpec(
+    name="q",
+    type="string",
+    hint="Spanish fund name fragment (e.g. 'Delta Pesos'). All words must match",
+    example="Delta Pesos",
+)
+LIMIT_PLAZOS = ParamSpec(
+    name="limit",
+    type="integer",
+    hint="Max banks to return (default 25, max 40)",
+    example="15",
 )
 
 EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
@@ -748,6 +771,71 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
         ),
         params=(DESDE, HASTA, REM_HORIZON),
         path_params=("alias",),
+    ),
+    "/v1/plazos": ExternalRoute(
+        path="/v1/plazos",
+        domain="finance",
+        summary=(
+            "Curated plazo-fijo surface. Prefer /v1/plazos/ranking over raw "
+            "/v1/finanzas/tasas/plazoFijo (nested tasas[]). Pair with "
+            "inflaciónInteranual or /v1/rem/ultimo alias=ipc for real yield"
+        ),
+    ),
+    "/v1/plazos/ranking": ExternalRoute(
+        path="/v1/plazos/ranking",
+        domain="finance",
+        summary=(
+            "Banks ranked by best TNA (%). Rows: entidad, tna, plazoDias, "
+            "valor(=tna), unidad. ComparisonTable highlight max tna; "
+            "MetricRow for top bank vs inflación. Optional limit="
+        ),
+        params=(LIMIT_PLAZOS,),
+    ),
+    "/v1/hipotecarios-uva": ExternalRoute(
+        path="/v1/hipotecarios-uva",
+        domain="finance",
+        summary=(
+            "UVA mortgage TNAs flattened (%). Rows: entidad, tna, "
+            "plazoMaxAnios, relacionCuotaIngreso, financiamiento. "
+            "ComparisonTable highlight min tna. Pair /v1/finanzas/indices/uva "
+            "+ /v1/rem for cuota risk — prefer over raw hipotecariosUva"
+        ),
+    ),
+    "/v1/fci": ExternalRoute(
+        path="/v1/fci",
+        domain="finance",
+        summary=(
+            "Curated FCI aliases (delta_pesos_a, mercado_fondo_a). "
+            "Unknown fund → /v1/fci/search?q= then /v1/fci/{slug}/historico"
+        ),
+    ),
+    "/v1/fci/search": ExternalRoute(
+        path="/v1/fci/search",
+        domain="finance",
+        summary=(
+            "Search FCI by Spanish name (q=). Rows: slug, nombre, tipoRenta, "
+            "horizonte, administradora. Then /v1/fci/{slug} or …/historico"
+        ),
+        params=(Q_FCI,),
+    ),
+    "/v1/fci/{slug}": ExternalRoute(
+        path="/v1/fci/{slug}",
+        domain="finance",
+        summary=(
+            "One FCI detail (slug or alias). MetricRow / Text — then "
+            "/v1/fci/{slug}/historico for Chart"
+        ),
+        path_params=("slug",),
+    ),
+    "/v1/fci/{slug}/historico": ExternalRoute(
+        path="/v1/fci/{slug}/historico",
+        domain="finance",
+        summary=(
+            "FCI cuotaparte history as {fecha, valor}. Chart kind=line. "
+            "Slug from /v1/fci/search or curated alias. Pass desde/hasta"
+        ),
+        params=(DESDE, HASTA),
+        path_params=("slug",),
     ),
 }
 

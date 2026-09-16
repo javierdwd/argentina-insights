@@ -30,12 +30,13 @@ from typing import Any
 
 from . import collections as coll
 from . import filters, names, upstream
-from . import bcra, cammesa, historico, openmeteo, rem, series, tmdb, wiki
+from . import bcra, cammesa, finanzas_productos, historico, openmeteo, rem, series, tmdb, wiki
 from . import vector_index as vx
 from .cache import cache
 from .match import match_directory
 from .routes import (
     ACTAS_FAMILIES,
+    CALENDAR_PATHS,
     DATE_SERIES_PATHS,
     DETAIL_ROW_CAP,
     DIPUTADOS_ACTAS,
@@ -775,6 +776,17 @@ async def resolve(path: str, params: dict[str, Any] | None = None) -> Any:
         )
         _require_matches(rows, path, scanned, client_params, ("desde", "hasta"))
         return _project_checked(rows, fields, path) if fields else rows
+    elif path in CALENDAR_PATHS and (
+        client_params.get("desde") or client_params.get("hasta")
+    ):
+        # Apply before SAFETY_CAP so older eventos/feriados survive.
+        rows = filters.filter_by_date(
+            rows, client_params.get("desde"), client_params.get("hasta")
+        )
+        _require_matches(rows, path, scanned, client_params, ("desde", "hasta"))
+        if fields:
+            return _project_checked(rows, fields, path)
+        return rows
 
     # Cap BEFORE the per-row transforms below: an actas list carries ~257
     # vote entries per row, so normalizing all 1300 rows to then drop all but
@@ -1114,6 +1126,60 @@ async def _resolve_external(
                     f"horizon={horizon!r} matched nothing. {_NO_MATCH_GUIDANCE}"
                 )
             return rows
+
+        if path == "/v1/plazos":
+            return finanzas_productos.list_plazos_aliases()
+        if path == "/v1/plazos/ranking":
+            limit_raw = client_params.get("limit")
+            try:
+                limit = int(limit_raw) if limit_raw is not None else 25
+            except (TypeError, ValueError):
+                limit = 25
+            limit = max(1, min(limit, 40))
+            rows = await finanzas_productos.fetch_plazos_ranking(
+                limit=limit, refresh=refresh
+            )
+            if not rows:
+                raise NoMatch(
+                    f"No records: plazos ranking empty. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/hipotecarios-uva":
+            rows = await finanzas_productos.fetch_hipotecarios(refresh=refresh)
+            if not rows:
+                raise NoMatch(
+                    f"No records: hipotecarios UVA empty. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/fci":
+            return finanzas_productos.list_fci_aliases()
+        if path == "/v1/fci/search":
+            q = str(client_params.get("q") or "").strip()
+            if not q:
+                raise ProxyError("/v1/fci/search requires q=… (fund name).")
+            rows = await finanzas_productos.search_fci(q, refresh=refresh)
+            if not rows:
+                raise NoMatch(
+                    f"No records: FCI search q={q!r} matched 0 funds. "
+                    f"{_NO_MATCH_GUIDANCE}"
+                )
+            return rows
+        if path == "/v1/fci/{slug}":
+            slug = str(path_params.get("slug") or "")
+            return await finanzas_productos.fetch_fci_detail(
+                slug, refresh=refresh
+            )
+        if path == "/v1/fci/{slug}/historico":
+            slug = str(path_params.get("slug") or "")
+            rows = await finanzas_productos.fetch_fci_historico(
+                slug, desde=desde, hasta=hasta, refresh=refresh
+            )
+            if not rows:
+                raise NoMatch(
+                    f"No records: FCI historico {slug!r} empty for "
+                    f"desde={desde!r} hasta={hasta!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
     except UpstreamError:
         raise
 
@@ -1131,6 +1197,7 @@ _FEE_LIST_KEYS: dict[str, str] = {
 #: Parent scalar fields (diputadoId, …) are stamped onto each child.
 _ROW_COLLECTION_KEYS: dict[str, tuple[str, ...]] = {
     **{path: (key,) for path, key in _FEE_LIST_KEYS.items()},
+    "/v1/finanzas/fci/fondos": ("fondos",),
     "/v1/diputados/misiones": ("misiones",),
     "/v1/diputados/diputados/{id}/misiones": ("misiones",),
     "/v1/diputados/diputados/{id}/viajes": ("nacionales", "internacionales"),

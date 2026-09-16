@@ -160,7 +160,17 @@ export function StarterBubbles() {
         transition={{ duration: 0.35, ease: EASE }}
         className="flex flex-col gap-3"
       >
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-end justify-between gap-4 px-1">
+          <div>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-accent">
+              Empezá por un panorama
+            </p>
+            <h2 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
+              Dashboards listos para explorar
+            </h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {DESTINATIONS.map((dest) => {
             const Icon = DEST_ICON[dest.id];
             const loading = destinoBusy === dest.id;
@@ -171,26 +181,38 @@ export function StarterBubbles() {
                 disabled={busy}
                 onClick={() => void onOpenDestination(dest.id)}
                 className={[
-                  "inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-left",
-                  "bg-accent text-accent-foreground shadow-[0_14px_36px_-20px_color-mix(in_oklab,var(--accent)_70%,transparent)]",
-                  "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
-                  "hover:opacity-95 active:scale-[0.99]",
+                  "group flex min-h-36 flex-col rounded-2xl bg-card p-4 text-left ring-1 ring-border/80",
+                  "transition-[transform,box-shadow,border-color,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                  "hover:-translate-y-0.5 hover:ring-accent/35 hover:shadow-[0_16px_38px_-28px_color-mix(in_oklab,var(--accent)_60%,transparent)] active:translate-y-0",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                   "disabled:cursor-not-allowed disabled:opacity-45",
                 ].join(" ")}
               >
-                <Icon size={18} weight="regular" className="shrink-0" />
-                <span className="font-display text-sm font-semibold tracking-tight">
+                <span className="flex w-full items-center justify-between">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                    <Icon size={17} weight="regular" />
+                  </span>
+                  <ArrowRight
+                    size={15}
+                    weight="regular"
+                    className="text-accent transition-transform group-hover:translate-x-0.5"
+                  />
+                </span>
+                <span className="mt-3 font-display text-sm font-semibold tracking-tight text-foreground">
                   {loading ? `Cargando ${dest.title}…` : dest.title}
                 </span>
-                <ArrowRight size={14} weight="regular" className="opacity-80" />
+                <span className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {dest.blurb}
+                </span>
+                <span className="mt-auto flex flex-wrap gap-x-2 gap-y-0.5 pt-3 text-[0.66rem] font-medium text-accent">
+                  {dest.highlights.map((highlight) => (
+                    <span key={highlight}>{highlight}</span>
+                  ))}
+                </span>
               </button>
             );
           })}
         </div>
-        <p className="max-w-[42ch] text-xs leading-relaxed text-muted-foreground">
-          {DESTINATIONS.map((d) => d.title).join(" · ")} — dashboards listos.
-        </p>
       </motion.div>
 
       <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
