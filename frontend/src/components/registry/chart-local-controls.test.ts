@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  availableChartRangeOptions,
   filterRowsByRelativeRange,
   parseIsoDay,
   xKeyLooksDated,
@@ -39,6 +40,32 @@ test("filterRowsByRelativeRange is relative to last dated point", () => {
     ["2024-01-01", "2024-06-01", "2024-12-01"],
   );
   assert.equal(filterRowsByRelativeRange(rows, "fecha", "all").length, 5);
+});
+
+test("availableChartRangeOptions follows observed coverage", () => {
+  const currentYear = [
+    { fecha: "2026-01-01" },
+    { fecha: "2026-04-01" },
+    { fecha: "2026-09-01" },
+  ];
+  assert.deepEqual(
+    availableChartRangeOptions(currentYear, "fecha").map(({ id }) => id),
+    ["1M", "3M", "all"],
+  );
+
+  const multiYear = [
+    { fecha: "2020-01-01" },
+    { fecha: "2026-09-01" },
+  ];
+  assert.deepEqual(
+    availableChartRangeOptions(multiYear, "fecha").map(({ id }) => id),
+    ["1M", "3M", "1Y", "5Y", "all"],
+  );
+
+  assert.deepEqual(
+    availableChartRangeOptions([{ fecha: "2026-09-01" }], "fecha"),
+    [],
+  );
 });
 
 test("rowMatchesBrush matches fecha by day prefix", () => {

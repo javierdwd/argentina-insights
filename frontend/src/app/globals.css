@@ -368,3 +368,317 @@ body::after {
   line-height: 1.35;
   text-align: left;
 }
+
+/*
+ * The conversation is a spatial work surface, not a stock chat card.
+ * This is a restrained web glass approximation: translucent edge treatment,
+ * solid-card fallback, and one celeste accent shared with the canvas.
+ */
+.chat-panel-region {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in oklab, var(--sky) 22%, transparent),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 84%, var(--card)),
+      var(--background)
+    );
+}
+
+.chat-spatial-panel {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid color-mix(in oklab, var(--border) 88%, white);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklab, var(--card) 96%, white),
+      color-mix(in oklab, var(--card) 88%, var(--sky))
+    );
+  box-shadow:
+    0 28px 70px -42px color-mix(in oklab, var(--foreground) 42%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.78);
+}
+
+.chat-spatial-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 12% 0%,
+    color-mix(in oklab, var(--sky) 14%, transparent),
+    transparent 28%
+  );
+}
+
+.dark .chat-spatial-panel {
+  border-color: color-mix(in oklab, var(--border) 88%, var(--sky));
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklab, var(--card) 96%, white),
+      color-mix(in oklab, var(--card) 90%, var(--sky))
+    );
+  box-shadow:
+    0 30px 72px -38px rgb(0 0 0 / 0.68),
+    inset 0 1px 0 rgb(255 255 255 / 0.09);
+}
+
+.chat-spatial-panel [data-testid="copilot-chat"] {
+  background: transparent !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-input-overlay"] {
+  bottom: 0.45rem !important;
+  background: transparent !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-input-overlay"]
+  > [data-copilotkit] {
+  background: transparent !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-welcome-screen"] {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: clamp(2rem, 6vh, 4.5rem) 1.5rem 1.5rem !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-welcome-screen"] > div {
+  align-items: flex-start !important;
+  flex: 1 1 auto;
+  height: 100%;
+  max-width: none !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-welcome-screen"]
+  > div
+  > div:first-child {
+  order: 1;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-welcome-screen"]
+  > div
+  > div:nth-child(2) {
+  order: 3;
+  margin-top: auto;
+  width: 100%;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-welcome-screen"]
+  > div
+  > div:nth-child(3) {
+  order: 2;
+}
+
+.chat-spatial-panel [data-testid="copilot-welcome-screen"] h1 {
+  width: 100%;
+  max-width: 100%;
+  text-align: left !important;
+  font-family: var(--font-display), sans-serif !important;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem) !important;
+  font-weight: 600 !important;
+  line-height: 1.14 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-welcome-screen"]
+  > div
+  > div:nth-child(2),
+.chat-spatial-panel
+  [data-testid="copilot-welcome-screen"]
+  > div
+  > div:nth-child(2)
+  [data-copilotkit] {
+  background: transparent !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-chat-input"] {
+  border: 1px solid color-mix(in oklab, var(--border) 90%, var(--sky)) !important;
+  border-radius: 1rem !important;
+  background: color-mix(in oklab, var(--card) 94%, transparent) !important;
+  box-shadow:
+    0 18px 44px -30px color-mix(in oklab, var(--foreground) 45%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.72) !important;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.chat-spatial-panel [data-testid="copilot-chat-input"] > div {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-chat-input"]
+  > div
+  > div:has([data-testid="copilot-add-menu-button"]) {
+  display: none !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-chat-input"]
+  > div
+  > div:nth-child(2) {
+  grid-column-start: 1 !important;
+}
+
+.chat-spatial-panel
+  [data-testid="copilot-chat-input"]
+  > div
+  > div:last-child {
+  grid-column-start: 2 !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-chat-input"]:focus-within {
+  border-color: color-mix(in oklab, var(--accent) 68%, var(--border)) !important;
+  box-shadow:
+    0 22px 52px -30px color-mix(in oklab, var(--accent) 50%, transparent),
+    0 0 0 3px color-mix(in oklab, var(--accent) 12%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.78) !important;
+  transform: translateY(-1px);
+}
+
+.dark .chat-spatial-panel [data-testid="copilot-chat-input"] {
+  background: color-mix(in oklab, var(--card) 88%, transparent) !important;
+  box-shadow:
+    0 20px 50px -28px rgb(0 0 0 / 0.65),
+    inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-chat-textarea"] {
+  color: var(--foreground) !important;
+  font-family: var(--font-sans), sans-serif !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-chat-textarea"]::placeholder {
+  color: var(--muted-foreground) !important;
+  opacity: 0.82;
+}
+
+.chat-spatial-panel [data-testid="copilot-send-button"] {
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.chat-spatial-panel [data-testid="copilot-send-button"]:hover {
+  opacity: 0.9 !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-suggestions"] {
+  justify-content: flex-start;
+  padding-inline: 0;
+}
+
+.chat-spatial-panel [data-testid="copilot-suggestion"] {
+  border: 1px solid color-mix(in oklab, var(--border) 88%, var(--sky)) !important;
+  border-radius: 0.8rem !important;
+  background: color-mix(in oklab, var(--card) 74%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.52);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.chat-spatial-panel [data-testid="copilot-suggestion"]:hover {
+  border-color: color-mix(in oklab, var(--accent) 42%, var(--border)) !important;
+  background: var(--accent-soft) !important;
+  color: var(--foreground) !important;
+  transform: translateY(-1px);
+}
+
+.chat-spatial-panel .copilotKitMessages {
+  padding-inline: clamp(1rem, 3vw, 1.5rem);
+}
+
+.chat-spatial-panel [data-testid="copilot-message-list"] {
+  background: transparent !important;
+}
+
+.chat-spatial-panel .copilotKitMessage {
+  font-family: var(--font-sans), sans-serif;
+  line-height: 1.62;
+}
+
+.chat-spatial-panel .copilotKitUserMessage {
+  padding-top: 0.85rem !important;
+  background: transparent !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.chat-spatial-panel
+  .copilotKitUserMessage
+  [class*="cpk:bg-muted"] {
+  max-width: 88% !important;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, var(--sky)) !important;
+  border-radius: 0.95rem 0.95rem 0.35rem 0.95rem !important;
+  background: color-mix(in oklab, var(--secondary) 72%, var(--card)) !important;
+  color: var(--foreground) !important;
+  padding: 0.6rem 0.9rem !important;
+  box-shadow: none !important;
+}
+
+.chat-spatial-panel .copilotKitAssistantMessage {
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--foreground);
+  box-shadow: none !important;
+}
+
+.chat-spatial-panel [data-testid="copilot-assistant-message"] {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 767px) {
+  .chat-spatial-panel {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .chat-spatial-panel [data-testid="copilot-welcome-screen"] {
+    padding-top: 2rem !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .chat-mobile-peek,
+  .chat-spatial-panel [data-testid="copilot-chat-input"] {
+    background: var(--card) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-spatial-panel [data-testid="copilot-chat-input"],
+  .chat-spatial-panel [data-testid="copilot-suggestion"] {
+    transition: none;
+  }
+
+  .chat-spatial-panel [data-testid="copilot-chat-input"]:focus-within,
+  .chat-spatial-panel [data-testid="copilot-suggestion"]:hover {
+    transform: none;
+  }
+}

@@ -58,6 +58,36 @@ export function xKeyLooksDated(
   return hits >= Math.min(3, sample);
 }
 
+/**
+ * Only expose windows that are shorter than the observed dataset span.
+ * A range equal to or longer than the source would duplicate "Todo" and
+ * falsely suggest historical coverage that is not present.
+ */
+export function availableChartRangeOptions(
+  rows: Record<string, unknown>[] | undefined,
+  xKey: string,
+): { id: ChartRangeId; label: string }[] {
+  if (!rows?.length || !xKey) return [];
+  let min = Infinity;
+  let max = -Infinity;
+  for (const row of rows) {
+    const date = parseIsoDay(row[xKey]);
+    if (!date) continue;
+    const time = date.getTime();
+    min = Math.min(min, time);
+    max = Math.max(max, time);
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [];
+  const spanDays = (max - min) / 86_400_000;
+  const windows = CHART_RANGE_OPTIONS.filter(
+    (option) =>
+      option.id !== "all" && spanDays > RANGE_DAYS[option.id],
+  );
+  return windows.length
+    ? [...windows, CHART_RANGE_OPTIONS[CHART_RANGE_OPTIONS.length - 1]]
+    : [];
+}
+
 function addUtcDays(date: Date, days: number): Date {
   const next = new Date(date.getTime());
   next.setUTCDate(next.getUTCDate() + days);

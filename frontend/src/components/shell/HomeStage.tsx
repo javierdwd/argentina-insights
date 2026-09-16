@@ -140,44 +140,46 @@ function MobileChatPeek({ onExpand }: { onExpand: () => void }) {
       : "Escribí una pregunta…";
 
   return (
-    <button
-      type="button"
-      onClick={onExpand}
-      className="flex w-full items-center gap-3 border-t border-border bg-card px-4 pt-3 shadow-[0_-12px_32px_-20px_color-mix(in_oklab,var(--foreground)_35%,transparent)] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] text-left transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50"
-      aria-expanded={false}
-      aria-controls="mobile-chat-sheet"
-    >
-      <span
-        className={[
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-          running ? "bg-accent-soft text-accent" : "bg-secondary text-muted-foreground",
-        ].join(" ")}
-        aria-hidden
+    <div className="px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))]">
+      <button
+        type="button"
+        onClick={onExpand}
+        className="chat-mobile-peek flex w-full items-center gap-3 rounded-2xl border border-border/85 bg-card/92 px-3 py-2.5 text-left shadow-[0_16px_44px_-22px_color-mix(in_oklab,var(--foreground)_38%,transparent),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl transition-[background-color,transform] hover:bg-card active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        aria-expanded={false}
+        aria-controls="mobile-chat-sheet"
       >
-        {running ? (
-          <CircleNotch size={16} weight="bold" className="animate-spin" />
-        ) : (
-          <ChatCircle size={16} weight="regular" />
-        )}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[0.7rem] leading-none text-muted-foreground">
-          {running ? "Trabajando" : "Chat"}
-        </span>
         <span
-          className="mt-1 block truncate text-sm leading-snug text-foreground"
-          aria-live="polite"
+          className={[
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+            running ? "bg-accent-soft text-accent" : "bg-secondary text-muted-foreground",
+          ].join(" ")}
+          aria-hidden
         >
-          {line}
+          {running ? (
+            <CircleNotch size={16} weight="bold" className="animate-spin" />
+          ) : (
+            <ChatCircle size={17} weight="regular" />
+          )}
         </span>
-      </span>
-      <CaretUp
-        size={16}
-        weight="bold"
-        className="shrink-0 text-muted-foreground"
-        aria-hidden
-      />
-    </button>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.7rem] font-medium leading-none text-accent">
+            {running ? "Investigando" : "Conversación"}
+          </span>
+          <span
+            className="mt-1 block truncate text-sm leading-snug text-foreground"
+            aria-live="polite"
+          >
+            {line}
+          </span>
+        </span>
+        <CaretUp
+          size={16}
+          weight="bold"
+          className="mr-1 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+      </button>
+    </div>
   );
 }
 
@@ -381,19 +383,26 @@ export function HomeStage({
           hidden={chatHidden || entry}
           id="mobile-chat-sheet"
           className={[
-            chatHidden || entry ? "hidden" : "flex flex-col bg-card",
+            chatHidden || entry ? "hidden" : "chat-panel-region flex flex-col",
             "max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40",
-            "max-md:border-t max-md:border-border",
+            "max-md:overflow-hidden max-md:rounded-t-[1.5rem] max-md:border max-md:border-b-0 max-md:border-border max-md:bg-card",
             "max-md:transition-[height] max-md:duration-300 max-md:ease-[cubic-bezier(0.32,0.72,0,1)]",
             mobileExpanded
               ? "max-md:h-[min(85dvh,40rem)]"
-              : "max-md:h-0 max-md:overflow-hidden max-md:border-t-0",
-            "md:relative md:h-full md:min-h-0 md:border-l md:border-t-0 md:bg-transparent md:p-4 lg:p-5",
+              : "max-md:h-0 max-md:border-0",
+            "md:relative md:h-full md:min-h-0 md:p-3 lg:p-4",
           ].join(" ")}
         >
           {mobileExpanded && !isDesktop ? (
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-              <p className="text-sm font-medium text-foreground">Chat</p>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/80 px-4 py-3">
+              <div>
+                <p className="font-display text-base font-semibold text-foreground">
+                  Conversación
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Profundizá la vista con otra pregunta
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileExpanded(false)}
@@ -405,8 +414,29 @@ export function HomeStage({
               </button>
             </div>
           ) : null}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-4 md:rounded-2xl md:pt-0 md:shadow-[0_24px_56px_-28px_color-mix(in_oklab,var(--foreground)_30%,transparent),inset_0_1px_0_rgba(255,255,255,0.65)] md:ring-1 md:ring-border">
-            {chat}
+          <div className="chat-spatial-panel flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-3 md:rounded-[1.35rem] md:pt-0">
+            <div className="hidden shrink-0 items-center justify-between gap-4 border-b border-border/75 px-5 py-4 md:flex lg:px-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"
+                  aria-hidden
+                >
+                  <ChatCircle size={18} weight="regular" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-display text-[0.95rem] font-semibold leading-tight text-foreground">
+                    Conversación
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    Preguntá, compará y seguí explorando
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full border border-border/80 bg-background/65 px-2.5 py-1 text-[0.68rem] font-medium text-muted-foreground">
+                Contexto activo
+              </span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{chat}</div>
           </div>
         </div>
 

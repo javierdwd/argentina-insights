@@ -30,7 +30,7 @@ import {
   withAutoDualAxis,
 } from "./chart-utils";
 import {
-  CHART_RANGE_OPTIONS,
+  availableChartRangeOptions,
   filterRowsByRelativeRange,
   xKeyLooksDated,
   type ChartRangeId,
@@ -368,11 +368,19 @@ export const Chart = memo(function Chart(props: ChartProps) {
     [chartSource, kind, xKey],
   );
 
+  const rangeOptions = useMemo(
+    () => (dated ? availableChartRangeOptions(chartSource, xKey) : []),
+    [chartSource, dated, xKey],
+  );
+  const effectiveRange = rangeOptions.some((option) => option.id === range)
+    ? range
+    : "all";
+
   const rangedSource = useMemo(() => {
     if (!chartSource.length) return chartSource;
-    if (!dated || range === "all") return chartSource;
-    return filterRowsByRelativeRange(chartSource, xKey, range);
-  }, [chartSource, dated, range, xKey]);
+    if (!dated || effectiveRange === "all") return chartSource;
+    return filterRowsByRelativeRange(chartSource, xKey, effectiveRange);
+  }, [chartSource, dated, effectiveRange, xKey]);
 
   const visibleSeries = useMemo(() => {
     if (!hiddenKeys.length) return series;
@@ -459,7 +467,7 @@ export const Chart = memo(function Chart(props: ChartProps) {
   if (!chartSource.length || !series.length) return <ChartEmpty />;
   if (!option) return <ChartEmpty />;
 
-  const showRange = dated;
+  const showRange = rangeOptions.length > 1;
   const showSeriesToggle = series.length > 1 && kind !== "scatter" && kind !== "heatmap";
 
   return (
@@ -468,8 +476,8 @@ export const Chart = memo(function Chart(props: ChartProps) {
         <div className="mb-3 flex flex-col gap-2">
           {showRange ? (
             <div className="flex flex-wrap gap-1" role="group" aria-label="Rango">
-              {CHART_RANGE_OPTIONS.map((opt) => {
-                const active = range === opt.id;
+              {rangeOptions.map((opt) => {
+                const active = effectiveRange === opt.id;
                 return (
                   <button
                     key={opt.id}
