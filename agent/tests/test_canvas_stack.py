@@ -20,12 +20,41 @@ def test_stack_appends_new_widget_below_existing() -> None:
     assert out["type"] == "Stack"
 
 
-def test_stack_updates_same_id_in_place() -> None:
+def test_stack_reused_id_with_distinct_data_identity_appends() -> None:
     previous = _chart("blue", "ds_old")
     incoming = _chart("blue", "ds_new")
     out = merge_canvas(previous, incoming)
-    assert out["id"] == "blue"
-    assert out["props"]["dataRef"] == "ds_new"
+    assert [child["props"]["dataRef"] for child in out["children"]] == [
+        "ds_old",
+        "ds_new",
+    ]
+    assert [child["id"] for child in out["children"]] == ["blue", "blue_2"]
+
+
+def test_stack_reused_id_with_distinct_row_identifier_appends() -> None:
+    previous = {
+        "id": "person_profile",
+        "type": "PersonCard",
+        "title": "Primera persona",
+        "props": {"dataRef": "ds_people", "where": {"id": 1}},
+    }
+    incoming = {
+        "id": "person_profile",
+        "type": "PersonCard",
+        "title": "Segunda persona",
+        "props": {"dataRef": "ds_people", "where": {"id": 2}},
+    }
+
+    out = merge_canvas(previous, incoming)
+
+    assert [child["props"]["where"] for child in out["children"]] == [
+        {"id": 1},
+        {"id": 2},
+    ]
+    assert [child["id"] for child in out["children"]] == [
+        "person_profile",
+        "person_profile_2",
+    ]
 
 
 def test_stack_deduplicates_same_widget_and_dataset() -> None:

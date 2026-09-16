@@ -453,29 +453,72 @@ def omit_existing_data_widgets(
     return prune(incoming)
 
 
+def _collect_node_ids(node: object, output: set[str]) -> None:
+    if not isinstance(node, dict):
+        return
+    node_id = node.get("id")
+    if isinstance(node_id, str) and node_id:
+        output.add(node_id)
+    for child in node.get("children") or []:
+        _collect_node_ids(child, output)
+
+
+def _with_unique_node_ids(node: dict, reserved: set[str]) -> dict:
+    """Clone a subtree, suffixing model-reused ids that already exist."""
+    output = dict(node)
+    node_id = output.get("id")
+    if isinstance(node_id, str) and node_id:
+        unique_id = node_id
+        suffix = 2
+        while unique_id in reserved:
+            unique_id = f"{node_id}_{suffix}"
+            suffix += 1
+        output["id"] = unique_id
+        reserved.add(unique_id)
+    output["children"] = [
+        _with_unique_node_ids(child, reserved)
+        for child in node.get("children") or []
+        if isinstance(child, dict)
+    ]
+    return output
+
+
 def merge_canvas(previous: dict | None, incoming: dict) -> dict:
-    """Append widgets, replacing equal id or equal type+dataRef+where."""
+    """Merge by data identity; reused ids cannot replace different data."""
     if not previous:
         return incoming
     items = list(_children(previous))
     for node in _children(incoming):
+        incoming_identity = _identity(node)
         match = next(
             (
                 index
                 for index, current in enumerate(items)
                 if (
-                    node.get("id")
-                    and current.get("id") == node.get("id")
-                    or _identity(node) is not None
-                    and _identity(current) == _identity(node)
+                    incoming_identity is not None
+                    and _identity(current) == incoming_identity
+                    or (
+                        node.get("id")
+                        and current.get("id") == node.get("id")
+                        and not (
+                            incoming_identity is not None
+                            and _identity(current) is not None
+                            and _identity(current) != incoming_identity
+                        )
+                    )
                 )
             ),
             None,
         )
+        reserved: set[str] = set()
+        for index, current in enumerate(items):
+            if index != match:
+                _collect_node_ids(current, reserved)
+        unique_node = _with_unique_node_ids(node, reserved)
         if match is None:
-            items.append(node)
+            items.append(unique_node)
         else:
-            items[match] = node
+            items[match] = unique_node
     if len(items) == 1:
         return items[0]
     return {
