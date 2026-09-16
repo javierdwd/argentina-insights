@@ -219,6 +219,32 @@ def test_patch_rejects_unknown_target() -> None:
     assert errors == ("patch target 'missing' does not exist",)
 
 
+def test_patch_cannot_add_props_to_change_widget_semantics() -> None:
+    tree = {
+        "id": "film_profile",
+        "type": "Text",
+        "title": "Ficha",
+        "props": {"content": "Sinopsis"},
+    }
+    errors = validate_patch(
+        tree,
+        {
+            "film_profile": {
+                "props": {
+                    "fields": {
+                        "name": "titulo",
+                        "photoUrl": "foto",
+                    }
+                }
+            }
+        },
+    )
+
+    assert len(errors) == 1
+    assert "cannot add props ['fields']" in errors[0]
+    assert "emit a new tree" in errors[0]
+
+
 def test_generic_binding_applies_mapping_sort_and_limit() -> None:
     tree = {
         "id": "people",

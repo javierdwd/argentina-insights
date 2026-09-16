@@ -592,6 +592,130 @@ def test_repair_receives_pruned_tree_and_keeps_valid_siblings(monkeypatch) -> No
     ]
 
 
+def test_follow_up_can_add_new_widget_from_remembered_dataset(
+    monkeypatch,
+) -> None:
+    detail = {
+        "id": "ds_film",
+        "path": "/v1/cine/pelicula/18079",
+        "params": {},
+        "status": "hit",
+        "N": 1,
+        "keys": ["titulo", "elenco"],
+        "rows": [
+            {
+                "titulo": "Nueve reinas",
+                "elenco": [
+                    {
+                        "name": "Ricardo Darín",
+                        "role": "Marcos",
+                        "photoUrl": "https://image.example/darin.jpg",
+                    }
+                ],
+            }
+        ],
+    }
+    existing = {
+        "id": "film_profile",
+        "type": "Text",
+        "title": "Ficha de Nueve reinas",
+        "props": {"content": "Sinopsis"},
+        "children": [],
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="Agregué el elenco.",
+                tree={
+                    "id": "film_cast",
+                    "type": "PersonCard",
+                    "title": "Elenco de Nueve reinas",
+                    "props": {"dataRef": "ds_film", "layout": "list"},
+                },
+            )
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+
+    update = compose_ui_node(
+        {
+            "query_type": "data",
+            "messages": [HumanMessage(content="Mostrame el elenco")],
+            "datasets": {"ds_film": detail},
+            "ui_tree": existing,
+            "ui_tree_unbound": existing,
+            "respond_note": "El elenco está disponible en la ficha consultada.",
+        }
+    )
+
+    assert [child["type"] for child in update["ui_tree"]["children"]] == [
+        "Text",
+        "PersonCard",
+    ]
+    assert update["ui_tree"]["children"][1]["props"]["dataRef"] == "ds_film"
+
+
+def test_semantic_patch_is_repaired_as_new_widget(monkeypatch) -> None:
+    detail = {
+        "id": "ds_film",
+        "path": "/v1/cine/pelicula/18079",
+        "params": {},
+        "status": "hit",
+        "N": 1,
+        "keys": ["titulo", "elenco"],
+        "rows": [
+            {
+                "titulo": "Nueve reinas",
+                "elenco": [{"name": "Ricardo Darín", "role": "Marcos"}],
+            }
+        ],
+    }
+    existing = {
+        "id": "film_profile",
+        "type": "Text",
+        "title": "Ficha de Nueve reinas",
+        "props": {"content": "Sinopsis"},
+        "children": [],
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="El elenco está disponible.",
+                patch={
+                    "film_profile": {
+                        "props": {"fields": {"name": "titulo"}}
+                    }
+                },
+            ),
+            ComposeOutput(
+                brief="Agregué el elenco.",
+                tree={
+                    "id": "film_cast",
+                    "type": "PersonCard",
+                    "title": "Elenco de Nueve reinas",
+                    "props": {"dataRef": "ds_film", "layout": "list"},
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+
+    update = compose_ui_node(
+        {
+            "query_type": "data",
+            "messages": [HumanMessage(content="Mostrame el elenco")],
+            "datasets": {"ds_film": detail},
+            "ui_tree": existing,
+            "ui_tree_unbound": existing,
+            "respond_note": "El elenco está disponible en la ficha consultada.",
+        }
+    )
+
+    assert len(model.calls) == 2
+    assert "cannot add props" in model.calls[1][-1].content
+    assert update["ui_tree"]["children"][1]["type"] == "PersonCard"
+
+
 def test_repair_prompt_resolves_vote_grain_and_required_province_map(
     monkeypatch,
 ) -> None:

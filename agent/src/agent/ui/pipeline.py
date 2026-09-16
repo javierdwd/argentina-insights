@@ -341,21 +341,22 @@ def validate_patch(tree: dict | None, patch: dict[str, dict] | None) -> tuple[st
         return ("patch requires an existing canvas",)
     if not patch:
         return ("patch must contain at least one node update",)
-    known_ids: set[str] = set()
+    nodes_by_id: dict[str, dict] = {}
 
     def collect(node: object) -> None:
         if not isinstance(node, dict):
             return
         node_id = node.get("id")
         if isinstance(node_id, str):
-            known_ids.add(node_id)
+            nodes_by_id[node_id] = node
         for child in node.get("children") or []:
             collect(child)
 
     collect(tree)
     errors: list[str] = []
     for node_id, changes in patch.items():
-        if node_id not in known_ids:
+        target = nodes_by_id.get(node_id)
+        if target is None:
             errors.append(f"patch target {node_id!r} does not exist")
         if not isinstance(changes, dict) or not changes:
             errors.append(f"patch target {node_id!r} has no changes")
@@ -367,6 +368,20 @@ def validate_patch(tree: dict | None, patch: dict[str, dict] | None) -> tuple[st
             )
         if "props" in changes and not isinstance(changes["props"], dict):
             errors.append(f"patch target {node_id!r} props must be an object")
+        elif isinstance(changes.get("props"), dict) and target is not None:
+            existing_props = target.get("props")
+            existing_keys = (
+                set(existing_props)
+                if isinstance(existing_props, dict)
+                else set()
+            )
+            added_keys = set(changes["props"]) - existing_keys
+            if added_keys:
+                errors.append(
+                    f"patch target {node_id!r} cannot add props "
+                    f"{sorted(added_keys)!r}; emit a new tree when the requested "
+                    "semantic widget or binding changes"
+                )
     return tuple(errors)
 
 

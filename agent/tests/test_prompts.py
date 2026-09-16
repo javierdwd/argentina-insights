@@ -18,6 +18,27 @@ from agent.graph import (
     _system_message,
 )
 from agent.ui.catalog import as_prompt_text as widget_catalog_text
+from agent.ui.schemas import ComposeOutput
+
+
+def test_prompts_require_completion_before_follow_up_actions() -> None:
+    respond = _RESPOND_SYSTEM.casefold()
+    compose = _COMPOSE_SYSTEM.casefold()
+
+    assert "completion gate" in respond
+    assert "authorization to produce" in respond
+    assert "deliverable now" in respond
+    assert "proposed methodology" in respond
+    assert "do not turn current requested facets into" in respond
+    assert "continue with the necessary tool call" in respond
+
+    assert "current request must already be fully delivered" in compose
+    assert "never move an explicitly requested facet into" in compose
+    assert "never repeat, paraphrase, or defer" in compose
+    assert "concrete executable actions" in compose
+    actions_prompt = ComposeOutput.model_fields["actions"].description or ""
+    assert "Never defer a requested factual facet" in actions_prompt
+    assert "meta-action" in actions_prompt
 
 
 def test_historical_day_recipe_fetches_only_relevant_context() -> None:
@@ -59,11 +80,15 @@ def test_query_routing_uses_structured_classification(monkeypatch) -> None:
         def invoke(self, messages, config):
             assert messages
             classifier_prompt = messages[0][1]
-            assert "resolved semantic request" in classifier_prompt
-            assert "elliptical replies" in classifier_prompt
-            assert "Assistant-authored process or control language" in classifier_prompt
-            assert "choose data" in classifier_prompt
-            return {"query_type": "ui"}
+            assert "LATEST user message as the active goal" in classifier_prompt
+            assert "must never replace, continue, or outweigh" in classifier_prompt
+            assert "merely context" in classifier_prompt
+            assert "requires_data=true" in classifier_prompt
+            return {
+                "resolved_request": "Cambiar sólo la presentación.",
+                "requires_data": False,
+                "presentation_only": True,
+            }
 
     monkeypatch.setattr("agent.graph.get_model", lambda role: Classifier())
     result = classify_node(
@@ -73,6 +98,40 @@ def test_query_routing_uses_structured_classification(monkeypatch) -> None:
         }
     )
     assert result == {"query_type": "ui"}
+
+
+def test_query_routing_prioritizes_data_for_mixed_or_factual_turns(
+    monkeypatch,
+) -> None:
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    from agent.graph import classify_node
+
+    class Classifier:
+        def with_structured_output(self, schema, method=None):
+            return self
+
+        def invoke(self, messages, config):
+            return {
+                "resolved_request": "Mostrar el elenco pedido en el último turno.",
+                "requires_data": True,
+                # Even a contradictory model output must take the safe route.
+                "presentation_only": True,
+            }
+
+    monkeypatch.setattr("agent.graph.get_model", lambda role: Classifier())
+    result = classify_node(
+        {
+            "messages": [
+                HumanMessage(content="Compará ambas películas"),
+                AIMessage(content="Comparé valoración y popularidad."),
+                HumanMessage(content="Dame el elenco de la primera"),
+            ],
+            "query_type": "ui",
+        }
+    )
+
+    assert result == {"query_type": "data"}
 
 
 def test_capability_map_names_real_families_and_bans_out_of_catalog() -> None:

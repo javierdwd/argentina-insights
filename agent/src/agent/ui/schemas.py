@@ -119,7 +119,11 @@ class ComposeOutput(BaseModel):
             "Zero to three executable Spanish follow-up requests. Each item "
             "must be grounded in a concrete hook from this turn and must not "
             "contain markup or protocol tags. Keep facts and explanations in "
-            "brief, never in this list."
+            "brief, never in this list. Never defer a requested factual facet "
+            "or emit a meta-action that asks to propose, plan, prepare, or "
+            "confirm analyses. If the user explicitly requested suggestions "
+            "for next analyses, satisfy that request with concrete executable "
+            "actions naming the subject, operation, and comparison dimensions."
         ),
     )
     tree: UINode | None = Field(
@@ -142,8 +146,10 @@ class ComposeOutput(BaseModel):
             "plus any nested array/object you're modifying in full (e.g. "
             "changing one series' color still needs that node's whole `series` "
             "array, but none of the other nodes). Use this for color/kind/label "
-            "tweaks on 1-2 existing widgets. Ignored when `tree` is set; never "
-            "set both."
+            "tweaks on 1-2 existing widgets, and only update prop keys already "
+            "present on the target. Patch cannot change widget type, binding, "
+            "field mapping, or semantic content; emit a new widget in `tree` "
+            "for those changes. Ignored when `tree` is set; never set both."
         ),
     )
 

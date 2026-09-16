@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Literal
 
 from langchain_core.messages import (
     AIMessage,
@@ -337,6 +336,31 @@ pick a concrete window. Only ask when a required catalog (*) param is truly
 unknowable. Never ask "¿últimos 3, 5 o todos?" before fetching.
 State the default in the analyst note. Append ``[[next]]`` after results.
 
+## Completion gate — never hand back the work
+Treat every substantive in-scope user message as authorization to produce its
+deliverable now. Imperatives, infinitives, terse action-chip text, requests to
+"proponer/sugerir análisis", and replies accepting an earlier offer are all
+execution requests — not invitations to describe a plan or ask for approval.
+
+Before ending a turn, privately verify that exactly one valid terminal outcome
+has happened:
+1. You issued the next tool call needed to complete the request; or
+2. you completed every requested facet from source-backed data and route to
+   compose; or
+3. one truly required (*) value has no sensible default, so you ask one focused
+   clarification.
+
+Anything else is non-completion. In particular, never end with a restatement of
+the request, a proposed methodology, a list of dimensions/questions to study,
+future-tense intent ("voy a…", "se mostrará…"), progress narration, a request to
+confirm, or an offer to perform a facet the user already requested. If your
+draft does that, do not send it: continue with the necessary tool call(s).
+Do not turn current requested facets into ``[[next]]``. ``[[next]]`` is only
+for genuinely additional work after the complete current result exists. The
+one exception is an explicit request to propose next analyses: concrete,
+self-contained executable analyses are themselves the requested deliverable;
+a meta-action such as "proponer análisis" is not.
+
 ## Reshape (transform_dataset)
 Nested arrays like ``votos=[{{nombre,voto}},…]×72`` cannot be read by List —
 reshape first.
@@ -565,6 +589,13 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 ## Output rules
 - Progressive disclosure: render the asked slice now. Offer 2–3 NEXT analyses
   in `actions`, then wait.
+- Completion gate: the current request must already be fully delivered before
+  offering `actions`. Never move an explicitly requested facet into `actions`,
+  never summarize a plan for producing it, and never ask the user to authorize
+  or reconfirm it. If the latest message explicitly asks to propose or suggest
+  next analyses, concrete executable `actions` may be that deliverable; each
+  must name the actual subject, comparison/operation, and dimensions. Never
+  emit a meta-action that merely asks to propose, define, or prepare analyses.
 - **Out of scope:** tree/patch null; refuse in Spanish; actions optional.
 - **THIS user message is the only ask that matters**, except when it is a compact
   selection or answer to an option offered in the immediately preceding
@@ -596,6 +627,10 @@ Update the canvas ONLY when there is data to show; write the chat reply in
     preserve its subject, operation, and relevant context. Actions express
     end-user domain outcomes, never option labels, agent-control instructions,
     implementation mechanisms, or requests to reconfirm an offered action.
+    Never repeat, paraphrase, or defer any part of the current user request as
+    an action. An explicit request for proposed next analyses is satisfied only
+    by concrete executable actions, never by another "propose analyses" action.
+    When in doubt, return fewer actions.
     Never put facts, markup, buttons, or protocol tags in `actions`.
   Spanish, no markdown, no JSON. Never claim a visual you didn't add
   ("puse en pantalla" / "mostré" only if tree/patch changed). NEVER mention
@@ -607,6 +642,11 @@ Update the canvas ONLY when there is data to show; write the chat reply in
     (stacked below current). Vertical Stack default; Grid only if user asked
     side-by-side. Reuse node `id` to update in place.
   - `patch`: {{node_id: {{title?, props?}}}} for tweaks to existing widgets.
+    Patch preserves the target widget's semantic type and data contract. It may
+    update only props that already exist on that node. If the requested answer
+    needs a different widget type, binding, field mapping, or new semantic
+    content, emit a NEW widget through `tree`; patch can never convert one
+    widget into another by adding configuration props.
   - Both null → chat-only (chitchat, advice, No records). NEVER both null with
     a refusal when the analyst note has figures or this-turn rows>0 — RENDER.
 - The current canvas is authoritative. Before emitting each widget, compare
@@ -807,10 +847,25 @@ _KNOWN_DOMAINS = frozenset({"ui", "data"})
 _LEGACY_DATA_DOMAINS = frozenset({"finance", "politics", "unknown"})
 
 class _QueryClassification(BaseModel):
-    query_type: Literal["ui", "data"] = Field(
+    resolved_request: str = Field(
         description=(
-            "ui only for a mutation of content already on the canvas that "
-            "requires no new facts; data for every other request"
+            "One concise sentence stating what the latest user message asks to "
+            "receive now. Resolve pronouns from context, but never substitute an "
+            "earlier assistant plan or request for the latest user's goal."
+        )
+    )
+    requires_data: bool = Field(
+        description=(
+            "True when fulfilling the resolved request needs any fact, entity, "
+            "detail, statistic, comparison, calculation, interpretation, "
+            "analysis, or new visualization. True when uncertain."
+        )
+    )
+    presentation_only: bool = Field(
+        description=(
+            "True only when the entire resolved request changes presentation of "
+            "facts already on the canvas and asks for no new factual or analytical "
+            "content. False for mixed requests and when uncertain."
         )
     )
 
@@ -1459,17 +1514,18 @@ def classify_node(state: AgentState) -> dict:
         [
             (
                 "system",
-                "Classify whether this request can be completed solely by "
-                "mutating presentation already present on the canvas. Choose "
-                "ui only when no new facts, entities, calculations, or data "
-                "are needed. Choose data for all questions, explanations, new "
-                "visualizations, and ambiguous follow-ups. Classify the resolved "
-                "semantic request, not the latest utterance in isolation: resolve "
-                "elliptical replies against the preceding exchange and inherit "
-                "the selected domain request's type. Assistant-authored process "
-                "or control language echoed by the user is not evidence of a UI "
-                "mutation. Classify from the unresolved domain goal; when that "
-                "goal cannot be recovered with confidence, choose data.",
+                "Analyze the LATEST user message as the active goal. Earlier "
+                "turns exist only to resolve references such as 'esa' or 'la "
+                "primera'; they must never replace, continue, or outweigh a new "
+                "goal stated by the latest user. First state the resolved current "
+                "request, then decide independently whether it requires factual/"
+                "analytical work and whether it is exclusively a presentation "
+                "mutation. Mentioning the canvas, current grid, selected row, or "
+                "what is shown is merely context. A mixed request is not "
+                "presentation-only. Assistant-authored plans, comparisons, and "
+                "suggestions in history are context, never the current goal. "
+                "When either decision is uncertain, requires_data=true and "
+                "presentation_only=false.",
             ),
             *_classify_messages(state["messages"]),
         ],
@@ -1477,7 +1533,12 @@ def classify_node(state: AgentState) -> dict:
     )
     if not isinstance(decision, _QueryClassification):
         decision = _QueryClassification.model_validate(decision)
-    return {"query_type": decision.query_type}
+    query_type = (
+        "ui"
+        if decision.presentation_only and not decision.requires_data
+        else "data"
+    )
+    return {"query_type": query_type}
 
 
 def _parse_tool_payload(content: object) -> list | None:
@@ -1867,13 +1928,19 @@ def compose_ui_node(state: AgentState) -> dict:
         if str(ds.get("path") or "").startswith("derived/")
     )
     current_hits = dataset_hit_ids(datasets, this_turn)
+    tool_turn_ids = _this_turn_dataset_ids(state.get("messages") or [])
+    all_hits = {
+        ds_id
+        for ds_id, dataset in datasets.items()
+        if dataset.get("status", "hit") == "hit" and dataset.get("N")
+    }
+    # A follow-up may request another view of data fetched on the prior turn.
+    # When no tool ran now, let compose bind that remembered source. If tools
+    # did run, current-turn refs remain mandatory so a miss cannot fall back to
+    # an unrelated old dataset.
     allowed_refs = (
-        {
-            ds_id
-            for ds_id, dataset in datasets.items()
-            if dataset.get("status", "hit") == "hit" and dataset.get("N")
-        }
-        if state.get("query_type") == "ui"
+        all_hits
+        if state.get("query_type") == "ui" or not tool_turn_ids
         else current_hits
     )
 
