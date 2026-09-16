@@ -131,6 +131,59 @@ def test_compose_schema_rejects_malformed_or_ambiguous_mutations() -> None:
         )
 
 
+def test_compose_schema_normalizes_flattened_host_node_shorthand() -> None:
+    output = ComposeOutput.model_validate(
+        {
+            "brief": "Mapa listo",
+            "tree": {
+                "id": "relationship_map",
+                "type": "Box",
+                "children": [
+                    {
+                        "type": "svg",
+                        "viewBox": "0 0 400 240",
+                        "className": "w-full h-auto",
+                        "children": [
+                            {
+                                "type": "circle",
+                                "cx": "120",
+                                "cy": "100",
+                                "r": "32",
+                                "fill": "#2563eb",
+                            },
+                            {
+                                "type": "text",
+                                "x": "120",
+                                "y": "150",
+                                "text": "Persona",
+                                "textAnchor": "middle",
+                            },
+                            {
+                                "type": "image",
+                                "x": "96",
+                                "y": "76",
+                                "width": "48",
+                                "height": "48",
+                                "href": "https://example.com/persona.jpg",
+                            },
+                        ],
+                    }
+                ],
+            },
+        }
+    )
+
+    tree = output.tree.model_dump(exclude_none=True)
+    svg = tree["children"][0]
+    assert svg["id"].startswith("auto_svg_")
+    assert svg["props"]["viewBox"] == "0 0 400 240"
+    assert svg["props"]["className"] == "w-full h-auto"
+    assert svg["children"][0]["props"]["cx"] == "120"
+    assert svg["children"][1]["props"]["text"] == "Persona"
+    assert svg["children"][2]["type"] == "image"
+    assert validate_tree(tree, {}).errors == ()
+
+
 def test_invalid_tree_is_repaired_once(monkeypatch) -> None:
     model = _StructuredModel(
         [

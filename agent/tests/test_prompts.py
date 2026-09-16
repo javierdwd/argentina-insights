@@ -215,21 +215,44 @@ def test_compose_prompt_grounds_brief_in_capabilities() -> None:
     assert "merval" in text.casefold()
 
 
-def test_compose_catalog_includes_box_last_resort() -> None:
+def test_compose_catalog_treats_box_as_first_class_visualization() -> None:
     catalog = widget_catalog_text().casefold()
     assert "### box" in catalog
     assert "svg" in catalog
-    assert "visual form" in catalog or "structure" in catalog
+    assert "first-class" in catalog
+    assert "qualitative position" in catalog
+    assert "no honest numeric magnitude" in catalog
+    assert "never invent scores/ranks" in catalog
     assert "dataref" in catalog  # banned on Box (when_not / props)
-    assert "user-named form" in catalog or "beats the default" in catalog
+    assert "user-named form still wins" in catalog
     compose = _COMPOSE_SYSTEM.casefold()
     assert "box" in compose
     assert "authored diagrams" in compose
     assert "substitute" in compose and "data-bound widget" in compose
+    assert "box is a first-class visualization, not a last resort" in compose
+    assert "numeric axis is a factual claim" in compose
+    assert "pseudo-scores" in compose
+    assert "private layout preflight" in compose
+    assert "narrow canvas" in compose
+    assert "one responsive svg" in compose
+    assert "never align html div/span labels" in compose
     assert "aesthetic judgment" in compose
     assert "focal point" in compose
     assert "equal cards" in compose
+    assert "select the visual grammar from that relationship" in compose
+    assert "position and aligned" in compose
+    assert "use color intentionally" in compose
+    assert "meaningful non-text structure" in compose
+    assert "if removing the text would leave no visible structure" in compose
+    assert "never use color as the only carrier" in compose
+    assert "every node, including every html/svg host child" in compose
+    assert "all host attributes" in compose
+    assert "every child needs a unique id" in compose
     assert "flechas" not in compose  # principle, not keyword triggers
+    assert "do not overlay absolute html labels" in catalog
+    assert "preflight bounds, clipping and label collisions" in catalog
+    assert "every host child requires id,type,props,children" in catalog
+    assert "https href for image" in catalog
 
 
 def test_respond_routes_structured_comparison_to_compose() -> None:
@@ -238,6 +261,8 @@ def test_respond_routes_structured_comparison_to_compose() -> None:
     assert "box" in text
     assert "markdown table" in text
     assert "named form" in text or "chart kind" in text
+    assert "never create arbitrary scores" in text
+    assert "is only for source-backed" in text
     assert "flechas" not in text
 
 

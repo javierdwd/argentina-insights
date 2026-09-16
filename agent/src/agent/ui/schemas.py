@@ -11,6 +11,10 @@ Pydantic class here.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import re
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -34,7 +38,7 @@ class UINode(BaseModel):
         description=(
             "Widget type key. Prefer a catalog type (Metric, Text, Chart, "
             "Stack, Box, …). Host tags (div, p, span, h2, h3, ul, ol, li, "
-            "dl, dt, dd, strong, em, and SVG svg/g/path/line/…) are allowed "
+            "dl, dt, dd, strong, em, and SVG svg/g/path/line/image/…) are allowed "
             "ONLY as children of Box."
         )
     )
@@ -50,6 +54,8 @@ class UINode(BaseModel):
         default_factory=dict,
         description=(
             "Widget-specific props.  See the catalog for allowed fields per type. "
+            "ALL host attributes such as text, className, x, y, fill and viewBox "
+            "must be nested inside this props object, never beside id/type. "
             "For Chart: include dataRef, kind, xKey, series.  "
             "Any data-bound widget may use where={field: value} to select rows. "
             "Never include raw data rows — use dataRef."
@@ -59,6 +65,39 @@ class UINode(BaseModel):
         default_factory=list,
         description="Child nodes for container widgets (Stack, Grid, etc.).",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_model_shorthand(cls, value: object) -> object:
+        """Recover common model shorthand before strict schema validation."""
+        if not isinstance(value, dict):
+            return value
+
+        node = dict(value)
+        structural = {"id", "type", "title", "props", "children"}
+        props = node.get("props")
+        props = dict(props) if isinstance(props, dict) else {}
+        for key in list(node):
+            if key not in structural:
+                props.setdefault(key, node.pop(key))
+        node["props"] = props
+
+        if not isinstance(node.get("id"), str) or not node["id"].strip():
+            kind = re.sub(r"[^a-z0-9]+", "_", str(node.get("type") or "node").casefold())
+            payload = json.dumps(
+                {
+                    "type": node.get("type"),
+                    "title": node.get("title"),
+                    "props": props,
+                    "children": node.get("children") or [],
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+                default=str,
+            )
+            digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:8]
+            node["id"] = f"auto_{kind.strip('_') or 'node'}_{digest}"
+        return node
 
 
 class ComposeOutput(BaseModel):

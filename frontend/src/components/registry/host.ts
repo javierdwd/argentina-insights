@@ -30,6 +30,7 @@ export const HOST_TAGS = new Set([
   "circle",
   "rect",
   "text",
+  "image",
   "defs",
   "marker",
   "title",
@@ -47,6 +48,7 @@ export const SVG_HOST_TAGS = new Set([
   "circle",
   "rect",
   "text",
+  "image",
   "defs",
   "marker",
   "title",
@@ -220,6 +222,11 @@ const HOST_ATTR_KEYS = new Set([
   "points",
   "transform",
   "opacity",
+  "href",
+  "textAnchor",
+  "dominantBaseline",
+  "fontSize",
+  "fontWeight",
   "markerEnd",
   "markerStart",
   "markerMid",
@@ -279,6 +286,16 @@ function isSafeAttrValue(key: string, value: string): boolean {
       return SAFE_PAINT.test(v) || v === "transparent";
     case "d":
       return SAFE_PATH.test(v);
+    case "href":
+      try {
+        return new URL(v).protocol === "https:";
+      } catch {
+        return false;
+      }
+    case "textAnchor":
+      return /^(start|middle|end)$/.test(v);
+    case "dominantBaseline":
+      return /^(auto|middle|central|hanging|text-before-edge|text-after-edge)$/.test(v);
     case "points":
       return SAFE_POINTS.test(v);
     case "transform":

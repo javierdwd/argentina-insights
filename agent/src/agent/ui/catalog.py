@@ -179,6 +179,10 @@ WIDGET_CATALOG: list[WidgetDef] = [
         when_not=(
             "Spot → Metric/MetricRow. Marks/bands → AnnotatedTimeline. "
             "One value per period → PeriodBars. "
+            "Qualitative positions, spectra, relationships, flows, hierarchies "
+            "or matrices with no source-backed numeric magnitude → authored "
+            "Box. Never invent scores/ranks to force qualitative labels into "
+            "bars or numeric axes. "
             "National 'distribución del voto' (no bloque) → VoteBreakdown. "
             "Same-day FX 'de ese día' → Metric/MetricRow from [[values]], "
             "not Chart kind=line. Provinces → ProvinceMap. People → PersonCard. "
@@ -600,17 +604,20 @@ WIDGET_CATALOG: list[WidgetDef] = [
         type="Box",
         role="container",
         purpose=(
-            "Free HTML/SVG layout when the user wants a visual form that "
-            "catalog leaves cannot express (linked steps, ordered "
-            "transitions, facet grids, conceptual matrices). Must match "
+            "First-class free HTML/SVG visualization when a subject-specific "
+            "composition communicates the requested relationship better than "
+            "catalog leaves can (position, linked steps, ordered transitions, "
+            "flows, hierarchies, facet grids, conceptual matrices). Must match "
             "the bulletin look — not a bare wireframe."
         ),
         when_to_use=(
-            "User asks for a visual form a catalog leaf would flatten wrong — "
-            "diagram, flow, matrix, 'dibujame…', 'como un…', linked steps, "
-            "ordered transitions — even if PersonCard/List/Chart could show "
-            "the same facts. Also: conceptual matrices with no rows to bind. "
-            "User-named form beats the default leaf. "
+            "Use whenever a catalog leaf would flatten or distort the important "
+            "relationship — even if the user did not name the ideal form and "
+            "PersonCard/List/Chart could technically contain the same facts. "
+            "Typical structures: qualitative position, spectrum, diagram, "
+            "flow, matrix, linked steps, ordered transitions, hierarchy, or "
+            "conceptual relationships with no honest numeric magnitude. "
+            "Infer the strongest visual form; user-named form still wins. "
             "Craft: font-display for names, text-muted-foreground for "
             "secondary lines, text-accent + SVG currentColor connectors, "
             "gap-4/6 + border-rule blocks, bg-accent-soft pads. Build one "
@@ -618,6 +625,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "meaningful spatial encoding; use hierarchy, whitespace and "
             "alignment deliberately. Never emit a naked stack of unstyled "
             "text or a generic grid of equal cards disguised as custom work. "
+            "For positioned diagrams, use one responsive SVG viewBox for BOTH "
+            "marks and their text labels. Do not overlay absolute HTML labels: "
+            "arbitrary position classes are not in the safelist and will be "
+            "stripped. Preflight bounds, clipping and label collisions before "
+            "returning; reposition with SVG leader lines when needed. "
             "Optional suggests=PascalCaseName for a future named widget."
         ),
         when_not=(
@@ -630,10 +642,14 @@ WIDGET_CATALOG: list[WidgetDef] = [
         ),
         props=(
             "className?(safelist utilities); suggests?(PascalCase). "
+            "Every host child requires id,type,props,children; ALL content/style/"
+            "geometry belongs inside props, never directly on the node. "
             "Host child props: className?, text?, plus SVG attrs "
-            "(viewBox, d, x1,y1,x2,y2, stroke, fill, markerEnd, strokeWidth). "
+            "(viewBox, d, x/y, x1/y1/x2/y2, cx/cy/r, width/height, stroke, "
+            "fill, markerEnd, strokeWidth, textAnchor, fontSize/fontWeight, "
+            "preserveAspectRatio, and HTTPS href for image). "
             "Hosts: div,p,span,h2,h3,ul,ol,li,dl,dt,dd,strong,em, "
-            "svg,g,path,line,polyline,polygon,circle,rect,text,defs,marker."
+            "svg,g,path,line,polyline,polygon,circle,rect,text,image,defs,marker."
         ),
         data=None,
     ),

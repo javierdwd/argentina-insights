@@ -42,6 +42,7 @@ test("isHostType accepts allowlisted tags only", () => {
   assert.equal(isHostType("Chart"), false);
   assert.equal(isSvgHostType("svg"), true);
   assert.equal(isSvgHostType("path"), true);
+  assert.equal(isSvgHostType("image"), true);
   assert.equal(isSvgHostType("div"), false);
 });
 
@@ -86,6 +87,25 @@ test("sanitizeHostProps keeps SVG geometry and drops handlers", () => {
   assert.equal("dataRef" in out, false);
   assert.equal("text" in out, false);
   assert.equal("href" in out, false);
+});
+
+test("sanitizeHostProps allows safe SVG image and text attributes", () => {
+  const out = sanitizeHostProps({
+    href: "https://example.com/persona.jpg",
+    x: "120",
+    y: "80",
+    width: "64",
+    height: "64",
+    textAnchor: "middle",
+    dominantBaseline: "central",
+    fontSize: "16",
+    fontWeight: "600",
+  });
+  assert.equal(out.href, "https://example.com/persona.jpg");
+  assert.equal(out.textAnchor, "middle");
+  assert.equal(out.dominantBaseline, "central");
+  assert.equal(out.fontSize, "16");
+  assert.equal(out.fontWeight, "600");
 });
 
 test("sanitizeHostProps rejects unsafe paint and paths", () => {

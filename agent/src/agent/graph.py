@@ -406,6 +406,12 @@ Natural fits (compose picks the widget — honor a named form first):
   football lineup rows → FootballLineup; football team-season metrics → Chart
   or ComparisonTable
   structured comparison / "dibujame…" / custom visual → Box (HTML+SVG).
+  Qualitative position, multidimensional relationships, spectra, matrices,
+  flows, hierarchies, or other structures with no honest numeric magnitude →
+  Box; never coerce categories into bars merely because Chart already exists.
+  Never create arbitrary scores, ranks, coordinates, or -2..2/-1..1 scales to
+  make qualitative knowledge fit Chart. Preserve every requested dimension in
+  the analyst note so compose can encode the relationship spatially with Box.
   Do NOT dump a markdown table into chat.
 
 ## Canvas selection / Profundizar
@@ -479,6 +485,11 @@ fresh fetch from ## Catalog.
   [[/values]]
 
   Use dot decimals (not es-AR commas).
+  ``[[values]]`` is ONLY for source-backed or deterministically computed
+  numeric magnitudes. Never emit qualitative classifications, model-inferred
+  positions, arbitrary scores, ordinal ranks, or invented coordinates through
+  this block. Keep those dimensions as explicit prose facts for an authored
+  Box.
 
   B) Evolution across periods on ONE timeline → fetch period list + measure
      series. System builds ``derived/period_overlay``. Note ONLY periods that
@@ -589,11 +600,30 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   You cannot fetch. NEVER say data "isn't in the index" when the analyst note
   already computed the answer. NEVER add a Text about a previous miss.
 
-- Choose the simplest catalog widget that preserves the user's intent and the
-  dataset shape. Honor an explicitly requested visual form. Put compatible
-  measures on one visual when that improves comparison; separate genuinely
-  different layers. Use Box only for authored diagrams, never as a substitute
-  for a data-bound widget.
+- Choose the visual form that makes the requested relationship fastest for a
+  human to perceive; catalog convenience is secondary. Before selecting a
+  widget, privately compare the best standard catalog leaf with an authored
+  Box composition. Prefer the standard leaf only when its native visual
+  encoding honestly matches the semantics and loses no important dimension.
+  If an inferred, subject-specific spatial or structural composition would
+  communicate materially better, prefer Box even when the user did not name
+  that exact chart type and even when Chart/List could technically contain the
+  values. Box is a first-class visualization, not a last resort.
+  Never coerce qualitative categories, positions, relationships, spectra,
+  matrices, flows, or hierarchies into bars unless bar length represents a
+  real ordered numeric magnitude. Honor an explicitly requested visual form.
+  A numeric axis is a factual claim: every ticked/ranked value and bar length
+  must come from a source-backed or deterministically computed numeric field.
+  Never turn model-inferred labels into pseudo-scores, ordinal ranks, invented
+  coordinates, or evenly spaced numbers merely to satisfy Chart. Relative
+  spatial placement in an authored qualitative Box is allowed, but do not
+  present that placement as measured numeric data.
+  Dataset shape still constrains every factual claim and binding. Box is not a
+  substitute for a data-bound widget when a standard leaf already provides the
+  strongest semantically correct encoding.
+  Put compatible measures on one visual when that improves comparison;
+  separate genuinely different layers. Use Box for authored diagrams, never
+  as a fake wrapper around a conventional data-bound widget.
 - Editorial value: visualize metrics that answer a question a person would
   naturally care about. Prefer strongest/weakest periods, magnitude of a gap,
   consistency, trajectory, home/away contrast, or direct-match performance.
@@ -602,12 +632,43 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   the same question.
 - Authored visual quality (Box): treat aesthetic judgment as part of
   correctness. Before emitting, privately choose one visual thesis grounded
-  in the subject and a clear reading order. Give the main finding one dominant
-  focal point; keep supporting facts quieter. Geometry must carry meaning:
-  position, scale, grouping and connectors should encode the comparison or
-  sequence, not merely decorate it. Use whitespace, alignment and deliberate
-  asymmetry to create rhythm. Do not fake a custom visual with a stack of
-  equal cards, pills, labeled rectangles, repeated borders, or ornamental SVG.
+  in the subject, the relationship the user must perceive, and a clear reading
+  order. Select the visual grammar from that relationship: position in one or
+  more dimensions → spatial scale or coordinate field; magnitude/ranking →
+  length or area with a shared baseline; change through time → continuous
+  path; flow/sequence → directional path and connectors; hierarchy → nesting;
+  geography → map. Give the main finding one dominant focal point; keep
+  supporting facts quieter.
+  Geometry must carry meaning: position, length, scale, grouping, enclosure
+  and connectors should encode the comparison or sequence, not merely decorate
+  it. Prefer the strongest human-readable encodings—position and aligned
+  length before area, shape, or color alone. Use color intentionally for
+  contrast, grouping, regions, intensity, or emphasis; do not scatter accent
+  colors decoratively. Use whitespace, alignment and deliberate asymmetry to
+  create rhythm. Do not fake a custom visual with a stack of equal cards,
+  pills, labeled rectangles, repeated borders, or ornamental SVG.
+  A custom visual must contain meaningful non-text structure—such as plotted
+  marks, regions, paths, scale, shape, or spatial grouping—and intentional
+  color contrast. If removing the text would leave no visible structure that
+  communicates the requested relationship, the visual has failed: redesign it
+  instead of returning a styled list. Never use color as the only carrier of
+  meaning; retain labels and sufficient contrast.
+  Before returning an authored visual, perform a private layout preflight:
+  verify every mark, connector, label, annotation and legend has an intentional
+  position; remains inside the visible bounds; does not collide with another
+  label or important mark; and stays readable at both normal and narrow canvas
+  widths. Reserve an internal safe margin around the composition. When labels
+  would collide, move them into free space and connect them with leader lines;
+  simplify secondary copy when necessary. Do not return the candidate until
+  these checks pass.
+  For positioned diagrams, put geometry and its labels in ONE responsive SVG
+  with a coherent viewBox, ``w-full h-auto`` and preserveAspectRatio. Position
+  labels with SVG ``text`` x/y coordinates in that same coordinate system.
+  Never align HTML div/span labels to SVG marks using ``absolute`` positioning,
+  transforms, or arbitrary Tailwind offsets: unsupported classes are sanitized
+  and the labels will collapse onto each other. Keep captions/legends outside
+  the SVG only when they follow normal document flow and do not identify
+  individual plotted marks.
   Avoid generic dashboard and template-editorial tropes. Spend visual emphasis
   in one place, remove any element that does not clarify the story, and ensure
   the composition remains legible in a narrow canvas.
@@ -626,6 +687,12 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 - Every LEAF widget MUST have a descriptive node-level `title` (not in props).
 - Containers (Stack, Grid, Box) usually need no title; standalone Box should.
 - Node `id`: short stable snake_case. Preserve ids when mutating.
+- EVERY node, including every HTML/SVG host child, has exactly this envelope:
+  ``{{"id":"unique_snake_case","type":"...","props":{{...}},"children":[]}}``.
+  ``title`` is the only other allowed node-level key. Put ALL host attributes
+  and content—``text``, ``className``, ``viewBox``, ``x``, ``y``, ``fill``,
+  ``stroke``, ``href``, etc.—inside ``props``. Never emit shorthand such as
+  ``{{"type":"text","x":10,"text":"label"}}``. Every child needs a unique id.
 - Every catalog widget marked as data-bound uses `props.dataRef` from the
   available datasets — never raw rows in props. Authored widgets use only
   factual values present in the analyst note.

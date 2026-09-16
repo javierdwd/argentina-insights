@@ -24,7 +24,7 @@ HOST_TYPES = frozenset(
     {
         "div", "p", "span", "h2", "h3", "ul", "ol", "li", "dl", "dt",
         "dd", "strong", "em", "svg", "g", "path", "line", "polyline",
-        "polygon", "circle", "rect", "text", "defs", "marker", "title",
+        "polygon", "circle", "rect", "text", "image", "defs", "marker", "title",
     }
 )
 MAX_TREE_DEPTH = 12
