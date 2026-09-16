@@ -168,8 +168,8 @@ export function ComparisonTable({
 
   return (
     <div className="border-t border-rule pt-4">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-sm">
+      <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1">
+        <table className="w-max min-w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-rule">
               {columns.map((col) => {
@@ -238,13 +238,13 @@ export function ComparisonTable({
                       return (
                         <td
                           key={col.key}
-                          className="max-w-[10rem] py-2.5 pr-4 align-middle"
+                          className="whitespace-nowrap py-2.5 pr-4 align-middle"
                         >
                           <a
                             href={value}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="truncate text-foreground underline-offset-2 hover:underline"
+                            className="text-foreground underline-offset-2 hover:underline"
                             onClick={(event) => event.stopPropagation()}
                           >
                             {display}
@@ -257,7 +257,7 @@ export function ComparisonTable({
                       <td
                         key={col.key}
                         className={cn(
-                          "max-w-xs py-2.5 pr-4 align-middle tabular-nums",
+                          "whitespace-nowrap py-2.5 pr-4 align-middle tabular-nums",
                           isPrimary
                             ? "font-display font-medium text-foreground"
                             : "text-foreground",

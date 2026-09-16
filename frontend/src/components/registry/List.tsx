@@ -99,9 +99,9 @@ function CellValue({
   if (imageSrc) {
     const src = looksLikeHttpUrl(imageSrc) ? String(imageSrc).trim() : "";
     return (
-      <span className="flex min-w-0 items-center gap-2.5">
+      <span className="inline-flex items-center gap-2.5">
         <Thumb src={src} alt={imageAlt || ""} round />
-        <span className="min-w-0 truncate">{formatCell(value)}</span>
+        <span>{formatCell(value)}</span>
       </span>
     );
   }
@@ -233,8 +233,8 @@ export function List({ columns, data }: ListProps) {
           className="w-full max-w-xs rounded-md border border-rule bg-card px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         />
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-sm">
+      <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1">
+        <table className="w-max min-w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-rule">
               {visible.map((col) => {
@@ -307,7 +307,7 @@ export function List({ columns, data }: ListProps) {
                       return (
                         <td
                           key={col.key}
-                          className="max-w-xs py-2 pr-4 align-middle text-foreground tabular-nums"
+                          className="whitespace-nowrap py-2 pr-4 align-middle text-foreground tabular-nums"
                           title={
                             kind === "image" || foldHere
                               ? undefined
