@@ -802,6 +802,17 @@ def test_compose_null_tree_with_hits_needs_fallback() -> None:
         )
         is False
     )
+    # A deepen may fetch the existing collection yet find no dedicated detail.
+    # Explicit chat keeps the current canvas instead of redrawing those rows.
+    assert (
+        _should_compose(
+            "No hay una ficha ni estadísticas adicionales para este feriado.",
+            fetched_hits=True,
+            route="chat",
+            fetched_this_turn=True,
+        )
+        is False
+    )
 
     explainer = (
         "El dólar blue es el tipo de cambio que surge del mercado informal "

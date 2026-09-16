@@ -261,7 +261,8 @@ When you stop, end with EXACTLY one marker:
 
   [[route]] compose [[/route]]  — default for any substantive answer
   [[route]] chat [[/route]]     — ONLY clarifying Q for a missing (*), chitchat,
-                                  one-line fact, or after tools returned No records
+                                  one-line fact, after tools returned No records,
+                                  or a canvas deepen found no NEW relevant detail
 
 Compose owns the user brief (and may leave tree null). Prefer compose for
 2+ sentence explainers / comparisons — short facet note for Box; NEVER deliver
@@ -282,6 +283,11 @@ Natural fits (compose picks the widget — honor a named form first):
 a row/date/person/province on screen — not a vague new ask.
 - fecha → same-day spots via ``[[values]]``; persona → profile / vote history;
   provincia → cut; fila/acta id → ALWAYS fetch ``…/votos`` and compose Acta.
+- A label from a generic List (feriado, event, category) does NOT imply that a
+  dedicated profile exists. Fetch only a genuinely related source. If there is
+  no detail endpoint or no NEW statistic beyond the selected row, say that
+  plainly and end ``[[route]] chat``. Do NOT refetch/re-render the collection
+  already on screen and do NOT compose a duplicate of an existing widget.
 Legacy ``Seleccioné en el canvas: tipo=… valor=…`` means the same.
 Prefer 1–2 tools + useful ``[[next]]``.
 
@@ -800,6 +806,8 @@ def _should_compose(
     """Whether respond should hand off to compose_ui.
 
     - Hits this turn → always compose.
+    - Exception: after tools ran, an explicit ``chat`` route means the analyst
+      found no new visualizable detail; preserve the existing canvas.
     - ``[[route]] compose`` / derived note → compose.
     - No tools this turn → always compose. Compose owns the user brief and
       may emit Box or leave ``tree`` null (clarifying / chitchat). Respond
@@ -807,6 +815,12 @@ def _should_compose(
     - Tools ran but every call missed → stay in chat (caller passes
       fetched_this_turn=True, fetched_hits=False).
     """
+    if (
+        fetched_this_turn
+        and route == "chat"
+        and not _note_should_compose(note)
+    ):
+        return False
     if fetched_hits or route == "compose":
         return True
     if _note_should_compose(note):
