@@ -11,6 +11,7 @@ import { CopilotChat } from "@copilotkit/react-core/v2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DynamicRenderer } from "@/components/registry/DynamicRenderer";
 import { AGENT_RUNTIME_ID, AGENT_SESSION_ID } from "@/lib/agent";
+import { trackQuerySubmitted } from "@/lib/analytics";
 import {
   followUpsFor,
   getDestination,
@@ -310,6 +311,18 @@ function AgentSession({
   const [hasStarted, setHasStarted] = useState(false);
   const [startedQuery, setStartedQuery] = useState<string | null>(null);
   const [showInitialProgress, setShowInitialProgress] = useState(false);
+  const [trackedQueries] = useState(() => {
+    const ids = new Set<string>();
+    let count = 0;
+    for (const message of workspace.messages) {
+      if (!message || typeof message !== "object") continue;
+      const record = message as Record<string, unknown>;
+      if (record.role !== "user") continue;
+      count += 1;
+      if (typeof record.id === "string") ids.add(record.id);
+    }
+    return { ids, count };
+  });
 
   useEffect(() => {
     if (!isReady || hydratedRef.current) return;
@@ -357,6 +370,28 @@ function AgentSession({
     }, 250);
     return () => window.clearTimeout(timer);
   }, [agent.messages, agent.state, hydrated, threadId]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    for (const message of agent.messages) {
+      if (!message || typeof message !== "object") continue;
+      const record = message as unknown as Record<string, unknown>;
+      if (
+        record.role !== "user" ||
+        typeof record.id !== "string" ||
+        typeof record.content !== "string" ||
+        trackedQueries.ids.has(record.id)
+      ) {
+        continue;
+      }
+      trackedQueries.ids.add(record.id);
+      trackQuerySubmitted(
+        record.content,
+        trackedQueries.count === 0 ? "initial" : "follow_up",
+      );
+      trackedQueries.count += 1;
+    }
+  }, [agent.messages, hydrated, trackedQueries]);
 
   useEffect(() => {
     if (!hydrated || !chatMounted) return;
