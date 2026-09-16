@@ -11,7 +11,10 @@ import { CopilotChat } from "@copilotkit/react-core/v2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DynamicRenderer } from "@/components/registry/DynamicRenderer";
 import { AGENT_RUNTIME_ID, AGENT_SESSION_ID } from "@/lib/agent";
-import { trackQuerySubmitted } from "@/lib/analytics";
+import {
+  trackConversationReset,
+  trackQuerySubmitted,
+} from "@/lib/analytics";
 import {
   followUpsFor,
   getDestination,
@@ -463,8 +466,9 @@ function AgentSession({
   }, []);
   const onClear = useCallback(() => {
     if (agent.isRunning) agent.abortRun();
+    trackConversationReset(trackedQueries.count);
     onReset();
-  }, [agent, onReset]);
+  }, [agent, onReset, trackedQueries]);
 
   if (!hydrated) return <LoadingStage />;
 

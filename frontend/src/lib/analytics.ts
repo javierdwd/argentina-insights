@@ -16,3 +16,9 @@ export function trackQuerySubmitted(query: string, stage: QueryStage): void {
     query_length_bucket: queryLengthBucket(query.length),
   });
 }
+
+export function trackConversationReset(previousQueryCount: number): void {
+  sendGAEvent("event", "conversation_reset", {
+    previous_query_count: previousQueryCount,
+  });
+}
