@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Newsreader, Outfit, Source_Sans_3 } from "next/font/google";
 import { Providers } from "./providers";
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <Analytics />
         <Providers>{children}</Providers>
+        <GoogleAnalytics gaId="G-N1ND4SFQM5" />
       </body>
     </html>
   );

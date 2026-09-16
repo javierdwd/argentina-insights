@@ -15,6 +15,7 @@
     "@ag-ui/client": "^0.0.59",
     "@copilotkit/react-core": "1.71.0",
     "@copilotkit/runtime": "1.71.0",
+    "@next/third-parties": "^16.3.5",
     "@phosphor-icons/react": "^2.1.10",
     "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
