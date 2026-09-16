@@ -7,18 +7,33 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
-import { ChatCircle, ChatCircleSlash } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  CaretUp,
+  ChatCircle,
+  ChatCircleSlash,
+  CircleNotch,
+} from "@phosphor-icons/react";
 import { motion, useReducedMotion } from "motion/react";
+import {
+  useAgent,
+  UseAgentUpdate,
+} from "@copilotkit/react-core/v2";
+import { latestTurnReasoning } from "./ChatActivity";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 const CHAT_PREF_KEY = "argentina-insights.chat-collapsed";
 const MD_QUERY = "(min-width: 768px)";
+/** Peek bar + safe area — stage keeps this clear so content is never covered. */
+const MOBILE_DOCK_PEEK =
+  "calc(3.75rem + env(safe-area-inset-bottom, 0px))";
 
 type ChatShellValue = {
   chatHidden: boolean;
-  /** Reopen the full chat column (clears collapsed pref). */
+  /** Reopen chat: desktop column, or expand the mobile dock. */
   showChat: () => void;
 };
 
@@ -98,17 +113,78 @@ function useIsDesktop(): boolean {
 }
 
 /**
- * Two-column shell: brand + stage (left) · chat panel (right).
- *
- * Chat stays visible by default. Collapse only via Ocultar. There is no
- * floating composer — replies live in the chat column, so agent turns
- * reopen it when it was hidden.
+ * Floating mobile peek — reasoning while the agent works, otherwise a prompt
+ * to expand and type. Keeps CopilotChat mounted (hidden) above it.
+ */
+function MobileChatPeek({ onExpand }: { onExpand: () => void }) {
+  const { agent } = useAgent({
+    agentId: "argentina_insights",
+    updates: [
+      UseAgentUpdate.OnMessagesChanged,
+      UseAgentUpdate.OnRunStatusChanged,
+    ],
+  });
+  const running = Boolean(agent.isRunning);
+  const reasoning = latestTurnReasoning(agent.messages);
+  const line = running
+    ? reasoning || "Pensando…"
+    : reasoning
+      ? reasoning
+      : "Escribí una pregunta…";
+
+  return (
+    <button
+      type="button"
+      onClick={onExpand}
+      className="flex w-full items-center gap-3 border-t border-border bg-card px-4 pt-3 shadow-[0_-12px_32px_-20px_color-mix(in_oklab,var(--foreground)_35%,transparent)] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] text-left transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50"
+      aria-expanded={false}
+      aria-controls="mobile-chat-sheet"
+    >
+      <span
+        className={[
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+          running ? "bg-accent-soft text-accent" : "bg-secondary text-muted-foreground",
+        ].join(" ")}
+        aria-hidden
+      >
+        {running ? (
+          <CircleNotch size={16} weight="bold" className="animate-spin" />
+        ) : (
+          <ChatCircle size={16} weight="regular" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.7rem] leading-none text-muted-foreground">
+          {running ? "Trabajando" : "Chat"}
+        </span>
+        <span
+          className="mt-1 block truncate text-sm leading-snug text-foreground"
+          aria-live="polite"
+        >
+          {line}
+        </span>
+      </span>
+      <CaretUp
+        size={16}
+        weight="bold"
+        className="shrink-0 text-muted-foreground"
+        aria-hidden
+      />
+    </button>
+  );
+}
+
+/**
+ * Two-column shell on desktop; on mobile the stage fills the viewport and
+ * chat docks as a bottom peek (reasoning) that expands into a sheet.
  */
 export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
   const reduce = useReducedMotion();
   const isDesktop = useIsDesktop();
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  /** Mobile sheet — start minimized so the canvas stays in view. */
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   useEffect(() => {
     const pref = readChatPref();
@@ -116,6 +192,11 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
     if (pref !== null) setCollapsed(pref);
     setHydrated(true);
   }, []);
+
+  // First canvas paint: keep focus on the stage, not a chat buried below.
+  useEffect(() => {
+    if (hasCanvas) setMobileExpanded(false);
+  }, [hasCanvas]);
 
   const toggleChat = () => {
     setCollapsed((prev) => {
@@ -126,9 +207,13 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
   };
 
   const showChat = useCallback(() => {
-    setCollapsed(false);
-    writeChatPref(false);
-  }, []);
+    if (isDesktop) {
+      setCollapsed(false);
+      writeChatPref(false);
+      return;
+    }
+    setMobileExpanded(true);
+  }, [isDesktop]);
 
   const chatHidden = hydrated && collapsed && isDesktop;
   const compact = hasCanvas;
@@ -142,18 +227,25 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
     <ChatShellContext.Provider value={shell}>
       <main
         className={[
-          "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden",
+          "flex h-[100dvh] min-h-0 flex-col overflow-hidden",
           chatHidden
             ? "md:block"
             : "md:grid md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
         ].join(" ")}
+        style={
+          {
+            "--mobile-chat-peek": MOBILE_DOCK_PEEK,
+          } as CSSProperties
+        }
       >
         <div
           className={[
-            "relative flex flex-col md:h-full md:min-h-0 md:overflow-hidden",
+            "relative flex min-h-0 flex-1 flex-col overflow-hidden md:h-full",
             compact
               ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
               : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
+            // Clear the floating peek so widgets never sit under it.
+            "max-md:pb-[var(--mobile-chat-peek)]",
           ].join(" ")}
         >
           <div
@@ -225,7 +317,7 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
             className={[
-              "relative flex min-h-0 flex-1 flex-col md:overflow-hidden",
+              "relative flex min-h-0 flex-1 flex-col overflow-hidden",
               compact ? "mt-4 md:mt-5" : "mt-10 md:mt-12",
             ].join(" ")}
           >
@@ -237,14 +329,48 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
           </motion.div>
         </div>
 
+        {/*
+          Single chat mount: fixed bottom sheet on mobile, grid column on md+.
+          Minimized mobile keeps height 0 so CopilotChat stays mounted.
+        */}
         <div
           hidden={chatHidden}
-          className="flex h-[70dvh] shrink-0 flex-col border-t border-border bg-card md:h-full md:min-h-0 md:border-l md:border-t-0 md:bg-transparent md:p-4 lg:p-5"
+          id="mobile-chat-sheet"
+          className={[
+            "flex flex-col bg-card",
+            "max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40",
+            "max-md:border-t max-md:border-border",
+            "max-md:transition-[height] max-md:duration-300 max-md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+            mobileExpanded
+              ? "max-md:h-[min(85dvh,40rem)]"
+              : "max-md:h-0 max-md:overflow-hidden max-md:border-t-0",
+            "md:relative md:h-full md:min-h-0 md:border-l md:border-t-0 md:bg-transparent md:p-4 lg:p-5",
+          ].join(" ")}
         >
+          {mobileExpanded && !isDesktop ? (
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+              <p className="text-sm font-medium text-foreground">Chat</p>
+              <button
+                type="button"
+                onClick={() => setMobileExpanded(false)}
+                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                aria-label="Minimizar chat"
+              >
+                <CaretDown size={14} weight="bold" aria-hidden />
+                Minimizar
+              </button>
+            </div>
+          ) : null}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-4 md:rounded-2xl md:pt-0 md:shadow-[0_24px_56px_-28px_color-mix(in_oklab,var(--foreground)_30%,transparent),inset_0_1px_0_rgba(255,255,255,0.65)] md:ring-1 md:ring-border">
             {chat}
           </div>
         </div>
+
+        {!isDesktop && !mobileExpanded ? (
+          <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
+            <MobileChatPeek onExpand={() => setMobileExpanded(true)} />
+          </div>
+        ) : null}
       </main>
     </ChatShellContext.Provider>
   );

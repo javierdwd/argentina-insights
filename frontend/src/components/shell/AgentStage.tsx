@@ -198,10 +198,11 @@ function ChatWithStarters() {
 }
 
 /**
- * Full-page orchestrator — brand + stage (left) · CopilotChat (right).
+ * Full-page orchestrator — brand + stage (left) · CopilotChat (right / mobile dock).
  *
  * CanvasActionProvider wraps ONLY the stage so run-status re-renders do not
- * remount the chat. Agent turns reopen the chat column if it was collapsed.
+ * remount the chat. Agent turns reopen the desktop column or expand the
+ * mobile dock if it was collapsed.
  */
 export function AgentStage() {
   "use no memo";

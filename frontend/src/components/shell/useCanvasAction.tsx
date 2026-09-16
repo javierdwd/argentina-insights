@@ -190,7 +190,7 @@ export function CanvasActionProvider({ children }: { children: ReactNode }) {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || busyRef.current) return;
-      // Replies live in the chat column — reopen if the user had collapsed it.
+      // Replies live in chat — reopen desktop column / expand mobile dock.
       showChat();
       setPending(trimmed);
       try {
