@@ -107,21 +107,21 @@ class ComposeOutput(BaseModel):
 
     brief: str = Field(
         description=(
-            "Chat reply in Spanish. "
-            "If the canvas changed: (1) one sentence confirming what is on "
-            "screen; (2) then 2–3 next analyses as a clickable block:\n"
-            "[[actions]]\n"
-            "executable Spanish ask\n"
-            "second ask\n"
-            "[[/actions]]\n"
-            "Each action line must be grounded in a concrete hook from this "
-            "turn (date, peak, person, bill) — not chart cosmetics. "
-            "If the canvas did NOT change: answer here with inline "
-            "[boton]executable Spanish ask[/boton] offers in the sentence. "
-            "No markdown, no JSON, no [[next]] tags, no /v1/ paths, "
-            "no derived/ dataset names. "
-            "[[actions]] is allowed and required when offering next moves."
+            "Plain Spanish chat reply only. If the canvas changed, briefly "
+            "confirm what is on screen; otherwise answer directly. Do not "
+            "include actions, buttons, markdown, JSON, protocol tags, /v1/ "
+            "paths, tool names, or derived dataset names here."
         )
+    )
+    actions: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description=(
+            "Zero to three executable Spanish follow-up requests. Each item "
+            "must be grounded in a concrete hook from this turn and must not "
+            "contain markup or protocol tags. Keep facts and explanations in "
+            "brief, never in this list."
+        ),
     )
     tree: UINode | None = Field(
         default=None,

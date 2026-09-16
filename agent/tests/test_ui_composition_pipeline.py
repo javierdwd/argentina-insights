@@ -129,6 +129,11 @@ def test_compose_schema_rejects_malformed_or_ambiguous_mutations() -> None:
             tree={"id": "x", "type": "Text", "title": "X", "props": {}},
             patch={"x": {"title": "Y"}},
         )
+    with pytest.raises(ValidationError):
+        ComposeOutput(
+            brief="Demasiadas acciones",
+            actions=["Una", "Dos", "Tres", "Cuatro"],
+        )
 
 
 def test_compose_schema_normalizes_flattened_host_node_shorthand() -> None:
@@ -222,16 +227,14 @@ def test_invalid_tree_is_repaired_once(monkeypatch) -> None:
     assert "validation error" in model.calls[1][-1].content
 
 
-def test_brief_cannot_claim_canvas_change_without_tree_or_patch(monkeypatch) -> None:
+def test_compose_serializes_typed_actions_without_language_heuristics(
+    monkeypatch,
+) -> None:
     model = _StructuredModel(
         [
             ComposeOutput(
-                brief="Generé una tabla con los resultados",
-                tree=None,
-                patch=None,
-            ),
-            ComposeOutput(
-                brief="Organicé los resultados en el canvas",
+                brief="Organicé los resultados en el canvas.",
+                actions=["Contrastá este período con la semana anterior"],
                 tree={
                     "id": "blue",
                     "type": "Chart",
@@ -253,9 +256,12 @@ def test_brief_cannot_claim_canvas_change_without_tree_or_patch(monkeypatch) -> 
             "respond_note": "",
         }
     )
-    assert len(model.calls) == 2
-    assert "both tree and patch are null" in model.calls[1][-1].content
+    assert len(model.calls) == 1
     assert update["ui_tree"]["id"] == "blue"
+    assert (
+        "[[actions]]\nContrastá este período con la semana anterior\n[[/actions]]"
+        in update["messages"][0].content
+    )
 
 
 def test_semantic_duplicate_is_repaired_as_patch(monkeypatch) -> None:
@@ -389,6 +395,134 @@ def test_mixed_duplicate_and_new_widget_is_pruned_without_repair(monkeypatch) ->
     assert [child["id"] for child in children] == [
         "desglose_provincial",
         "bloques",
+    ]
+
+
+def test_repair_prompt_resolves_vote_grain_and_required_province_map(
+    monkeypatch,
+) -> None:
+    datasets = {
+        "ds_cross": {
+            "id": "ds_cross",
+            "path": "derived/votos_por_bloque_provincia",
+            "params": {},
+            "rows": [
+                {
+                    "bloque": "A",
+                    "provincia": "Córdoba",
+                    "afirmativo": 1,
+                    "negativo": 0,
+                },
+                {
+                    "bloque": "A",
+                    "provincia": "Santa Fe",
+                    "afirmativo": 1,
+                    "negativo": 0,
+                },
+            ],
+            "keys": ["bloque", "provincia", "afirmativo", "negativo"],
+            "N": 2,
+            "status": "hit",
+        },
+        "ds_votes": {
+            "id": "ds_votes",
+            "path": "derived/votos_nominales",
+            "params": {},
+            "rows": [
+                {
+                    "nombre": "Uno",
+                    "bloque": "A",
+                    "provincia": "Córdoba",
+                    "voto": "AFIRMATIVO",
+                },
+                {
+                    "nombre": "Dos",
+                    "bloque": "A",
+                    "provincia": "Santa Fe",
+                    "voto": "NEGATIVO",
+                },
+            ],
+            "keys": ["nombre", "bloque", "provincia", "voto"],
+            "N": 2,
+            "status": "hit",
+        },
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="Reconstruí la votación.",
+                tree={
+                    "id": "votacion",
+                    "type": "Chart",
+                    "title": "Votos por bloque",
+                    "props": {
+                        "dataRef": "ds_cross",
+                        "kind": "bar",
+                        "xKey": "bloque",
+                        "series": [
+                            {"key": "afirmativo", "label": "Afirmativo"},
+                            {"key": "negativo", "label": "Negativo"},
+                        ],
+                    },
+                },
+            ),
+            ComposeOutput(
+                brief="Reconstruí la votación por bloque y provincia.",
+                tree={
+                    "id": "votacion",
+                    "type": "Stack",
+                    "children": [
+                        {
+                            "id": "votos_bloque",
+                            "type": "Chart",
+                            "title": "Votos por bloque",
+                            "props": {
+                                "dataRef": "ds_votes",
+                                "kind": "bar",
+                                "xKey": "bloque",
+                                "series": [
+                                    {"key": "AFIRMATIVO", "label": "Afirmativo"},
+                                    {"key": "NEGATIVO", "label": "Negativo"},
+                                ],
+                            },
+                        },
+                        {
+                            "id": "votos_provincia",
+                            "type": "ProvinceMap",
+                            "title": "Votos negativos por provincia",
+                            "props": {
+                                "dataRef": "ds_votes",
+                                "nameKey": "provincia",
+                                "valueKey": "NEGATIVO",
+                            },
+                        },
+                    ],
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+
+    update = compose_ui_node(
+        {
+            "query_type": "data",
+            "messages": [
+                HumanMessage(content="Mostrá cómo votó cada bloque y provincia")
+            ],
+            "datasets": datasets,
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+            "respond_note": "Hay dos votos nominales.",
+        }
+    )
+
+    assert len(model.calls) == 2
+    repair_prompt = model.calls[1][-1].content
+    assert "compatible data shape or selection" in repair_prompt
+    assert "required widget types" in repair_prompt
+    assert [child["type"] for child in update["ui_tree"]["children"]] == [
+        "Chart",
+        "ProvinceMap",
     ]
 
 

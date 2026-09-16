@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from typing import Literal
 
 from langchain_core.messages import (
     AIMessage,
@@ -31,6 +32,7 @@ from langchain_core.messages import (
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
+from pydantic import BaseModel, Field
 
 from .analytics.report import (
     StatisticalReport,
@@ -546,8 +548,8 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 
 ## Output rules
 - Progressive disclosure: render the asked slice now. Offer 2–3 NEXT analyses
-  in `brief`, then wait.
-- **Out of scope:** tree/patch null; refuse in Spanish; optional ``[boton]``.
+  in `actions`, then wait.
+- **Out of scope:** tree/patch null; refuse in Spanish; actions optional.
 - **THIS user message is the only ask that matters.** Current canvas is
   leftover context. Never write ``Mostré …`` about old widgets for a new ask.
   Recycled briefs about the previous topic are banned.
@@ -555,28 +557,19 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   newly emitted data-bound widget MUST use one of those this-turn dataRefs.
   Never attach an earlier or invented dataRef to decorate the new tree.
 - `brief` is what the user reads:
-  - Canvas changed: (1) one short Spanish confirmation (+ default if vague);
-    (2) 2–3 next moves as:
-
-    [[actions]]
-    Superponer riesgo país en el mismo intervalo
-    Comparar blue con MEP/CCL en esos 7 días
-    Traer el acta de Diputados y su registro de votos
-    [[/actions]]
-
-    Prefer the analyst ``[[next]]`` rewritten as executable Spanish asks.
+  - Canvas changed: one short Spanish confirmation (+ default if vague).
     NEVER paste the analyst note, "datos concretos", "qué voy a mostrar",
     markdown tables, or a ``- `` dump into `brief`. Voice: analyst who already
     looked at the numbers, not a settings menu. Banned: "¿Lo ves mejor con
     los últimos 3, en barras, o sumando el oficial?", CSV/PNG, laundry lists.
-  - Canvas unchanged: answer in chat; wrap offers as
-    ``[boton]executable Spanish ask[/boton]``.
+  - Canvas unchanged: answer directly in chat.
+  - `actions` is the only place for follow-up offers: zero to three plain
+    executable Spanish asks, preferably rewritten from analyst ``[[next]]``.
+    Never put facts, markup, buttons, or protocol tags in `actions`.
   Spanish, no markdown, no JSON. Never claim a visual you didn't add
   ("puse en pantalla" / "mostré" only if tree/patch changed). NEVER mention
   endpoints, URLs, tool names, ``derived/…``, widget internals, "el catálogo".
   NEVER copy ``[[next]]`` / ``[[values]]`` / ``[[route]]`` into `brief`.
-  After a canvas change emit ``[[actions]]``; in advice-only briefs prefer
-  inline ``[boton]``.
 
 - Choose ONE of `tree` / `patch` (other null):
   - `tree`: ONE root (Stack, Grid, or leaf). Emit only NEW widgets this turn
@@ -678,6 +671,18 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   needs bloque, partido, category, or several vote senses, add the appropriate
   Chart/VoteBreakdown as a companion; never use that non-geographic widget as
   a replacement for the map.
+- DATA GRAIN PREFLIGHT (especially during repair): before binding a Chart,
+  inspect the dataset index sample and keys. The selected data must match the
+  grain of the intended view: xKey identifies one row per x value after
+  `where`, unless the widget contract explicitly aggregates the row shape. If
+  x repeats because the dataset includes additional dimensions, select a
+  compatible aggregate, filter to one slice, or choose the widget whose
+  contract supports that shape. Use seriesBy+valueKey only for genuine
+  long-format category+measure rows; never use it merely to silence a
+  duplicate-x error. When requested dimensions require different visual
+  grains, use separate compatible views. During the one repair pass,
+  reconsider dataRef and widget choice from the dataset index rather than
+  preserving an invalid binding.
 - Widget configuration must use real dataset keys. Do not invent columns,
   series, mappings, values, entities, or visual claims.
 - Never ASCII art / markdown tables in `brief`.
@@ -769,26 +774,13 @@ _KNOWN_DOMAINS = frozenset({"ui", "data"})
 # Legacy classify labels → data (threads / checkpointers may still carry them).
 _LEGACY_DATA_DOMAINS = frozenset({"finance", "politics", "unknown"})
 
-# Pure canvas mutations — no new fetch. First-time "dame un gráfico de X" is
-# data, not ui (needs endpoints).
-_UI_HINTS = (
-    "color", "verde", "rojo", "ocultar serie", "renombra", "renombrá",
-    "pasalo a", "pasala a", "cambiá a", "cambia a", "change to",
-    "hide the", "hacé la línea", "hace la linea",
-    "pasalo a líneas", "pasalo a lineas", "pasalo a barras",
-    "pasalo a área", "pasalo a area", "en líneas", "en lineas",
-    "en barras", "en área", "en area",
-)
-
-# Follow-ups that ask about the previous reply (how / why / what else), not
-# canvas chrome. Still data (chat answer or another fetch) — never ui.
-_META_RE = re.compile(
-    r"^(ok\s+|bueno\s+|dale\s+)?"
-    r"(c[oó]mo|por\s*qu[eé]|qu[eé]\s+(otra|m[aá]s)|"
-    r"y\s+eso|explicame|explicá|explica)"
-    r"(\b|$)",
-    re.IGNORECASE,
-)
+class _QueryClassification(BaseModel):
+    query_type: Literal["ui", "data"] = Field(
+        description=(
+            "ui only for a mutation of content already on the canvas that "
+            "requires no new facts; data for every other request"
+        )
+    )
 
 
 def _normalize_domain(label: str | None) -> str:
@@ -811,63 +803,16 @@ _NEXT_RE = re.compile(
     r"\[\[\s*next\s*\]\](.*?)(?:\[\[\s*/\s*next\s*\]\]|$)",
     re.IGNORECASE | re.DOTALL,
 )
-_ACTIONS_BLOCK_RE = re.compile(
-    r"\[\[\s*actions\s*\]\]([\s\S]*?)\[\[\s*/\s*actions\s*\]\]",
-    re.IGNORECASE,
-)
-_OFFER_LINE_RE = re.compile(
-    r"^(mostr[áa]|mostrame|mostrar|compar[áa]|comparar|"
-    r"superpon[ée]|superponer|tra[ée]|traer|busc[áa]|buscar|"
-    r"calcul[áa]|calcular|agreg[áa]|agregar|cruz[áa]|cruzar|"
-    r"filtr[áa]|filtrar|list[áa]|listar|arm[áa]|armar|"
-    r"profundiz[áa]|profundizar|analiz[áa]|analizar|"
-    r"sum[áa]|sumar|"
-    r"dame|quiero|ver)\b",
-    re.IGNORECASE,
-)
-_FACT_LABEL_RE = re.compile(
-    r"^(d[ií]a|fecha|ventana|d[oó]lar|riesgo|fuente|extracto|serie|"
-    r"a la izquierda|a la derecha|en (el|la) canvas)\b",
-    re.IGNORECASE,
-)
-_INTERNAL_HEADING_RE = re.compile(
-    r"(?im)^(analista\b|datos concretos|qu[eé] voy a mostrar)\b"
-)
-_ISO_DAY_LINE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\b")
 _MAX_ACTIONS = 3
 
 
-def _looks_like_offer_line(text: str) -> bool:
-    """True when a line is an executable next ask, not a fact dump."""
-    label = re.sub(
-        r"\[/?bot[oó]n\]", "", (text or "").strip(), flags=re.IGNORECASE
-    ).strip()
-    if not label or len(label) > 140 or _looks_like_fact_line(label):
-        return False
-    if _OFFER_LINE_RE.match(label):
-        return True
-    return label.endswith("?") and len(label) <= 100
-
-
-def _looks_like_fact_line(text: str) -> bool:
-    """True for dated/kv analyst facts that must never become chat buttons."""
-    label = re.sub(
-        r"\[/?bot[oó]n\]", "", (text or "").strip(), flags=re.IGNORECASE
-    ).strip()
-    if not label:
-        return False
-    if _ISO_DAY_LINE_RE.match(label) or _FACT_LABEL_RE.match(label):
-        return True
-    kv = re.match(r"^([^:]{2,40}):\s+\S", label)
-    return bool(kv and not _OFFER_LINE_RE.match(label))
-
-
-def _action_lines_from_block(body: str) -> list[str]:
+def _protocol_lines(body: str) -> list[str]:
+    """Parse an explicit action block without interpreting its language."""
     lines: list[str] = []
     for raw in (body or "").splitlines():
         text = raw.strip().lstrip("-•*").strip()
         text = re.sub(r"^\d+[.)]\s*", "", text).strip()
-        if not text or _looks_like_fact_line(text):
+        if not text:
             continue
         lines.append(text)
         if len(lines) >= _MAX_ACTIONS:
@@ -890,31 +835,16 @@ def _next_to_actions_block(note: str) -> str:
     """
 
     def repl(match: re.Match[str]) -> str:
-        return _actions_block(_action_lines_from_block(match.group(1)))
+        return _actions_block(_protocol_lines(match.group(1)))
 
     return _NEXT_RE.sub(repl, note or "").strip()
 
 
-def _ensure_brief_actions(brief: str, respond_note: str = "") -> str:
-    """Guarantee clickable ``[[actions]]`` in the user-facing brief when possible.
-
-    Prefer actions already in the brief; else lift ``[[next]]`` from the
-    analyst note; else leave the brief unchanged.
-    """
-    text = (brief or "").strip()
-    if re.search(r"\[\[\s*actions\s*\]\]", text, re.IGNORECASE):
-        return text
-    # Inline ``[boton]`` is already the CTA UI — don't also append [[actions]].
-    if re.search(r"\[bot[oó]n\]", text, re.IGNORECASE):
-        return text
-    from_note = _next_to_actions_block(respond_note or "")
-    actions_only = _ACTIONS_BLOCK_RE.search(from_note)
-    if actions_only:
-        block = _actions_block(_action_lines_from_block(actions_only.group(1)))
-        if not block:
-            return text
-        return f"{text}\n\n{block}".strip() if text else block
-    return text
+def _compose_message(brief: str, actions: list[str]) -> str:
+    """Serialize typed composer fields to the frontend's current wire format."""
+    prose = _sanitize_user_facing(brief)
+    block = _actions_block([action.strip() for action in actions if action.strip()])
+    return f"{prose}\n\n{block}".strip() if prose and block else prose or block
 
 
 _PATH_LEAK_RE = re.compile(r"/v1/[A-Za-z0-9_{}/.\-]+")
@@ -927,13 +857,6 @@ _INTERNAL_PAREN_RE = re.compile(
     r"transform_dataset)[^()]*\)",
     re.IGNORECASE,
 )
-_CANVAS_CHANGE_CLAIM_RE = re.compile(
-    r"\b(?:agregu[eé]|arm[eé]|actualic[eé]|correg[ií]|cre[eé]|gener[eé]|"
-    r"mostr[eé]|organic[eé]|reemplac[eé])\b",
-    re.IGNORECASE,
-)
-
-
 def _sanitize_user_facing(text: str) -> str:
     """Strip catalog paths, derived ids, and tool names from user-facing text."""
     out = _INTERNAL_PAREN_RE.sub("", text or "")
@@ -954,11 +877,6 @@ def _sanitize_user_facing(text: str) -> str:
     return out.strip()
 
 
-def _brief_claims_canvas_change(brief: str) -> bool:
-    """Detect first-person mutation claims that require a tree or patch."""
-    return bool(_CANVAS_CHANGE_CLAIM_RE.search(brief or ""))
-
-
 def _parse_route(note: str) -> str | None:
     """Respond's explicit routing decision: compose | chat."""
     match = _ROUTE_RE.search(note or "")
@@ -972,16 +890,9 @@ def _strip_route_marker(note: str) -> str:
 
 
 def _note_should_compose(note: str) -> bool:
-    """True when the analyst note is a compose brief, not a chat answer.
-
-    Follow-ups that reuse already-fetched series often skip tools and still
-    describe ``derived/…`` widgets. Those must go to compose — dumping the
-    note into chat leaks internals and draws nothing.
-    """
+    """Detect explicit machine-readable evidence that requires composition."""
     lowered = (note or "").lower()
-    if "derived/" in lowered or "[[values]]" in lowered:
-        return True
-    return bool(re.search(r"puse en pantalla", lowered))
+    return "derived/" in lowered or "[[values]]" in lowered
 
 
 def _should_compose(
@@ -1033,25 +944,6 @@ def _finish_for_compose(note: str, datasets: dict) -> dict:
             dataset.setdefault("error", None)
         update["datasets"] = derived
     return update
-
-
-def _cheap_domain(text: str, previous: str | None) -> str | None:
-    """Skip the LLM when the label is obvious.
-
-    Only two outcomes matter: ui (compose only) vs data (full catalog + tools).
-    Returns None when we still want the cheap model to decide.
-    """
-    lowered = " ".join(re.sub(r"[¿?¡!.,;:]+", " ", text).casefold().split())
-    if _META_RE.match(lowered):
-        return "data"
-    if any(h in lowered for h in _UI_HINTS):
-        return "ui"
-    # Most turns are data; don't pay for classify when nothing looks like UI.
-    if previous == "ui" and len(lowered.split()) <= 3:
-        # Short follow-up after a UI tweak might still be UI ("más grande",
-        # "así está bien") — let the model decide.
-        return None
-    return "data"
 
 
 def _classify_messages(messages: list) -> list:
@@ -1365,42 +1257,6 @@ def _compact_canvas(tree: dict | None) -> str:
     return "\n".join(summarize(tree))
 
 
-def _strip_fact_dump_from_brief(brief: str) -> str:
-    """Drop analyst fact lists so they cannot become chat buttons."""
-    text = brief or ""
-    saved: list[str] = []
-
-    def keep_actions(match: re.Match[str]) -> str:
-        block = _actions_block(_action_lines_from_block(match.group(1)))
-        if block:
-            saved.append(block)
-        return "\n"
-
-    text = _ACTIONS_BLOCK_RE.sub(keep_actions, text)
-    kept: list[str] = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            if kept and kept[-1] != "":
-                kept.append("")
-            continue
-        if _INTERNAL_HEADING_RE.match(stripped):
-            continue
-        bullet = re.match(r"^[-*•]\s+(.+)$", stripped)
-        if bullet:
-            inner = bullet.group(1).strip()
-            if _looks_like_offer_line(inner):
-                kept.append(line)
-            continue
-        if _looks_like_fact_line(stripped):
-            continue
-        kept.append(line)
-    prose = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
-    if saved:
-        return f"{prose}\n\n{saved[0]}".strip() if prose else saved[0]
-    return prose
-
-
 def _build_compose_system(state: AgentState) -> str:
     # Use the pre-bind tree for the canvas snapshot so compose_ui always sees
     # the dataRef values (bind_data replaces them with raw rows, losing the id).
@@ -1515,47 +1371,6 @@ def _append_statistical_callout(
     }
 
 
-def _province_map_error(state: AgentState, candidate: object) -> str | None:
-    """Require geographic output when the current ask compares provinces."""
-    last_human = next(
-        (
-            _message_text(message.content)
-            for message in reversed(state.get("messages") or [])
-            if isinstance(message, HumanMessage)
-        ),
-        "",
-    ).casefold()
-    if not re.search(
-        r"\b(?:por provincia|provincias?|provinciales?|distritos?)\b",
-        last_human,
-    ):
-        return None
-
-    datasets = state.get("datasets") or {}
-    has_province_data = any(
-        dataset.get("status", "hit") == "hit"
-        and dataset.get("N")
-        and any(
-            isinstance(row, dict) and ("provincia" in row or "province" in row)
-            for row in (dataset.get("rows") or [])
-        )
-        for dataset in datasets.values()
-    )
-    if not has_province_data:
-        return None
-
-    current = state.get("ui_tree_unbound") or state.get("ui_tree")
-    if _tree_has_type(candidate, "ProvinceMap") or _tree_has_type(
-        current, "ProvinceMap"
-    ):
-        return None
-    return (
-        "The user requested a province-level comparison and province data is "
-        "available: the tree MUST include a ProvinceMap. Add Chart or "
-        "VoteBreakdown only as a companion for non-geographic dimensions."
-    )
-
-
 # ── Nodes ─────────────────────────────────────────────────────────────────────
 
 
@@ -1572,38 +1387,27 @@ def classify_node(state: AgentState) -> dict:
     The ``emit-messages: False`` flag suppresses token streaming so the label
     never reaches the client as an assistant message.
     """
-    last_human = next(
-        (
-            _message_text(m.content)
-            for m in reversed(state["messages"])
-            if isinstance(m, HumanMessage)
-        ),
-        "",
+    classifier = get_model("fast").with_structured_output(
+        _QueryClassification,
+        method="function_calling",
     )
-    cheap = _cheap_domain(last_human, state.get("query_type"))
-    if cheap is not None:
-        return {"query_type": _normalize_domain(cheap)}
-
-    llm = get_model("fast")
-    response = llm.invoke(
+    decision = classifier.invoke(
         [
             (
                 "system",
-                "Reply with ONE word: ui or data.\n"
-                "ui = restyle something ALREADY on screen (chart kind, color, "
-                "series visibility, labels) with NO new data.\n"
-                "data = anything else (numbers, dates, people, votes, new "
-                "series, fetch/explain Argentine public data). "
-                "'dame un gráfico del blue' / 'quiénes votaron' = data.",
+                "Classify whether this request can be completed solely by "
+                "mutating presentation already present on the canvas. Choose "
+                "ui only when no new facts, entities, calculations, or data "
+                "are needed. Choose data for all questions, explanations, new "
+                "visualizations, and ambiguous follow-ups.",
             ),
             *_classify_messages(state["messages"]),
         ],
         config={"metadata": {"emit-messages": False}},
     )
-    raw = _message_text(response.content).strip().lower()
-    # First token only — models sometimes add a period or a short clause.
-    label = raw.replace(",", " ").replace(".", " ").split()[0] if raw else "data"
-    return {"query_type": _normalize_domain(label)}
+    if not isinstance(decision, _QueryClassification):
+        decision = _QueryClassification.model_validate(decision)
+    return {"query_type": decision.query_type}
 
 
 def _parse_tool_payload(content: object) -> list | None:
@@ -1983,7 +1787,6 @@ def compose_ui_node(state: AgentState) -> dict:
         compose_error = f"structured output failed: {exc}"
         result = ComposeOutput(brief="", tree=None, patch=None)
 
-    note = state.get("respond_note") or ""
     datasets = state.get("datasets") or {}
     this_turn = _this_turn_dataset_ids(state.get("messages") or [])
     this_turn.update(
@@ -2023,14 +1826,6 @@ def compose_ui_node(state: AgentState) -> dict:
         else None
     )
     repair_errors = [compose_error] if compose_error else []
-    if (
-        tree_dict is None
-        and not result.patch
-        and _brief_claims_canvas_change(result.brief)
-    ):
-        repair_errors.append(
-            "brief claims the canvas changed, but both tree and patch are null"
-        )
     if result.patch:
         repair_errors.extend(
             validate_patch(
@@ -2040,9 +1835,6 @@ def compose_ui_node(state: AgentState) -> dict:
         )
     if validation and validation.errors:
         repair_errors.extend(validation.errors)
-    province_map_error = _province_map_error(state, tree_dict)
-    if province_map_error:
-        repair_errors.append(province_map_error)
 
     # A mixed result may repeat one visible widget while adding a genuinely new
     # companion. The output schema cannot express "patch old + add new", so
@@ -2067,11 +1859,9 @@ def compose_ui_node(state: AgentState) -> dict:
             if pruned_tree is not None
             else None
         )
-        pruned_semantic_error = _province_map_error(state, pruned_tree)
         if (
             pruned_validation
             and pruned_validation.valid
-            and not pruned_semantic_error
         ):
             tree_dict = pruned_tree
             repair_errors = []
@@ -2092,8 +1882,16 @@ def compose_ui_node(state: AgentState) -> dict:
                     HumanMessage(
                         content=(
                             "Repair the proposed UI output exactly once. Preserve the "
-                            "user's intent and brief, but fix every validation error. "
-                            "Use only allowedDataRefs. Return the complete ComposeOutput.\n"
+                            "user's intent, brief, and actions, but fix every "
+                            "validation error. "
+                            "Re-read the dataset index in the system prompt before "
+                            "editing: you may replace invalid dataRefs, props, or "
+                            "widgets. Check each Chart's row grain against xKey; a "
+                            "duplicate-x error requires a compatible data shape or "
+                            "selection, not cosmetic changes. Satisfy required widget "
+                            "types with real keys from compatible allowed datasets. "
+                            "Use only allowedDataRefs and return the complete "
+                            "ComposeOutput with every error resolved.\n"
                             + json.dumps(feedback, ensure_ascii=False)
                         )
                     ),
@@ -2123,19 +1921,10 @@ def compose_ui_node(state: AgentState) -> dict:
                 if repaired.patch
                 else ()
             )
-            repaired_semantic_error = _province_map_error(state, repaired_tree)
-            repaired_claim_error = (
-                "brief claims the canvas changed, but both tree and patch are null"
-                if repaired_tree is None
-                and not repaired.patch
-                and _brief_claims_canvas_change(repaired.brief)
-                else None
-            )
             if (
                 repaired_tree is not None
                 and repaired_validation
                 and repaired_validation.valid
-                and not repaired_semantic_error
             ):
                 if not repaired_patch_errors:
                     result = repaired
@@ -2145,7 +1934,6 @@ def compose_ui_node(state: AgentState) -> dict:
             elif (
                 repaired_tree is None
                 and not current_hits
-                and not repaired_claim_error
             ):
                 if not repaired_patch_errors:
                     result = repaired
@@ -2158,19 +1946,13 @@ def compose_ui_node(state: AgentState) -> dict:
                     if repaired_validation
                     else ("repair returned no tree for available data",)
                 )
-                if repaired_semantic_error:
-                    repair_errors.append(repaired_semantic_error)
-                if repaired_claim_error:
-                    repair_errors.append(repaired_claim_error)
             if repaired_patch_errors:
                 repair_errors = list(repaired_patch_errors)
         except Exception as exc:  # noqa: BLE001
             logger.exception("compose_ui repair failed")
             repair_errors = [f"repair failed: {exc}"]
 
-    brief = _sanitize_user_facing(
-        _strip_fact_dump_from_brief(_ensure_brief_actions(result.brief, note))
-    )
+    brief = _compose_message(result.brief, result.actions)
     if repair_errors:
         logger.warning("Discarding invalid composed tree: %s", "; ".join(repair_errors))
         tree_dict = None

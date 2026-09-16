@@ -53,7 +53,7 @@ test("[[actions]] lines that already have [boton] are not double-tagged", () => 
   );
 });
 
-test("fact bullets are not lifted into buttons", () => {
+test("unmarked prose bullets are never inferred as buttons", () => {
   const prose =
     "Analista — datos concretos obtenidos\n" +
     "- Día: 2020-05-22 — Oferta de canje de deuda\n" +
@@ -64,18 +64,13 @@ test("fact bullets are not lifted into buttons", () => {
     "- Compará el blue con MEP y CCL";
   const out = embedOffersInProse(prose, []);
   const buttons = parseInlineButtons(out).filter((s) => s.type === "button");
-  assert.deepEqual(
-    buttons.map((s) => s.text),
-    [
-      "Mostrá la tabla con valores diarios",
-      "Compará el blue con MEP y CCL",
-    ],
-  );
+  assert.deepEqual(buttons, []);
   assert.equal(out.includes("Día: 2020-05-22"), true);
   assert.equal(out.includes("A la izquierda:"), true);
+  assert.equal(out.includes("Compará el blue con MEP y CCL"), true);
 });
 
-test("[[actions]] fact lines are dropped", () => {
+test("[[actions]] lines are trusted as explicit actions", () => {
   const raw =
     "En pantalla: la semana del canje.\n\n" +
     "[[actions]]\n" +
@@ -83,7 +78,10 @@ test("[[actions]] fact lines are dropped", () => {
     "Compará el blue con MEP y CCL\n" +
     "[[/actions]]";
   const { actions } = parseChatActions(raw);
-  assert.deepEqual(actions, ["Compará el blue con MEP y CCL"]);
+  assert.deepEqual(actions, [
+    "Día: 2020-05-22 — Oferta de canje",
+    "Compará el blue con MEP y CCL",
+  ]);
 });
 
 test("inline [[actions]] separators without a close tag become buttons", () => {

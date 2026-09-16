@@ -173,8 +173,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "Spread evolution → derived/fx_spread (xKey=fecha, "
             "series spread|spread_pct) — replace spot Metric/MetricRow. "
             "Dual scale: yAxisIndex 0|1. scatter=two numerics; heatmap=matrix. "
-            "Vote by bloque: kind=bar, xKey=bloque, series "
-            "afirmativo/negativo/abstencion/ausente on raw …/votos rows."
+            "Vote by bloque on raw nominal rows: kind=bar, xKey=bloque, "
+            "series keys must be the exact vote labels visible in the dataset "
+            "sample (usually AFIRMATIVO/NEGATIVO/ABSTENCIÓN/AUSENTE); Chart "
+            "counts those labels. On pre-aggregated rows, bind numeric vote "
+            "columns only when there is exactly one row per bloque."
         ),
         when_not=(
             "Spot → Metric/MetricRow. Marks/bands → AnnotatedTimeline. "
@@ -200,8 +203,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "sort?({key,dir}); limit?(int). Omit color unless user names hex."
         ),
         data=(
-            "dataRef = dataset id. series[].key must exist OR be vote labels "
-            "when xKey=bloque|partido. "
+            "dataRef = dataset id. series[].key must exist OR be exact vote "
+            "labels from the sample when xKey=bloque|partido on nominal rows. "
+            "Respect dataset grain: a wide-series Chart needs one row per xKey "
+            "after filtering unless the widget explicitly aggregates that row "
+            "shape. "
             "Long-format team-season rows: xKey=season, seriesBy=team, "
             "valueKey=the metric (for example pointsPerGame or "
             "goalDifferencePerGame), and one series key per exact team value. "
@@ -285,8 +291,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
         when_not=(
             "Who voted how (people) → PersonCard or Acta. "
             "Split by bloque/partido → Chart kind=bar (xKey=bloque, "
-            "series afirmativo/negativo/abstencion/ausente on the same "
-            "votos rows). "
+            "series keys copied exactly from voto values on the same nominal "
+            "votos rows), or numeric vote columns from a block-only aggregate. "
             "Many bills → List. Province lean → ProvinceMap. "
             "NEVER a Chart kind=line on votos rows."
         ),

@@ -11,51 +11,12 @@ from agent.graph import (
     _RESPOND_SYSTEM,
     _build_compose_system,
     _compact_datasets,
-    _ensure_brief_actions,
     _message_text,
     _next_to_actions_block,
-    _province_map_error,
     _sanitize_user_facing,
     _system_message,
 )
 from agent.ui.catalog import as_prompt_text as widget_catalog_text
-
-
-def test_province_comparison_requires_map_when_geographic_data_exists() -> None:
-    from langchain_core.messages import HumanMessage
-
-    state = {
-        "messages": [
-            HumanMessage(
-                content=(
-                    "Contar los 72 votos por bloque y provincia, "
-                    "separados por sentido del voto"
-                )
-            )
-        ],
-        "datasets": {
-            "votes": {
-                "status": "hit",
-                "N": 2,
-                "rows": [
-                    {"provincia": "Córdoba", "bloque": "A", "voto": "AFIRMATIVO"},
-                    {"provincia": "Santa Fe", "bloque": "B", "voto": "NEGATIVO"},
-                ],
-            }
-        },
-    }
-    chart_only = {"id": "votes", "type": "Chart", "children": []}
-    assert _province_map_error(state, chart_only)
-
-    with_map = {
-        "id": "votes",
-        "type": "Stack",
-        "children": [
-            {"id": "by_province", "type": "ProvinceMap", "children": []}
-        ],
-    }
-    assert _province_map_error(state, with_map) is None
-
 
 
 def test_historical_day_recipe_fetches_only_relevant_context() -> None:
@@ -80,6 +41,31 @@ def test_historical_day_recipe_fetches_only_relevant_context() -> None:
     widgets = widget_catalog_text().casefold()
     assert "historico/dia" in widgets
     assert "never historico/dia" in widgets or "not personcard" in widgets
+
+
+def test_query_routing_uses_structured_classification(monkeypatch) -> None:
+    from langchain_core.messages import HumanMessage
+
+    from agent.graph import classify_node
+
+    class Classifier:
+        def with_structured_output(self, schema, method=None):
+            assert schema.__name__ == "_QueryClassification"
+            assert method == "function_calling"
+            return self
+
+        def invoke(self, messages, config):
+            assert messages
+            return {"query_type": "ui"}
+
+    monkeypatch.setattr("agent.graph.get_model", lambda role: Classifier())
+    result = classify_node(
+        {
+            "messages": [HumanMessage(content="Transformá su presentación")],
+            "query_type": "data",
+        }
+    )
+    assert result == {"query_type": "ui"}
 
 
 def test_capability_map_names_real_families_and_bans_out_of_catalog() -> None:
@@ -365,27 +351,6 @@ def test_next_to_actions_block_salvages_unclosed_chat_next() -> None:
     assert "Comparar riesgo país con inflación y confianza" in out
 
 
-def test_ensure_brief_actions_lifts_from_respond_note() -> None:
-    brief = "En pantalla: blue de la semana previa."
-    note = "[[next]]\n- Superponer riesgo país\n- Traer el acta\n[[/next]]"
-    out = _ensure_brief_actions(brief, note)
-    assert out.startswith("En pantalla:")
-    assert "[[actions]]" in out
-    assert "Superponer riesgo país" in out
-    assert "Traer el acta" in out
-
-
-def test_ensure_brief_actions_skips_when_inline_boton_exists() -> None:
-    brief = (
-        "En pantalla verás la serie.\n"
-        "[boton]Mostrá la diferencia porcentual[/boton]"
-    )
-    note = "[[next]]\n- Mostrá la diferencia porcentual\n[[/next]]"
-    out = _ensure_brief_actions(brief, note)
-    assert "[[actions]]" not in out
-    assert "[boton]Mostrá la diferencia porcentual[/boton]" in out
-
-
 def test_compose_prompt_prefers_one_visual_for_compatible_measures() -> None:
     text = _build_compose_system(
         {
@@ -574,21 +539,18 @@ def test_compose_exposes_old_canvas_for_duplicate_detection() -> None:
 
 
 
-def test_strip_fact_dump_from_brief_keeps_actions() -> None:
-    from agent.graph import _strip_fact_dump_from_brief
-
-    dumped = (
-        "Analista — datos concretos obtenidos\n"
-        "- Día: 2020-05-22 — oferta\n"
-        "- A la derecha: gráfico diario\n"
-        "[[actions]]\n"
-        "Compará el blue con MEP y CCL\n"
-        "[[/actions]]"
+def test_compose_prompt_separates_prose_from_typed_actions() -> None:
+    text = _build_compose_system(
+        {
+            "messages": [],
+            "datasets": {},
+            "respond_note": "",
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+        }
     )
-    cleaned = _strip_fact_dump_from_brief(dumped)
-    assert "Analista" not in cleaned
-    assert "A la derecha" not in cleaned
-    assert "Compará el blue" in cleaned
+    assert "`actions` is the only place for follow-up offers" in text
+    assert "Never put facts, markup, buttons, or protocol tags" in text
 
 
 
@@ -680,10 +642,10 @@ def test_bind_chart_leaves_numeric_series_alone() -> None:
     assert out["props"]["data"] == datasets["ds_fx"]["rows"]
 
 
-def test_chart_catalog_mentions_vote_by_bloque() -> None:
+def test_chart_catalog_documents_nominal_category_aggregation() -> None:
     text = widget_catalog_text()
-    assert "xKey=bloque" in text
-    assert "afirmativo/negativo" in text
+    assert "exact vote labels visible in the dataset sample" in text
+    assert "Chart counts those labels" in text
 
 
 

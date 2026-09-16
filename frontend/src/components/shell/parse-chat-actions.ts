@@ -9,8 +9,8 @@
  * Inline (inside a sentence):
  *   [boton]Mostrá las tasas por entidad[/boton]
  *
- * Unordered ``- `` offer lists are lifted into inline buttons so they sit
- * in the paragraph instead of looking like another markdown list.
+ * Only explicit protocol markup creates buttons. Prose is never interpreted
+ * to guess whether a sentence is an action.
  */
 
 const ACTIONS_RE = /\[\[\s*actions\s*\]\]([\s\S]*?)\[\[\s*\/\s*actions\s*\]\]/gi;
@@ -29,41 +29,11 @@ const BOTON_MARKUP_RE =
 const BOTON_WRAP_RE =
   /^\[\[\s*bot[oó]n\s*\]\]([\s\S]*)\[\[\s*\/\s*bot[oó]n\s*\]\]$|^\[bot[oó]n\]([\s\S]*)\[\/bot[oó]n\]$/i;
 
-const BULLET_LINE = /^\s*[-*•]\s+(.+?)\s*$/;
-
 const MAX_OFFERS = 4;
-
-const OFFER_RE =
-  /^(mostr[áa]|mostrame|mostrar|compar[áa]|comparar|superpon[ée]|superponer|tra[ée]|traer|busc[áa]|buscar|calcul[áa]|calcular|agreg[áa]|agregar|cruz[áa]|cruzar|filtr[áa]|filtrar|list[áa]|listar|arm[áa]|armar|profundiz[áa]|profundizar|analiz[áa]|analizar|sum[áa]|sumar|dame|quiero|ver)(?=\s|$|[¿?¡!.,;:])/i;
-
-const FACT_LABEL_RE =
-  /^(d[ií]a|fecha|ventana|d[oó]lar|riesgo|fuente|extracto|serie|a la izquierda|a la derecha|en (el|la) canvas)(?=\s|$|[¿?¡!.,;:])/i;
-
-const ISO_DAY_RE = /^\d{4}-\d{2}-\d{2}\b/;
 
 export type ChatSegment =
   | { type: "text"; text: string }
   | { type: "button"; text: string };
-
-/** Executable next ask (imperative / infinitive), not a dated fact. */
-export function looksLikeOffer(text: string): boolean {
-  const label = stripBotonWrappers(text);
-  if (!label || label.length > 140) return false;
-  if (ISO_DAY_RE.test(label) || FACT_LABEL_RE.test(label)) return false;
-  const kv = /^([^:]{2,40}):\s+\S/.exec(label);
-  if (kv && !OFFER_RE.test(label)) return false;
-  if (OFFER_RE.test(label)) return true;
-  return /\?\s*$/.test(label) && label.length <= 100;
-}
-
-/** Analyst kv/date dump that must stay as prose, never a clickable chip. */
-export function looksLikeFact(text: string): boolean {
-  const label = stripBotonWrappers(text);
-  if (!label) return false;
-  if (ISO_DAY_RE.test(label) || FACT_LABEL_RE.test(label)) return true;
-  const kv = /^([^:]{2,40}):\s+\S/.exec(label);
-  return Boolean(kv && !OFFER_RE.test(label));
-}
 
 /** Collapse ``[boton][boton]X[/boton][/boton]`` so the parser sees one pair. */
 export function collapseNestedBoton(content: string): string {
@@ -99,7 +69,7 @@ export function stripBotonWrappers(label: string): string {
 
 function pushAction(raw: string, actions: string[]): void {
   const text = stripBotonWrappers(raw.replace(/^[-*•\d.)\s]+/, "").trim());
-  if (!text || looksLikeFact(text)) return;
+  if (!text) return;
   if (actions.some((item) => isSimilarAsk(item, text))) return;
   if (actions.length < MAX_OFFERS) actions.push(text);
 }
@@ -203,9 +173,7 @@ export function parseInlineButtons(content: string): ChatSegment[] {
       if (text) segments.push({ type: "text", text });
     }
     const label = stripBotonWrappers(match[1] ?? match[2] ?? "");
-    if (label && looksLikeFact(label) && !looksLikeOffer(label)) {
-      segments.push({ type: "text", text: label });
-    } else if (label) {
+    if (label) {
       segments.push({ type: "button", text: label });
     }
     last = match.index + match[0].length;
@@ -252,64 +220,17 @@ function alreadyCovered(label: string, existing: string[]): boolean {
   return existing.some((item) => isSimilarAsk(item, label));
 }
 
-/** Turn ``- offer`` lists into inline ``[boton]`` tags on the previous sentence. */
-export function liftBulletOffers(prose: string): string {
-  const lines = prose.split("\n");
-  const out: string[] = [];
-  let index = 0;
-  while (index < lines.length) {
-    const bullet = lines[index].match(BULLET_LINE);
-    if (!bullet) {
-      out.push(lines[index]);
-      index += 1;
-      continue;
-    }
-    const offers: string[] = [];
-    const factLines: string[] = [];
-    while (index < lines.length) {
-      const item = lines[index].match(BULLET_LINE);
-      if (!item) break;
-      const raw = item[1];
-      const label = stripBotonWrappers(raw.replace(/\s+/g, " ").trim());
-      const tagged = /\[\/?bot[oó]n\]/i.test(raw);
-      if (label && (tagged || looksLikeOffer(label))) {
-        if (offers.length < MAX_OFFERS) offers.push(label);
-      } else if (lines[index].trim()) {
-        factLines.push(lines[index]);
-      }
-      index += 1;
-    }
-    if (offers.length > 0) {
-      const tags = offers.map(buttonTag).join(" ");
-      while (out.length > 0 && !out[out.length - 1].trim()) out.pop();
-      if (out.length > 0) {
-        out[out.length - 1] = `${out[out.length - 1].trimEnd()} ${tags}`;
-      } else {
-        out.push(tags);
-      }
-    }
-    if (factLines.length > 0) {
-      out.push(...factLines);
-    }
-  }
-  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-
 /**
- * Fold block ``[[actions]]`` and dash-list offers into the prose as inline
- * buttons so they read as part of the sentence, not a second UI.
+ * Fold explicitly parsed actions into prose as inline buttons.
  */
 export function embedOffersInProse(prose: string, actions: string[]): string {
-  const text = liftBulletOffers(prose);
+  const text = prose;
   const existing = parseInlineButtons(text)
     .filter((segment) => segment.type === "button")
     .map((segment) => segment.text);
   const extra = actions
     .map(stripBotonWrappers)
-    .filter(
-      (action) =>
-        action && !looksLikeFact(action) && !alreadyCovered(action, existing),
-    );
+    .filter((action) => action && !alreadyCovered(action, existing));
   const room = Math.max(0, MAX_OFFERS - existing.length);
   const clipped = extra.slice(0, room);
   if (clipped.length === 0) return text;
