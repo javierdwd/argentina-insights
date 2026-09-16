@@ -6,6 +6,7 @@ rosters or roll calls (rate limits + latency).
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Any
 from urllib.parse import quote
@@ -168,6 +169,36 @@ async def enrich_person_card(person: dict, *, refresh: bool = False) -> dict:
     if links:
         out["links"] = links
     return out
+
+
+async def fetch_people(
+    names: str | list[str],
+    *,
+    refresh: bool = False,
+) -> list[dict[str, Any]]:
+    """Resolve public figures through Wikidata/Wikipedia for PersonCard rows."""
+    raw_names = names.split("|") if isinstance(names, str) else names
+    clean_names: list[str] = []
+    seen: set[str] = set()
+    for raw_name in raw_names:
+        name = " ".join(str(raw_name or "").split()).strip()
+        folded = name.casefold()
+        if not looks_like_person_name(name) or folded in seen:
+            continue
+        seen.add(folded)
+        clean_names.append(name)
+
+    enriched = await asyncio.gather(
+        *(enrich_person({"nombre": name}, refresh=refresh) for name in clean_names)
+    )
+    return [
+        row
+        for row in enriched
+        if any(
+            row.get(key)
+            for key in ("bio", "foto", "imagen", "partido", "redes")
+        )
+    ]
 
 
 async def _lookup(name: str) -> dict[str, Any]:

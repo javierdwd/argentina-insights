@@ -1,8 +1,7 @@
-"""Deterministic dataset reshape tool for the respond agent.
+"""Generic deterministic dataset reshapes for the respond agent.
 
-The LLM sees shapes in the datasets index (keys / sample) and calls this tool
-to flatten one level of nesting — e.g. actas with ``votos[]`` → one row per
-acta with that legislator's scalar ``voto``. No HTTP; reads ``state.datasets``.
+The LLM sees shapes in the dataset index and explicitly projects, flattens, or
+groups them before composition. No HTTP; reads ``state.datasets``.
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ from langgraph.prebuilt import InjectedState
 
 from ..proxy import filters
 
-OpName = Literal["unnest_match", "project"]
+OpName = Literal["unnest_match", "explode", "group_count", "project"]
 
 
 def _child_matches(child: dict, where: dict[str, Any]) -> bool:
@@ -95,6 +94,58 @@ def project_rows(rows: list[dict], fields: list[str]) -> list[dict]:
     ]
 
 
+def explode_rows(
+    rows: list[dict],
+    *,
+    nested: str,
+    keep: list[str] | None,
+    lift: list[str] | None,
+) -> list[dict]:
+    """Flatten every object in a nested array into its own row."""
+    output: list[dict] = []
+    for parent in rows:
+        children = parent.get(nested)
+        if not isinstance(children, list):
+            continue
+        for child in children:
+            if not isinstance(child, dict):
+                continue
+            row = {key: parent.get(key) for key in (keep or []) if key in parent}
+            keys = lift or list(child)
+            row.update({key: child.get(key) for key in keys if key in child})
+            output.append(row)
+    return output
+
+
+def group_count(
+    rows: list[dict],
+    *,
+    group_by: list[str],
+    category: str,
+    categories: list[str] | None,
+) -> list[dict]:
+    """Count category values per group, producing chart-ready wide rows."""
+    grouped: dict[tuple, dict] = {}
+    known_categories = list(categories or [])
+    for source in rows:
+        key = tuple(source.get(field) for field in group_by)
+        row = grouped.setdefault(
+            key,
+            {field: source.get(field) for field in group_by},
+        )
+        value = source.get(category)
+        if value in (None, ""):
+            continue
+        label = str(value)
+        row[label] = int(row.get(label, 0)) + 1
+        if label not in known_categories:
+            known_categories.append(label)
+    for row in grouped.values():
+        for label in known_categories:
+            row.setdefault(label, 0)
+    return list(grouped.values())
+
+
 def run_transform(
     datasets: dict,
     *,
@@ -106,6 +157,9 @@ def run_transform(
     lift: list[str] | None = None,
     drop_unmatched: bool = True,
     fields: list[str] | None = None,
+    group_by: list[str] | None = None,
+    category: str | None = None,
+    categories: list[str] | None = None,
 ) -> list[dict]:
     """Apply a whitelisted reshape against an indexed dataset."""
     ds = datasets.get(source)
@@ -119,6 +173,21 @@ def run_transform(
 
     if op == "project":
         return project_rows(rows, fields or [])
+
+    if op == "explode":
+        if not nested:
+            raise ValueError("explode requires nested=<array key>.")
+        return explode_rows(rows, nested=nested, keep=keep, lift=lift)
+
+    if op == "group_count":
+        if not group_by or not category:
+            raise ValueError("group_count requires group_by and category.")
+        return group_count(
+            rows,
+            group_by=group_by,
+            category=category,
+            categories=categories,
+        )
 
     if op == "unnest_match":
         if not nested:
@@ -145,6 +214,9 @@ def transform_dataset(
     lift: list[str] | None = None,
     drop_unmatched: bool = True,
     fields: list[str] | None = None,
+    group_by: list[str] | None = None,
+    category: str | None = None,
+    categories: list[str] | None = None,
     state: Annotated[dict, InjectedState] = None,  # type: ignore[assignment]
 ) -> str:
     """Reshape an already-fetched dataset (no HTTP). One nesting level.
@@ -158,6 +230,10 @@ def transform_dataset(
       - unnest_match: for each parent, find the first child in ``nested`` that
         matches ``where`` (AND, accent-insensitive), keep parent fields + lift
         child fields into a flat row.
+      - explode: flatten every object in ``nested`` into one row. Use for
+        nested filmografia/elenco or any array that must become a List/cards.
+      - group_count: count ``category`` values per ``group_by`` fields into
+        wide chart-ready rows (for example vote counts per bloque).
       - project: keep only top-level ``fields`` on each row.
 
     Example (legislator vote history after fetch …/actas?includeVotes=true):
@@ -182,6 +258,9 @@ def transform_dataset(
         lift: Child keys to copy onto each output row.
         drop_unmatched: If true (default), skip parents with no matching child.
         fields: Keys to keep for op=project.
+        group_by: Grouping keys for group_count.
+        category: Field whose values become count columns for group_count.
+        categories: Optional complete category list; missing counts become 0.
 
     Returns:
         JSON list of flat rows, or a No records / Error message.
@@ -198,6 +277,9 @@ def transform_dataset(
             lift=lift,
             drop_unmatched=drop_unmatched,
             fields=fields,
+            group_by=group_by,
+            category=category,
+            categories=categories,
         )
     except ValueError as exc:
         return f"Error: {exc}"

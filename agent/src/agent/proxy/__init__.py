@@ -990,6 +990,20 @@ async def _resolve_external(
                     f"{_NO_MATCH_GUIDANCE}"
                 )
             return row
+        if path == "/v1/wiki/personas":
+            names = client_params.get("names")
+            if not names:
+                raise ProxyError(
+                    "/v1/wiki/personas requires names=… "
+                    "(pipe-separated full names)."
+                )
+            rows = await wiki.fetch_people(str(names), refresh=refresh)
+            if not rows:
+                raise NoMatch(
+                    f"No records: Wikipedia found no public-figure profiles "
+                    f"for {names!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
         if path == "/v1/noticias":
             q = str(client_params.get("q") or "").strip()
             if not q:

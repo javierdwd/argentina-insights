@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-from agent.graph import (
-    _coerce_period_bars_widgets,
-    _fallback_tree_for_hits,
-    _period_levels_from_datasets,
-    _period_overlay_from_datasets,
-)
+from agent.graph import _period_levels_from_datasets, _period_overlay_from_datasets
 
 
 def _ds(path: str, rows: list[dict], **params: object) -> dict:
@@ -126,82 +121,10 @@ def test_period_overlay_slugs_fernandez_without_dropping_accent() -> None:
     assert filled
 
 
-def test_coerce_chart_series_maps_fernandez_key() -> None:
-    from agent.graph import _coerce_chart_series_widgets
-
-    datasets = {
-        "ds": {
-            "id": "ds",
-            "path": "derived/period_overlay",
-            "keys": ["fecha", "mauricio_macri", "alberto_fern_ndez", "javier_milei"],
-            "rows": [],
-            "N": 1,
-        }
-    }
-    tree = {
-        "id": "chart",
-        "type": "Chart",
-        "props": {
-            "dataRef": "ds",
-            "kind": "line",
-            "xKey": "fecha",
-            "series": [
-                {"key": "mauricio_macri", "label": "Mauricio Macri"},
-                {"key": "alberto_fernandez", "label": "Alberto Fernández"},
-                {"key": "javier_milei", "label": "Javier Milei"},
-            ],
-        },
-    }
-    out = _coerce_chart_series_widgets(tree, datasets)
-    keys = [s["key"] for s in out["props"]["series"]]
-    assert keys == ["mauricio_macri", "alberto_fern_ndez", "javier_milei"]
 
 
-def test_coerce_period_bars_retargets_invented_keys() -> None:
-    datasets = {
-        "p": _presidents(),
-        "b": _blue(),
-    }
-    levels = _period_levels_from_datasets(datasets)
-    assert levels is not None
-    datasets[levels["id"]] = levels
-
-    tree = {
-        "id": "bad",
-        "type": "PeriodBars",
-        "title": "Máximo blue",
-        "props": {
-            "labelKey": "periodoPresidencial",
-            "valueKey": "venta",
-            "sublabelKey": "inicio_fin",
-            "dataRef": "b",  # raw FX — wrong shape
-            "limit": 4,
-        },
-    }
-    out = _coerce_period_bars_widgets(tree, datasets)
-    assert out["props"]["dataRef"] == levels["id"]
-    assert out["props"]["labelKey"] == "label"
-    assert out["props"]["valueKey"] == "value"
-    assert out["props"]["sublabelKey"] == "sublabel"
 
 
-def test_fallback_tree_uses_period_widgets() -> None:
-    datasets = {"p": _presidents(), "b": _blue()}
-    levels = _period_levels_from_datasets(datasets)
-    overlay = _period_overlay_from_datasets(datasets)
-    assert levels is not None and overlay is not None
-    bag = {levels["id"]: levels, overlay["id"]: overlay}
-    tree = _fallback_tree_for_hits(bag, {levels["id"], overlay["id"]})
-    assert tree is not None
-    kinds = [child["type"] for child in tree["children"]]
-    assert kinds == ["PeriodBars", "Chart"]
-    bars, chart = tree["children"]
-    assert bars["props"]["dataRef"] == levels["id"]
-    assert bars["props"]["labelKey"] == "label"
-    assert chart["props"]["dataRef"] == overlay["id"]
-    assert chart["props"]["xKey"] == "fecha"
-    assert chart["props"]["kind"] == "line"
-    assert len(chart["props"]["series"]) >= 2
 
 
 def test_period_levels_copies_person_fields_without_president_logic() -> None:

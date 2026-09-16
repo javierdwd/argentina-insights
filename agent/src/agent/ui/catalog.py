@@ -54,6 +54,12 @@ def field_aliases_for(widget_type: str) -> dict[str, tuple]:
     return widget.field_aliases if widget else {}
 
 
+def requires_data_ref(widget_type: str) -> bool:
+    """Whether a catalog widget is backed by a fetched dataset."""
+    widget = _widget(widget_type)
+    return bool(widget and widget.data)
+
+
 WIDGET_CATALOG: list[WidgetDef] = [
     WidgetDef(
         type="Metric",
@@ -119,8 +125,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "or two sentences. "
             "Historical-day context from historico/dia or wiki/summary: use "
             "Text with the full extract (3–6 sentences) — title = event headline. "
-            "PersonCard for the day's persona is a separate presidentes fetch, "
-            "not this Text."
+            "PersonCard for the day's protagonists is a separate official-roster "
+            "or wiki/personas fetch, not this Text."
         ),
         when_not=(
             "The answer to a question, a list of suggestions, 'qué más podríamos "
@@ -316,6 +322,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "Historical day with persona: 1-row /v1/presidentes "
             "(name←nombre, photoUrl←imagen, party←partido, "
             "role←periodoPresidencial) — NEVER historico/dia. "
+            "Other named public figures: /v1/wiki/personas "
+            "(name←nombre, photoUrl←foto, party←partido, bio←bio, "
+            "links←redes). Prefer official rosters when available. "
             "Film cast: bind /v1/cine/pelicula/{id} (nested elenco); "
             "name←name|nombre, photoUrl←foto, role←role|cargo. "
             "Single profile with email/telefono/redes → map those too. "

@@ -31,7 +31,8 @@ class AgentState(MessagesState):
                         an unbound mid-stream tree.
         datasets:       Dataset store keyed by dataset id.  Merge reducer:
                         accumulates across tool calls within a turn.
-                        Shape: { ds_id → { id, path, params, rows, keys, N, date_range } }
+                        Each record includes id, path, params, rows, keys, N,
+                        date_range, status (hit|empty|error), and error.
         has_tool_calls: Routing signal set by respond_node.  True when the LLM
                         just emitted tool calls; False when it produced its final
                         (silent) response.

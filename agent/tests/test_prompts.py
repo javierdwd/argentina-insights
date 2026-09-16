@@ -32,12 +32,12 @@ def test_historical_day_recipe_fetches_only_relevant_context() -> None:
     assert "retrospective" in respond
     assert "period reporting" in respond
     assert "purely numeric" in respond
-    assert "climate and personcard" in respond
-    assert "automatic" in respond
+    assert "do not add unrelated source" in respond
     assert "spanish q" in respond
-    assert "weatherunit" in compose
-    assert "news" in compose
-    assert "never bind personcard to historico/dia" in compose
+    assert "/v1/wiki/personas" in caps
+    assert "official roster" in caps
+    assert "both personcard and news" in caps
+    assert "dataset shape" in compose
     catalog_text = catalog.as_prompt_text("data")
     assert "persona" in catalog_text
     widgets = widget_catalog_text().casefold()
@@ -155,10 +155,8 @@ def test_compose_catalog_includes_box_last_resort() -> None:
     assert "user-named form" in catalog or "beats the default" in catalog
     compose = _COMPOSE_SYSTEM.casefold()
     assert "box" in compose
-    assert "svg" in compose
-    assert "suggests" in compose
-    assert "box craft" in compose or "cold-bulletin" in compose
-    assert "not a mandatory pigeonhole" in compose or "named form" in compose
+    assert "authored diagrams" in compose
+    assert "substitute" in compose and "data-bound widget" in compose
     assert "flechas" not in compose  # principle, not keyword triggers
 
 
@@ -259,7 +257,7 @@ def test_ensure_brief_actions_skips_when_inline_boton_exists() -> None:
     assert "[boton]Mostrá la diferencia porcentual[/boton]" in out
 
 
-def test_compose_prompt_requires_one_chart_for_shared_axes() -> None:
+def test_compose_prompt_prefers_one_visual_for_compatible_measures() -> None:
     text = _build_compose_system(
         {
             "messages": [],
@@ -269,14 +267,13 @@ def test_compose_prompt_requires_one_chart_for_shared_axes() -> None:
             "ui_tree_unbound": None,
         }
     )
-    assert "Same axes" in text or "same X" in text
+    assert "compatible" in text
+    assert "one visual" in text
     assert "derived/series_overlay" in text
-    assert "Stack of N Charts" in text
-    assert "params.x" in text
     assert "derived/fx_spread" in text
 
 
-def test_compose_prompt_requires_two_layers_for_cruce() -> None:
+def test_compose_prompt_separates_genuinely_different_layers() -> None:
     text = _build_compose_system(
         {
             "messages": [],
@@ -286,9 +283,7 @@ def test_compose_prompt_requires_two_layers_for_cruce() -> None:
             "ui_tree_unbound": None,
         }
     )
-    assert "two layers" in text.casefold() or "Cruce = two layers" in text
-    assert "anti Chart-only" in text or "NEVER ship only Charts" in text
-    assert "de ese día" in text.casefold()
+    assert "different layers" in text.casefold()
     assert "VoteBreakdown" in text
     catalog = widget_catalog_text()
     assert "quiénes + blue" in catalog or "political layer" in catalog.casefold()
@@ -374,7 +369,7 @@ def test_compose_prompt_bans_recycled_brief() -> None:
     assert "qué voy a mostrar" in text.casefold()
 
 
-def test_compose_hides_old_canvas_when_this_turn_has_hits() -> None:
+def test_compose_exposes_old_canvas_for_duplicate_detection() -> None:
     from langchain_core.messages import AIMessage, HumanMessage
 
     from agent.graph import _dataset_id
@@ -439,164 +434,19 @@ def test_compose_hides_old_canvas_when_this_turn_has_hits() -> None:
             },
         }
     )
-    assert "obsolete for this turn" in text
-    assert "uva_stack" not in text
+    assert "current canvas is authoritative" in text.casefold()
+    assert "never add a second widget" in text.casefold()
+    assert "uva_stack" in text
     assert "MUST bind at least one" in text
     assert "hidden — this turn has new hits" in text
-    assert "ds_olduva" not in text
+    assert "ds_olduva" in text
     assert ds_id in text
 
 
-def test_compose_stale_tree_guardrail() -> None:
-    from agent.graph import (
-        _brief_from_respond_note,
-        _compose_tree_is_stale,
-        _fallback_list_tree,
-        _list_props_for_dataset,
-        _tree_data_refs,
-        _tree_has_inline_metrics,
-    )
-
-    tree = {
-        "id": "uva_inflacion_stack",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "uva_inflacion_chart",
-                "type": "Chart",
-                "props": {"dataRef": "ds_be7348b3"},
-            }
-        ],
-    }
-    assert _tree_data_refs(tree) == {"ds_be7348b3"}
-    assert _compose_tree_is_stale(tree, {"ds_micaela"})
-    assert not _compose_tree_is_stale(tree, {"ds_be7348b3"})
-    assert _compose_tree_is_stale(
-        {"id": "x", "type": "Callout", "props": {"content": "hola"}},
-        {"ds_micaela"},
-    )
-
-    # Day-snapshot Metrics must survive even when the Acta dataRef is not a
-    # this-turn hit (or the tree only has inline values + Text).
-    day_tree = {
-        "id": "stack_main",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "metric_blue",
-                "type": "Metric",
-                "props": {"label": "Blue (venta)", "value": "1425", "unit": "ARS"},
-            },
-            {
-                "id": "text_riesgo",
-                "type": "Text",
-                "props": {"content": "Sin riesgo país ese día."},
-            },
-            {
-                "id": "acta_ba",
-                "type": "Acta",
-                "props": {"dataRef": "ds_old_acta"},
-            },
-        ],
-    }
-    assert _tree_has_inline_metrics(day_tree)
-    assert not _compose_tree_is_stale(day_tree, {"ds_blue_series", "ds_riesgo"})
-    assert not _compose_tree_is_stale(
-        {
-            "id": "metric_only",
-            "type": "Metric",
-            "props": {"label": "Blue", "value": 1425, "unit": "ARS"},
-        },
-        {"ds_blue_series"},
-    )
-
-    # Authored Box layouts must survive like Metrics — otherwise a previous
-    # bound canvas + new conceptual comparison gets discarded as unbound.
-    from agent.graph import _tree_has_authored_box, _tree_is_authored_canvas
-
-    box_tree = {
-        "id": "blue_vs_oficial",
-        "type": "Box",
-        "title": "Blue vs oficial",
-        "props": {"className": "flex flex-col gap-4"},
-        "children": [
-            {
-                "id": "cols",
-                "type": "div",
-                "props": {"className": "grid grid-cols-2 gap-6"},
-                "children": [
-                    {
-                        "id": "oficial",
-                        "type": "p",
-                        "props": {
-                            "className": "text-sm text-foreground",
-                            "text": "Mercado formal regulado.",
-                        },
-                    },
-                    {
-                        "id": "blue",
-                        "type": "p",
-                        "props": {
-                            "className": "text-sm text-foreground",
-                            "content": "Mercado informal / paralelo.",
-                        },
-                    },
-                ],
-            }
-        ],
-    }
-    assert _tree_has_authored_box(box_tree)
-    assert _tree_is_authored_canvas(box_tree)
-    assert not _compose_tree_is_stale(box_tree, {"ds_blue_series"})
-
-    fb = _fallback_list_tree(
-        {
-            "id": "ds_micaela",
-            "keys": ["titulo", "fecha", "resultado", "camara"],
-        }
-    )
-    assert fb["children"][0]["props"]["dataRef"] == "ds_micaela"
-    assert {c["key"] for c in fb["children"][0]["props"]["columns"]} >= {
-        "titulo",
-        "fecha",
-    }
-
-    fx_props = _list_props_for_dataset(
-        {"id": "ds_blue", "keys": ["fecha", "compra", "venta"]}
-    )
-    assert {c["key"] for c in fx_props["columns"]} >= {"fecha", "venta"}
-
-    brief = _brief_from_respond_note(
-        "Encontré actas.\n[[next]]\n- Ver votos\n[[/next]]\n[[route]] compose [[/route]]"
-    )
-    assert "Encontré actas" in brief
-    assert "[[route]]" not in brief
-    assert "[[actions]]" in brief
-    assert "Ver votos" in brief
 
 
-def test_brief_from_respond_note_drops_analyst_fact_dump() -> None:
-    from agent.graph import _brief_from_respond_note, _strip_fact_dump_from_brief
-
-    note = (
-        "Analista — datos concretos obtenidos\n"
-        "- Día: 2020-05-22 — \"Oferta de canje de deuda\"\n"
-        "- Ventana usada: 2020-05-15 → 2020-05-29\n"
-        "Qué voy a mostrar en el canvas\n"
-        "- A la izquierda: el extracto\n"
-        "[[next]]\n"
-        "- Compará el blue con MEP y CCL\n"
-        "- Mostrá la tabla diaria\n"
-        "[[/next]]\n"
-        "[[route]] compose [[/route]]"
-    )
-    brief = _brief_from_respond_note(note)
-    assert "Analista" not in brief
-    assert "Ventana usada" not in brief
-    assert "A la izquierda" not in brief
-    assert "Oferta de canje de deuda (2020-05-22)" in brief
-    assert "Compará el blue con MEP y CCL" in brief
-    assert "[[actions]]" in brief
+def test_strip_fact_dump_from_brief_keeps_actions() -> None:
+    from agent.graph import _strip_fact_dump_from_brief
 
     dumped = (
         "Analista — datos concretos obtenidos\n"
@@ -612,180 +462,9 @@ def test_brief_from_respond_note_drops_analyst_fact_dump() -> None:
     assert "Compará el blue" in cleaned
 
 
-def test_fallback_fx_series_is_line_chart() -> None:
-    from agent.graph import (
-        _coerce_series_list_widgets,
-        _fallback_tree_for_hits,
-    )
 
-    rows = [
-        {"fecha": f"2020-05-{day:02d}", "compra": 120 + day, "venta": 128 + day}
-        for day in range(15, 30)
-    ]
-    ds = {
-        "id": "ds_blue",
-        "path": "/v1/cotizaciones/dolares/blue",
-        "params": {"casa": "blue"},
-        "keys": ["fecha", "compra", "venta"],
-        "N": len(rows),
-        "rows": rows,
-    }
-    tree = _fallback_tree_for_hits({"ds_blue": ds}, {"ds_blue"})
-    assert tree is not None
-    chart = tree["children"][0]
-    assert chart["type"] == "Chart"
-    assert chart["props"]["kind"] == "line"
-    assert chart["props"]["xKey"] == "fecha"
-    assert any(s["key"] == "venta" for s in chart["props"]["series"])
-
-    listed = {
-        "id": "root",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "turn_list",
-                "type": "List",
-                "title": "Resultados de esta consulta",
-                "props": {
-                    "dataRef": "ds_blue",
-                    "columns": [
-                        {"key": "fecha", "label": "Fecha"},
-                        {"key": "venta", "label": "Blue"},
-                    ],
-                },
-            }
-        ],
-    }
-    coerced = _coerce_series_list_widgets(listed, {"ds_blue": ds})
-    assert coerced["children"][0]["type"] == "Chart"
-    assert coerced["children"][0]["props"]["kind"] == "line"
-
-
-def test_fallback_keeps_acta_hits_as_list() -> None:
-    from agent.graph import _fallback_tree_for_hits
-
-    ds = {
-        "id": "ds_micaela",
-        "path": "/v1/senado/actas",
-        "keys": ["titulo", "fecha", "resultado", "camara"],
-        "N": 3,
-        "rows": [
-            {
-                "titulo": "Ley Micaela",
-                "fecha": "2019-01-01",
-                "resultado": "AFIRMATIVA",
-                "camara": "Senado",
-            }
-        ],
-    }
-    tree = _fallback_tree_for_hits({"ds_micaela": ds}, {"ds_micaela"})
-    assert tree is not None
-    assert tree["children"][0]["type"] == "List"
-    assert tree["children"][0]["props"]["dataRef"] == "ds_micaela"
-
-
-def test_fallback_peak_series_and_actas_is_chart_plus_list() -> None:
-    from agent.graph import _fallback_tree_for_hits
-
-    riesgo_rows = [
-        {"fecha": f"2026-01-{day:02d}", "valor": 800 + day}
-        for day in range(1, 10)
-    ]
-    riesgo_rows[4]["valor"] = 2400  # 2026-01-05
-    riesgo = {
-        "id": "ds_riesgo",
-        "path": "/v1/finanzas/indices/riesgo-pais",
-        "keys": ["fecha", "valor"],
-        "N": len(riesgo_rows),
-        "rows": riesgo_rows,
-    }
-    actas = {
-        "id": "ds_actas",
-        "path": "/v1/senado/actas",
-        "keys": ["titulo", "fecha", "resultado"],
-        "N": 1,
-        "rows": [
-            {
-                "titulo": "Modernización laboral",
-                "fecha": "2026-01-05",
-                "resultado": "AFIRMATIVA",
-            }
-        ],
-    }
-    tree = _fallback_tree_for_hits(
-        {"ds_riesgo": riesgo, "ds_actas": actas},
-        {"ds_riesgo", "ds_actas"},
-    )
-    assert tree is not None
-    types = [c["type"] for c in tree["children"]]
-    assert "Chart" in types
-    assert "List" in types
-    chart = next(c for c in tree["children"] if c["type"] == "Chart")
-    assert chart["props"]["dataRef"] == "ds_riesgo"
-    actas_list = next(c for c in tree["children"] if c["type"] == "List")
-    assert actas_list["props"]["dataRef"] == "ds_actas"
-
-
-def test_fallback_peak_series_without_session_adds_callout() -> None:
-    from agent.graph import _fallback_tree_for_hits
-
-    riesgo_rows = [
-        {"fecha": f"2026-03-{day:02d}", "valor": 500 + day}
-        for day in range(1, 8)
-    ]
-    riesgo = {
-        "id": "ds_riesgo",
-        "path": "/v1/finanzas/indices/riesgo-pais",
-        "keys": ["fecha", "valor"],
-        "N": len(riesgo_rows),
-        "rows": riesgo_rows,
-    }
-    miss = {
-        "id": "ds_actas",
-        "path": "/v1/senado/actas",
-        "keys": ["titulo", "fecha", "resultado"],
-        "N": 0,
-        "rows": [],
-    }
-    tree = _fallback_tree_for_hits(
-        {"ds_riesgo": riesgo, "ds_actas": miss},
-        {"ds_riesgo"},
-        {"ds_riesgo", "ds_actas"},
-    )
-    assert tree is not None
-    types = [c["type"] for c in tree["children"]]
-    assert "Chart" in types
-    assert "Callout" in types
-    callout = next(c for c in tree["children"] if c["type"] == "Callout")
-    assert "Senado" in callout["props"]["content"]
-
-
-def test_brief_from_respond_note_keeps_peak_facts() -> None:
-    from agent.graph import _brief_from_respond_note
-
-    note = (
-        "Riesgo país máximo: 2026-01-15 con 2143 puntos.\n"
-        "Ese día el Senado votó la modernización laboral (AFIRMATIVA).\n"
-        "[[next]]\n"
-        "- Mostrá el roll call de esa acta\n"
-        "[[/next]]\n"
-        "[[route]] compose [[/route]]"
-    )
-    brief = _brief_from_respond_note(note)
-    assert "2143" in brief or "Senado" in brief
-    assert "[[actions]]" in brief
-    assert "roll call" in brief.casefold() or "Mostrá el roll" in brief
-
-
-def test_compose_null_tree_with_hits_needs_fallback() -> None:
-    from agent.graph import _compose_tree_needs_fallback, _should_compose
-
-    hits = {"ds_x"}
-    datasets = {"ds_x": {"id": "ds_x", "N": 3, "rows": [{}]}}
-    assert _compose_tree_needs_fallback(None, hits, datasets)
-    assert not _compose_tree_needs_fallback(None, set(), datasets)
-    good = {"id": "c", "type": "Chart", "props": {"dataRef": "ds_x"}}
-    assert not _compose_tree_needs_fallback(good, hits, datasets)
+def test_should_compose_routes_without_legacy_fallback() -> None:
+    from agent.graph import _should_compose
 
     leak = (
         "Puse en pantalla dos visualizaciones "
@@ -834,266 +513,18 @@ def test_compose_null_tree_with_hits_needs_fallback() -> None:
     )
 
 
-def test_coerce_acta_search_hits_to_list() -> None:
-    from agent.graph import _coerce_acta_widgets, _dataset_looks_like_roll_call
-
-    search_ds = {
-        "id": "ds_search",
-        "keys": ["id", "titulo", "fecha", "resultado", "camara"],
-        "N": 2,
-        "rows": [],
-    }
-    votos_ds = {
-        "id": "ds_votos",
-        "keys": ["nombre", "voto", "titulo", "fecha"],
-        "N": 10,
-        "rows": [],
-    }
-    summarized_ds = {
-        "id": "ds_list",
-        "keys": ["id", "titulo", "fecha", "resultado", "votos"],
-        "N": 3,
-        "sample": [
-            {
-                "id": 1,
-                "titulo": "Ley X",
-                "fecha": "2026-01-01",
-                "resultado": "AFIRMATIVA",
-                "votos": "afirmativo: 40, negativo: 10",
-            }
-        ],
-        "rows": [],
-    }
-    assert not _dataset_looks_like_roll_call(search_ds)
-    assert _dataset_looks_like_roll_call(votos_ds)
-    assert not _dataset_looks_like_roll_call(summarized_ds)
-
-    nested_ds = {
-        "id": "ds_detail",
-        "keys": ["id", "titulo", "fecha", "resultado", "votos"],
-        "N": 1,
-        "sample": [
-            {
-                "id": 2623,
-                "titulo": "Modernización Laboral",
-                "fecha": "2026-02-12",
-                "resultado": "AFIRMATIVA",
-                "votos": [
-                    {"nombre": "A", "voto": "afirmativo"},
-                    {"nombre": "B", "voto": "negativo"},
-                ],
-            }
-        ],
-        "rows": [],
-    }
-    assert _dataset_looks_like_roll_call(nested_ds)
-
-    tree = {
-        "id": "root",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "bad_acta",
-                "type": "Acta",
-                "title": "Hits",
-                "props": {"dataRef": "ds_search"},
-            },
-            {
-                "id": "ok_acta",
-                "type": "Acta",
-                "title": "Roll call",
-                "props": {"dataRef": "ds_votos"},
-            },
-            {
-                "id": "summarized_acta",
-                "type": "Acta",
-                "title": "Summarized",
-                "props": {"dataRef": "ds_list"},
-            },
-        ],
-    }
-    out = _coerce_acta_widgets(
-        tree,
-        {
-            "ds_search": search_ds,
-            "ds_votos": votos_ds,
-            "ds_list": summarized_ds,
-        },
-    )
-    assert out["children"][0]["type"] == "List"
-    assert out["children"][0]["props"]["dataRef"] == "ds_search"
-    assert out["children"][0]["props"]["columns"][0]["key"] == "titulo"
-    assert out["children"][1]["type"] == "Acta"
-    assert out["children"][2]["type"] == "List"
 
 
-def test_bind_list_expands_nested_filmografia_column() -> None:
-    """A filmografia column on the person row used to render as \"20\"."""
-    from agent.graph import _bind_node
-
-    films = [
-        {"titulo": "Nueve reinas", "fecha": "2000-08-31", "foto": "https://x/a.jpg", "valor": 7.9},
-        {"titulo": "El secreto de sus ojos", "fecha": "2009-08-13", "foto": "https://x/b.jpg", "valor": 8.2},
-    ]
-    datasets = {
-        "ds_persona": {
-            "id": "ds_persona",
-            "keys": ["nombre", "foto", "bio", "filmografia"],
-            "N": 1,
-            "rows": [
-                {
-                    "nombre": "Ricardo Darín",
-                    "foto": "https://x/darin.jpg",
-                    "bio": "Actor",
-                    "filmografia": films,
-                }
-            ],
-        }
-    }
-    tree = {
-        "id": "list",
-        "type": "List",
-        "title": "Filmografía",
-        "props": {
-            "dataRef": "ds_persona",
-            "columns": [{"key": "filmografia", "label": "Filmografía"}],
-        },
-    }
-    out = _bind_node(tree, datasets)
-    rows = out["props"]["data"]
-    assert len(rows) == 2
-    assert rows[0]["titulo"] == "Nueve reinas"
-    col_keys = [c["key"] for c in out["props"]["columns"]]
-    assert "filmografia" not in col_keys
-    assert "titulo" in col_keys
 
 
-def test_bind_list_expands_filmografia_when_columns_are_movie_fields() -> None:
-    from agent.graph import _bind_node
-
-    datasets = {
-        "ds_persona": {
-            "id": "ds_persona",
-            "N": 1,
-            "rows": [
-                {
-                    "nombre": "Ricardo Darín",
-                    "foto": "https://x/darin.jpg",
-                    "filmografia": [
-                        {"titulo": "Nueve reinas", "foto": "https://x/a.jpg", "valor": 7.9},
-                    ],
-                }
-            ],
-        }
-    }
-    tree = {
-        "id": "list",
-        "type": "List",
-        "props": {
-            "dataRef": "ds_persona",
-            "columns": [
-                {"key": "foto", "label": "Foto"},
-                {"key": "titulo", "label": "Título"},
-                {"key": "valor", "label": "Rating"},
-            ],
-        },
-    }
-    out = _bind_node(tree, datasets)
-    rows = out["props"]["data"]
-    assert len(rows) == 1
-    assert rows[0]["titulo"] == "Nueve reinas"
 
 
-def test_bind_acta_expands_nested_votos() -> None:
-    from agent.graph import _bind_node
-
-    datasets = {
-        "ds_detail": {
-            "id": "ds_detail",
-            "keys": ["id", "titulo", "fecha", "resultado", "votos"],
-            "N": 1,
-            "rows": [
-                {
-                    "id": 2623,
-                    "titulo": "Modernización Laboral",
-                    "fecha": "2026-02-12",
-                    "resultado": "AFIRMATIVA",
-                    "votos": [
-                        {"nombre": "Ana", "voto": "afirmativo", "bloque": "A"},
-                        {"nombre": "Bruno", "voto": "negativo", "bloque": "B"},
-                    ],
-                }
-            ],
-        }
-    }
-    tree = {
-        "id": "acta",
-        "type": "Acta",
-        "title": "Acta",
-        "props": {"dataRef": "ds_detail"},
-    }
-    out = _bind_node(tree, datasets)
-    rows = out["props"]["data"]
-    assert len(rows) == 2
-    assert rows[0]["voter"] == "Ana"
-    assert rows[0]["vote"] == "afirmativo"
-    assert rows[0]["title"] == "Modernización Laboral"
-    assert rows[0]["date"] == "2026-02-12"
-    assert rows[1]["voter"] == "Bruno"
-    assert "votos" not in rows[0]
 
 
-def test_bind_chart_pivots_votes_by_bloque() -> None:
-    from agent.graph import _bind_node
-
-    datasets = {
-        "ds_votos": {
-            "id": "ds_votos",
-            "keys": ["nombre", "voto", "bloque"],
-            "N": 6,
-            "rows": [
-                {"nombre": "A", "voto": "afirmativo", "bloque": "UCR"},
-                {"nombre": "B", "voto": "afirmativo", "bloque": "UCR"},
-                {"nombre": "C", "voto": "negativo", "bloque": "UCR"},
-                {"nombre": "D", "voto": "negativo", "bloque": "LLA"},
-                {"nombre": "E", "voto": "negativo", "bloque": "LLA"},
-                {"nombre": "F", "voto": "ausente", "bloque": "LLA"},
-            ],
-        }
-    }
-    tree = {
-        "id": "vote_by_block_chart",
-        "type": "Chart",
-        "title": "Votos por bloque",
-        "props": {
-            "kind": "bar",
-            "xKey": "bloque",
-            "dataRef": "ds_votos",
-            "series": [
-                {"key": "afirmativo", "label": "Afirmativo"},
-                {"key": "negativo", "label": "Negativo"},
-                {"key": "abstencion", "label": "Abstención"},
-                {"key": "ausente", "label": "Ausente"},
-            ],
-            "sort": {"key": "negativo", "dir": "desc"},
-        },
-    }
-    out = _bind_node(tree, datasets)
-    rows = out["props"]["data"]
-    assert [r["bloque"] for r in rows] == ["LLA", "UCR"]
-    by_block = {r["bloque"]: r for r in rows}
-    assert by_block["UCR"]["afirmativo"] == 2
-    assert by_block["UCR"]["negativo"] == 1
-    assert by_block["UCR"]["ausente"] == 0
-    assert by_block["LLA"]["negativo"] == 2
-    assert by_block["LLA"]["ausente"] == 1
-    assert by_block["LLA"]["afirmativo"] == 0
-    assert "dataRef" not in out["props"]
-    assert "sort" not in out["props"]
 
 
 def test_bind_chart_leaves_numeric_series_alone() -> None:
-    from agent.graph import _bind_node
+    from agent.ui.pipeline import bind_tree
 
     datasets = {
         "ds_fx": {
@@ -1116,7 +547,7 @@ def test_bind_chart_leaves_numeric_series_alone() -> None:
             "series": [{"key": "venta", "label": "Blue"}],
         },
     }
-    out = _bind_node(tree, datasets)
+    out = bind_tree(tree, datasets)
     assert out["props"]["data"] == datasets["ds_fx"]["rows"]
 
 
@@ -1126,41 +557,6 @@ def test_chart_catalog_mentions_vote_by_bloque() -> None:
     assert "afirmativo/negativo" in text
 
 
-def test_compose_keeps_previous_tree_when_new_tree_binds_empty() -> None:
-    from agent.graph import _tree_would_bind_rows
-
-    empty_tree = {
-        "id": "root",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "ghost",
-                "type": "PersonCard",
-                "props": {"dataRef": "ds_missing"},
-            }
-        ],
-    }
-    good_tree = {
-        "id": "root",
-        "type": "Stack",
-        "children": [
-            {
-                "id": "roster",
-                "type": "PersonCard",
-                "props": {"dataRef": "ds_votos"},
-            }
-        ],
-    }
-    datasets = {
-        "ds_votos": {
-            "id": "ds_votos",
-            "N": 10,
-            "rows": [{"nombre": "A", "voto": "afirmativo"}],
-            "keys": ["nombre", "voto"],
-        }
-    }
-    assert not _tree_would_bind_rows(empty_tree, datasets)
-    assert _tree_would_bind_rows(good_tree, datasets)
 
 
 def test_respond_prompt_handles_canvas_selection() -> None:

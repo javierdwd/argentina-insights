@@ -56,6 +56,8 @@ async def fetch_argentinadatos(
         {"path": "/v1/clima/historico",
          "params": {"provincia": "CABA", "desde": "2023-12-10", "hasta": "2023-12-10"}}
         {"path": "/v1/wiki/summary", "params": {"q": "Presidencia de Javier Milei"}}
+        {"path": "/v1/wiki/personas",
+         "params": {"names": "Luis Caputo|Kristalina Georgieva"}}
         {"path": "/v1/noticias",
          "params": {"q": "Milei inflación", "desde": "2024-01-01"}}
 

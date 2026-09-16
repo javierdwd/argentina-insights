@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from agent.graph import (
     _derived_datasets_for_compose,
-    _measure_axes,
     _series_overlay_from_datasets,
 )
+from agent.series_util import _measure_axes
 
 
 def _ds(path: str, rows: list[dict], **params: object) -> dict:

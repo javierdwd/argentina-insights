@@ -11,12 +11,12 @@ Pydantic class here.
 
 from __future__ import annotations
 
-from typing import Any
-
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class UINode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     """A single node in the UI tree.
 
     ``title`` is rendered by DynamicRenderer above the component — not inside
@@ -60,40 +60,10 @@ class UINode(BaseModel):
     )
 
 
-def _coerce_tree(value: Any) -> Any:
-    """Tolerate common LLM mistakes for ``tree``.
-
-    Models sometimes emit a bare list of widgets (or worse, List sort
-    fragments like ``{id, dir}``) instead of a single root ``UINode``.
-    Wrap real widgets in a Stack; drop junk so compose can still return a brief.
-    """
-    if value is None or isinstance(value, UINode):
-        return value
-    if isinstance(value, list):
-        nodes = [
-            item
-            for item in value
-            if isinstance(item, dict) and isinstance(item.get("type"), str)
-        ]
-        if not nodes:
-            return None
-        if len(nodes) == 1:
-            return nodes[0]
-        return {
-            "id": "root",
-            "type": "Stack",
-            "props": {"direction": "vertical"},
-            "children": nodes,
-        }
-    if isinstance(value, dict):
-        if not isinstance(value.get("type"), str):
-            return None
-        return value
-    return None
-
-
 class ComposeOutput(BaseModel):
     """Structured output from the compose_ui LLM node."""
+
+    model_config = ConfigDict(extra="forbid")
 
     brief: str = Field(
         description=(
@@ -117,10 +87,10 @@ class ComposeOutput(BaseModel):
         default=None,
         description=(
             "ONE root UINode (often a Stack with children), never a bare list. "
-            "Full UI tree replacing the canvas. Use ONLY when building from "
-            "scratch or making a STRUCTURAL change (add/remove/reorder widgets). "
-            "Leave null when using `patch` instead, or when leaving the canvas "
-            "unchanged (chitchat, clarification, error without a visual)."
+            "Emit only genuinely new widgets for this turn; they are merged into "
+            "the current canvas. Never repeat information already visible. Use "
+            "`patch` with the existing node id when updating an existing widget. "
+            "Leave null when the canvas should remain unchanged."
         ),
     )
     patch: dict[str, dict] | None = Field(
@@ -138,7 +108,10 @@ class ComposeOutput(BaseModel):
         ),
     )
 
-    @field_validator("tree", mode="before")
-    @classmethod
-    def _normalize_tree(cls, value: Any) -> Any:
-        return _coerce_tree(value)
+    @model_validator(mode="after")
+    def _exclusive_mutation(self) -> "ComposeOutput":
+        if self.tree is not None and self.patch:
+            raise ValueError("tree and patch are mutually exclusive")
+        if self.patch == {}:
+            raise ValueError("patch cannot be empty")
+        return self

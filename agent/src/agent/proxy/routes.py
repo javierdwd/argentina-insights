@@ -410,6 +410,15 @@ Q_WIKI = ParamSpec(
     hint="Spanish Wikipedia article title for REST summary (extract, foto, url)",
     example="Presidencia de Javier Milei",
 )
+NAMES_WIKI = ParamSpec(
+    name="names",
+    type="string",
+    hint=(
+        "pipe-separated full names of public figures to resolve through "
+        "Wikidata/Wikipedia as PersonCard-ready rows"
+    ),
+    example="Luis Caputo|Kristalina Georgieva",
+)
 Q_NEWS = ParamSpec(
     name="q",
     type="string",
@@ -652,9 +661,9 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
         summary=(
             "One curated day + Wikipedia extract (bio), foto, wikipedia_url, "
             "provincia, optional persona. Requires fecha=ISO. SAME turn: "
-            "FX/riesgo/reservas ±7d, /v1/clima/historico for provincia+fecha, "
-            "and if persona is set /v1/presidentes name= for PersonCard. "
-            "Compose Stack: PersonCard, Text, WeatherUnit, Chart"
+            "only requested series/climate, period /v1/noticias for narrative "
+            "context, and an official roster or /v1/wiki/personas for requested "
+            "public-figure PersonCards"
         ),
         params=(FECHA,),
     ),
@@ -667,6 +676,17 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "day is not in /v1/historico/dias"
         ),
         params=(Q_WIKI,),
+    ),
+    "/v1/wiki/personas": ExternalRoute(
+        path="/v1/wiki/personas",
+        domain="other",
+        summary=(
+            "Profiles of named public figures from Wikidata/Wikipedia. "
+            "Returns nombre, foto, bio, partido and redes when available. "
+            "Use for PersonCard when the figure is not available from the "
+            "official president or congressional rosters"
+        ),
+        params=(NAMES_WIKI,),
     ),
     "/v1/noticias": ExternalRoute(
         path="/v1/noticias",

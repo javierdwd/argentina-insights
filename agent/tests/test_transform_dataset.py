@@ -6,7 +6,13 @@ import json
 
 import pytest
 
-from agent.tools.transform import project_rows, run_transform, unnest_match
+from agent.tools.transform import (
+    explode_rows,
+    group_count,
+    project_rows,
+    run_transform,
+    unnest_match,
+)
 
 
 def _actas():
@@ -104,6 +110,48 @@ def test_project_rows():
         {"actaId": 1, "titulo": "Ley A"},
         {"actaId": 2, "titulo": "Ley B"},
         {"actaId": 3, "titulo": "Ley C"},
+    ]
+
+
+def test_explode_rows_flattens_every_nested_object():
+    rows = explode_rows(
+        _actas()[:1],
+        nested="votos",
+        keep=["actaId", "titulo"],
+        lift=["nombre", "voto"],
+    )
+    assert rows == [
+        {
+            "actaId": 1,
+            "titulo": "Ley A",
+            "nombre": "Abad, Maximiliano",
+            "voto": "afirmativo",
+        },
+        {
+            "actaId": 1,
+            "titulo": "Ley A",
+            "nombre": "Losada, Carolina",
+            "voto": "negativo",
+        },
+    ]
+
+
+def test_group_count_builds_wide_chart_rows():
+    votes = [
+        {"bloque": "UCR", "voto": "afirmativo"},
+        {"bloque": "UCR", "voto": "negativo"},
+        {"bloque": "UCR", "voto": "afirmativo"},
+        {"bloque": "LLA", "voto": "negativo"},
+    ]
+    rows = group_count(
+        votes,
+        group_by=["bloque"],
+        category="voto",
+        categories=["afirmativo", "negativo", "ausente"],
+    )
+    assert rows == [
+        {"bloque": "UCR", "afirmativo": 2, "negativo": 1, "ausente": 0},
+        {"bloque": "LLA", "negativo": 1, "afirmativo": 0, "ausente": 0},
     ]
 
 

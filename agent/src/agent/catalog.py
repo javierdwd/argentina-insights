@@ -71,6 +71,7 @@ _CROSS_CUTTING_PATHS: frozenset[str] = frozenset(
         "/v1/historico/dias",
         "/v1/historico/dia",
         "/v1/wiki/summary",
+        "/v1/wiki/personas",
         "/v1/noticias",
         "/v1/cine/discover",
         "/v1/cine/search",
@@ -378,6 +379,10 @@ _SUMMARY_HINTS: dict[str, str] = {
         "+ narrative context normally uses both. Climate/profile not automatic"
     ),
     "/v1/wiki/summary": "Ad-hoc Wikipedia when date isn't in historico/dias",
+    "/v1/wiki/personas": (
+        "Named public figures from Wikidata/Wikipedia → PersonCard. Prefer "
+        "official president/congressional rosters when the person exists there"
+    ),
     "/v1/noticias": (
         "Google News headlines by topic. Choose short q keywords; optional "
         "desde/hasta for history. News widget, never generic List"

@@ -38,6 +38,7 @@ def test_catalog_lists_external_routes() -> None:
     assert "/v1/historico/dias" in paths
     assert "/v1/historico/dia" in paths
     assert "/v1/wiki/summary" in paths
+    assert "/v1/wiki/personas" in paths
     assert "/v1/cine/discover" in paths
     assert "/v1/cine/search" in paths
     assert "/v1/cine/pelicula/{id}" in paths
@@ -323,68 +324,6 @@ async def test_presidentes_fields_keeps_wiki_bio(
     enrich.assert_awaited_once()
     assert rows[0]["bio"] == "Extracto wiki."
 
-
-@pytest.mark.asyncio
-async def test_bind_enriches_single_person_card(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A 1-person card bound from a larger dataset still gets Wikipedia."""
-    from agent.graph import _bind_node, _enrich_bound_person_cards
-
-    async def fake_card(person: dict, **_: Any) -> dict:
-        return {
-            **person,
-            "bio": "Senador argentino.",
-            "links": ["https://es.wikipedia.org/wiki/X"],
-        }
-
-    monkeypatch.setattr("agent.graph.wiki.enrich_person_card", fake_card)
-
-    datasets = {
-        "ds": {
-            "id": "ds",
-            "keys": ["nombre", "bloque"],
-            "N": 2,
-            "rows": [
-                {"nombre": "A Uno", "bloque": "UCR"},
-                {"nombre": "B Dos", "bloque": "LLA"},
-            ],
-        }
-    }
-    tree = {
-        "id": "card",
-        "type": "PersonCard",
-        "props": {"dataRef": "ds", "limit": 1},
-    }
-    bound = _bind_node(tree, datasets)
-    out = await _enrich_bound_person_cards(bound)
-    person = out["props"]["people"][0]
-    assert person["bio"] == "Senador argentino."
-    assert "wikipedia.org" in person["links"][0]
-
-
-@pytest.mark.asyncio
-async def test_bind_skips_wiki_on_roster_person_card(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from agent.graph import _bind_node, _enrich_bound_person_cards
-
-    enrich = AsyncMock(side_effect=lambda person, **_: person)
-    monkeypatch.setattr("agent.graph.wiki.enrich_person_card", enrich)
-    datasets = {
-        "ds": {
-            "id": "ds",
-            "keys": ["nombre"],
-            "N": 2,
-            "rows": [{"nombre": "A Uno"}, {"nombre": "B Dos"}],
-        }
-    }
-    tree = {"id": "card", "type": "PersonCard", "props": {"dataRef": "ds"}}
-    bound = _bind_node(tree, datasets)
-    await _enrich_bound_person_cards(bound)
-    enrich.assert_not_called()
-
-
 @pytest.mark.asyncio
 async def test_enrich_person_card_maps_wiki_fields(
     monkeypatch: pytest.MonkeyPatch,
@@ -543,6 +482,39 @@ async def test_resolve_wiki_summary(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("agent.proxy.wiki.fetch_summary", fake_summary)
     row = await resolve("/v1/wiki/summary", {"q": "Test Article"})
     assert row["extract"] == "Texto wiki."
+
+
+@pytest.mark.asyncio
+async def test_resolve_wiki_personas_for_person_cards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_people(names: str, *, refresh: bool = False) -> list[dict]:
+        assert names == "Luis Caputo|Kristalina Georgieva"
+        return [
+            {
+                "nombre": "Luis Caputo",
+                "foto": "https://example.com/caputo.jpg",
+                "bio": "Economista y funcionario argentino.",
+                "redes": ["https://es.wikipedia.org/wiki/Luis_Caputo"],
+            },
+            {
+                "nombre": "Kristalina Georgieva",
+                "foto": "https://example.com/georgieva.jpg",
+                "bio": "Economista búlgara.",
+                "redes": ["https://es.wikipedia.org/wiki/Kristalina_Georgieva"],
+            },
+        ]
+
+    monkeypatch.setattr("agent.proxy.wiki.fetch_people", fake_people)
+    rows = await resolve(
+        "/v1/wiki/personas",
+        {"names": "Luis Caputo|Kristalina Georgieva"},
+    )
+    assert [row["nombre"] for row in rows] == [
+        "Luis Caputo",
+        "Kristalina Georgieva",
+    ]
+    assert all(row["bio"] and row["foto"] for row in rows)
 
 
 @pytest.mark.asyncio
