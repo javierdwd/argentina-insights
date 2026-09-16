@@ -15,6 +15,7 @@ import {
   useCopilotKit,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
+import { AGENT_SESSION_ID } from "@/lib/agent";
 import type { CanvasTipo } from "./infer-canvas-tipo";
 import type { CanvasBrush } from "./canvas-brush";
 import { useChatShell } from "./HomeStage";
@@ -159,7 +160,7 @@ export function CanvasNodeProvider({
 
 export function CanvasActionProvider({ children }: { children: ReactNode }) {
   const { agent } = useAgent({
-    agentId: "argentina_insights",
+    agentId: AGENT_SESSION_ID,
     updates: [UseAgentUpdate.OnRunStatusChanged],
   });
   const { copilotkit } = useCopilotKit();

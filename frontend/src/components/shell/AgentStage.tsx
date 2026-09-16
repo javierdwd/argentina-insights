@@ -3,25 +3,35 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   useAgent,
+  useCopilotKit,
   CopilotChatConfigurationProvider,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
 import { CopilotChat } from "@copilotkit/react-core/v2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DynamicRenderer } from "@/components/registry/DynamicRenderer";
+import { AGENT_RUNTIME_ID, AGENT_SESSION_ID } from "@/lib/agent";
 import {
   followUpsFor,
+  getDestination,
   queryForDestination,
 } from "@/lib/destinations";
+import {
+  clearChatIntent,
+  takeChatIntent,
+  type ChatIntent,
+} from "@/lib/chat-intent";
 import type { UINode } from "@/lib/uitree";
 import {
-  clearLastCanvas,
+  clearWorkspace,
+  EMPTY_WORKSPACE,
   getWorkspace,
   saveLastCanvas,
+  saveWorkspaceSession,
+  type Workspace,
 } from "@/lib/workspace";
 import { CanvasPending } from "./CanvasPending";
 import { HomeStage } from "./HomeStage";
-import { StarterBubbles } from "./StarterBubbles";
 import { DestinationFollowUps } from "./DestinationFollowUps";
 import { AssistantWithActions } from "./AssistantWithActions";
 import {
@@ -31,7 +41,7 @@ import {
   ReasoningHeader,
   ThinkingCursor,
 } from "./ChatActivity";
-import { CanvasActionProvider, useCanvasAction } from "./useCanvasAction";
+import { CanvasActionProvider } from "./useCanvasAction";
 import { CanvasInspector } from "./CanvasInspector";
 import { lastUserQuery, useWorkspace } from "./useWorkspace";
 
@@ -71,15 +81,17 @@ function isUiTree(value: unknown): value is UINode {
 function AgentCanvas({
   onHasCanvas,
   onHasStarted,
-  clearSignal,
+  startedQuery,
+  showInitialProgress,
 }: {
   onHasCanvas?: (has: boolean) => void;
   onHasStarted?: (has: boolean) => void;
-  clearSignal: number;
+  startedQuery?: string | null;
+  showInitialProgress?: boolean;
 }) {
   "use no memo";
-  const { agent, isReady } = useAgent({
-    agentId: "argentina_insights",
+  const { agent } = useAgent({
+    agentId: AGENT_SESSION_ID,
     // OnRunStatusChanged: re-read state when a turn finishes — catches
     // ui_tree updates that landed without a separate OnStateChanged tick.
     updates: [
@@ -88,18 +100,9 @@ function AgentCanvas({
       UseAgentUpdate.OnRunStatusChanged,
     ],
   });
-  const canvas = useCanvasAction();
   const workspace = useWorkspace();
   const reduceMotion = useReducedMotion();
-  const hydratedRef = useRef(false);
-  const handledClearRef = useRef(clearSignal);
   const persistTimerRef = useRef<number | null>(null);
-  const [startedQuery, setStartedQuery] = useState<string | null>(null);
-  const [clearedQuery, setClearedQuery] = useState<string | null>(null);
-  // CopilotKit can briefly publish the previous thread state after
-  // startNewThread. Keep a local tombstone so that stale tree cannot win the
-  // agentTree/workspace fallback and paint again after the user clears.
-  const [canvasCleared, setCanvasCleared] = useState(false);
 
   const agentTree = isUiTree(
     (agent.state as Record<string, unknown> | undefined)?.ui_tree,
@@ -107,92 +110,35 @@ function AgentCanvas({
     ? ((agent.state as Record<string, unknown>).ui_tree as UINode)
     : null;
 
-  const displayTree = canvasCleared
-    ? null
-    : agentTree ?? workspace.lastCanvas?.uiTree ?? null;
+  const displayTree = agentTree ?? workspace.lastCanvas?.uiTree ?? null;
   const userQuery = lastUserQuery(agent.messages);
-  const activeQuery =
-    userQuery && userQuery !== clearedQuery ? userQuery : startedQuery;
+  const activeQuery = userQuery ?? startedQuery ?? null;
+  const pendingQuery = showInitialProgress ? startedQuery : null;
+  const visibleTree = pendingQuery ? null : displayTree;
   const query =
+    pendingQuery ??
     activeQuery ??
     workspace.lastCanvas?.query ??
     queryForDestination(agentTree ?? displayTree);
-  const followUps = followUpsFor(displayTree);
-  const stageKey = displayTree
+  const followUps = followUpsFor(visibleTree);
+  const stageKey = visibleTree
     ? "canvas"
-    : activeQuery
+    : pendingQuery || activeQuery
       ? "pending"
-      : "onboarding";
+      : "empty";
 
   useEffect(() => {
-    onHasCanvas?.(Boolean(displayTree));
-  }, [displayTree, onHasCanvas]);
+    onHasCanvas?.(Boolean(visibleTree));
+  }, [onHasCanvas, visibleTree]);
 
   useEffect(() => {
     onHasStarted?.(
-      Boolean(displayTree || agent.isRunning || activeQuery),
+      Boolean(visibleTree || agent.isRunning || activeQuery),
     );
-  }, [activeQuery, agent.isRunning, displayTree, onHasStarted]);
+  }, [activeQuery, agent.isRunning, onHasStarted, visibleTree]);
 
   useEffect(() => {
-    if (handledClearRef.current === clearSignal) return;
-    handledClearRef.current = clearSignal;
-    if (persistTimerRef.current !== null) {
-      window.clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = null;
-    }
-    if (agent.isRunning) agent.abortRun();
-    agent.setMessages([]);
-    // A new thread must not inherit any client state that runAgent could send
-    // as its initial snapshot. Clear the complete graph state, not only UI.
-    agent.setState({
-      query_type: "data",
-      ui_tree: null,
-      ui_tree_unbound: null,
-      datasets: {},
-      has_tool_calls: false,
-      skip_compose: false,
-      respond_note: "",
-      statistical_report: null,
-    });
-    setCanvasCleared(true);
-    clearLastCanvas();
-    canvas.clearSelected();
-    setClearedQuery(userQuery ?? startedQuery);
-    setStartedQuery(null);
-    onHasCanvas?.(false);
-    onHasStarted?.(false);
-  }, [
-    agent,
-    canvas,
-    clearSignal,
-    onHasCanvas,
-    onHasStarted,
-    startedQuery,
-    userQuery,
-  ]);
-
-  useEffect(() => {
-    if (!isReady || hydratedRef.current || canvasCleared) return;
-    hydratedRef.current = true;
-    if (agentTree) return;
-    const saved = getWorkspace().lastCanvas?.uiTree;
-    if (!saved) return;
-    const current =
-      agent.state && typeof agent.state === "object"
-        ? (agent.state as Record<string, unknown>)
-        : {};
-    const tree = structuredClone(saved);
-    const next = { ...current, ui_tree: tree, ui_tree_unbound: tree };
-    // CopilotChat flushSyncs on state notifications. Push after this
-    // commit so hydrate does not nest inside the chat's lifecycle.
-    queueMicrotask(() => {
-      agent.setState(next);
-    });
-  }, [agent, agentTree, canvasCleared, isReady]);
-
-  useEffect(() => {
-    if (!agentTree || canvasCleared) return;
+    if (!agentTree || pendingQuery) return;
     const timer = window.setTimeout(() => {
       if (persistTimerRef.current !== timer) return;
       persistTimerRef.current = null;
@@ -203,16 +149,13 @@ function AgentCanvas({
       window.clearTimeout(timer);
       if (persistTimerRef.current === timer) persistTimerRef.current = null;
     };
-  }, [agentTree, canvasCleared, query]);
+  }, [agentTree, pendingQuery, query]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {/* Horizontal inset so widget rings/shadows are not clipped by overflow-y. */}
       <div
-        className={[
-          "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1 pt-6 pb-6 md:pt-8 md:pb-8",
-          stageKey === "onboarding" ? "md:overflow-visible" : "",
-        ].join(" ")}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1 pt-6 pb-6 md:pt-8 md:pb-8"
       >
         <AnimatePresence initial={false} mode="wait">
           <motion.div
@@ -224,44 +167,41 @@ function AgentCanvas({
             exit={
               reduceMotion
                 ? { opacity: 1 }
-                : stageKey === "onboarding"
-                  ? { opacity: 0 }
                 : { opacity: 0, y: -14, scale: 0.992 }
             }
             transition={{
-              // Remove the wide home composition before the shell opens its
-              // chat column. Keeping it mounted during the grid resize makes
-              // the preview slide over the incoming stage and chat.
-              duration:
-                reduceMotion || stageKey === "onboarding" ? 0 : 0.52,
+              duration: reduceMotion ? 0 : 0.32,
               ease: [0.16, 1, 0.3, 1],
             }}
           >
-            {displayTree ? (
+            {visibleTree ? (
               <>
-                <MemoCanvasTree tree={displayTree} />
+                <MemoCanvasTree tree={visibleTree} />
                 {followUps.length ? (
                   <DestinationFollowUps prompts={followUps} />
                 ) : null}
               </>
-            ) : activeQuery ? (
+            ) : pendingQuery || activeQuery ? (
               <CanvasPending
-                query={activeQuery}
-                running={Boolean(agent.isRunning)}
+                query={pendingQuery ?? activeQuery ?? undefined}
+                running={
+                  Boolean(showInitialProgress) || Boolean(agent.isRunning)
+                }
               />
             ) : (
-              <StarterBubbles
-                onStart={(nextQuery) => {
-                  setCanvasCleared(false);
-                  setClearedQuery(null);
-                  setStartedQuery(nextQuery);
-                }}
-              />
+              <div className="mx-auto flex min-h-[18rem] max-w-lg flex-col items-center justify-center px-6 text-center">
+                <p className="font-display text-xl font-semibold text-foreground">
+                  Empezá una conversación
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Escribí en el chat para construir una vista con datos.
+                </p>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
-      {displayTree ? <CanvasInspector /> : null}
+      {visibleTree ? <CanvasInspector /> : null}
     </div>
   );
 }
@@ -271,11 +211,7 @@ const MemoCanvasTree = memo(function MemoCanvasTree({
 }: {
   tree: UINode;
 }) {
-  return (
-    <div className="canvas-transition-surface">
-      <DynamicRenderer node={tree} />
-    </div>
-  );
+  return <DynamicRenderer node={tree} />;
 });
 
 const CopilotChatPanel = memo(function CopilotChatPanel({
@@ -286,7 +222,7 @@ const CopilotChatPanel = memo(function CopilotChatPanel({
   "use no memo";
   return (
     <CopilotChat
-      agentId="argentina_insights"
+      agentId={AGENT_SESSION_ID}
       threadId={threadId}
       className="h-full"
       messageView={CHAT_MESSAGE_VIEW}
@@ -295,8 +231,18 @@ const CopilotChatPanel = memo(function CopilotChatPanel({
   );
 });
 
-function ChatPanel({ threadId }: { threadId: string }) {
+function ChatPanel({
+  threadId,
+  onMounted,
+}: {
+  threadId: string;
+  onMounted: () => void;
+}) {
   "use no memo";
+  useEffect(() => {
+    onMounted();
+  }, [onMounted]);
+
   return (
     <div className="relative h-full min-h-0">
       <ChatToolActivity />
@@ -306,48 +252,256 @@ function ChatPanel({ threadId }: { threadId: string }) {
   );
 }
 
-/**
- * Full-page orchestrator — brand + stage (left) · CopilotChat (right / mobile dock).
- *
- * CanvasActionProvider wraps ONLY the stage so run-status re-renders do not
- * remount the chat. Agent turns reopen the desktop column or expand the
- * mobile dock if it was collapsed.
- */
-export function AgentStage() {
+function LoadingStage() {
+  return (
+    <main
+      className="flex min-h-[100dvh] flex-1 items-center justify-center bg-background"
+      aria-busy="true"
+      aria-label="Restaurando conversación"
+    >
+      <span className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-accent" />
+    </main>
+  );
+}
+
+function initialAgentState(workspace: Workspace): Record<string, unknown> {
+  const state = { ...workspace.agentState };
+  const tree = workspace.lastCanvas?.uiTree;
+  if (tree && !isUiTree(state.ui_tree)) {
+    state.ui_tree = structuredClone(tree);
+    state.ui_tree_unbound = structuredClone(tree);
+  }
+  return state;
+}
+
+function AgentSession({
+  workspace,
+  threadId,
+  onReset,
+}: {
+  workspace: Workspace;
+  threadId: string;
+  onReset: () => void;
+}) {
   "use no memo";
-  const [threadId, setThreadId] = useState(() => crypto.randomUUID());
+  const { agent, isReady } = useAgent({
+    agentId: AGENT_SESSION_ID,
+    runtimeAgentId: AGENT_RUNTIME_ID,
+    threadId,
+    updates: [
+      UseAgentUpdate.OnStateChanged,
+      UseAgentUpdate.OnMessagesChanged,
+      UseAgentUpdate.OnRunStatusChanged,
+    ],
+  });
+  const { copilotkit } = useCopilotKit();
+  const hydratedRef = useRef(false);
+  const intentRef = useRef<ChatIntent | null>(null);
+  const pendingRunRef = useRef<string | null>(null);
+  const pendingMessageRef = useRef<{
+    id: string;
+    role: "user";
+    content: string;
+  } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [chatReady, setChatReady] = useState(false);
+  const [chatMounted, setChatMounted] = useState(false);
   const [hasCanvas, setHasCanvas] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [clearSignal, setClearSignal] = useState(0);
+  const [startedQuery, setStartedQuery] = useState<string | null>(null);
+  const [showInitialProgress, setShowInitialProgress] = useState(false);
+
+  useEffect(() => {
+    if (!isReady || hydratedRef.current) return;
+    hydratedRef.current = true;
+    const intent = takeChatIntent();
+    intentRef.current = intent;
+    const messages = [...workspace.messages];
+    if (intent?.type === "query") {
+      const message = {
+        id: crypto.randomUUID(),
+        role: "user" as const,
+        content: intent.query,
+      };
+      pendingRunRef.current = message.id;
+      pendingMessageRef.current = message;
+      messages.push(message);
+      queueMicrotask(() => {
+        setStartedQuery(intent.query);
+        setShowInitialProgress(true);
+      });
+    }
+    agent.setMessages(
+      messages as Parameters<typeof agent.setMessages>[0],
+    );
+    agent.setState(
+      initialAgentState(workspace) as Parameters<typeof agent.setState>[0],
+    );
+    queueMicrotask(() => {
+      setHydrated(true);
+      if (intent?.type !== "query") setChatReady(true);
+    });
+  }, [agent, isReady, workspace]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = window.setTimeout(() => {
+      saveWorkspaceSession({
+        threadId,
+        messages: agent.messages as unknown[],
+        agentState:
+          agent.state && typeof agent.state === "object"
+            ? (agent.state as Record<string, unknown>)
+            : {},
+      });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [agent.messages, agent.state, hydrated, threadId]);
+
+  useEffect(() => {
+    if (!hydrated || !chatMounted) return;
+    const intent = intentRef.current;
+    if (!intent || intent.type === "query") return;
+    intentRef.current = null;
+
+    const start = async () => {
+      try {
+        const destination = getDestination(intent.destinationId);
+        const tree = await destination.build();
+        const current =
+          agent.state && typeof agent.state === "object"
+            ? (agent.state as Record<string, unknown>)
+            : {};
+        agent.setState({
+          ...current,
+          ui_tree: tree,
+          ui_tree_unbound: tree,
+        });
+        saveLastCanvas(tree, destination.title);
+      } catch {
+        agent.addMessage({
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            "No pudimos abrir la consulta. Volvé al inicio e intentá nuevamente.",
+        });
+      }
+    };
+    void start();
+  }, [agent, chatMounted, hydrated]);
+
+  useEffect(() => {
+    const messageId = pendingRunRef.current;
+    const pendingMessage = pendingMessageRef.current;
+    if (!hydrated || !messageId || !pendingMessage) return;
+    pendingRunRef.current = null;
+
+    const runPendingQuery = async () => {
+      try {
+        await agent.connectAgent();
+        agent.setState(
+          initialAgentState(workspace) as Parameters<typeof agent.setState>[0],
+        );
+        agent.setMessages(
+          [...workspace.messages, pendingMessage] as Parameters<
+            typeof agent.setMessages
+          >[0],
+        );
+        await copilotkit.runAgent({ agent });
+      } finally {
+        pendingMessageRef.current = null;
+        setShowInitialProgress(false);
+        setChatReady(true);
+      }
+    };
+    void runPendingQuery();
+  }, [agent, copilotkit, hydrated, workspace]);
+
   const onHasCanvas = useCallback((has: boolean) => {
     setHasCanvas(has);
   }, []);
   const onHasStarted = useCallback((has: boolean) => {
     setHasStarted(has);
   }, []);
-  const onClear = useCallback(() => {
-    setThreadId(crypto.randomUUID());
-    setClearSignal((current) => current + 1);
+  const onChatMounted = useCallback(() => {
+    setChatMounted(true);
   }, []);
+  const onClear = useCallback(() => {
+    if (agent.isRunning) agent.abortRun();
+    onReset();
+  }, [agent, onReset]);
+
+  if (!hydrated) return <LoadingStage />;
+
+  return (
+    <HomeStage
+      hasCanvas={hasCanvas}
+      hasStarted={hasStarted}
+      onClear={onClear}
+      chat={
+        chatReady ? (
+          <ChatPanel threadId={threadId} onMounted={onChatMounted} />
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-sm text-muted-foreground">
+            Preparando la conversación…
+          </div>
+        )
+      }
+      stage={
+        <CanvasActionProvider>
+          <AgentCanvas
+            onHasCanvas={onHasCanvas}
+            onHasStarted={onHasStarted}
+            startedQuery={startedQuery}
+            showInitialProgress={showInitialProgress}
+          />
+        </CanvasActionProvider>
+      }
+    />
+  );
+}
+
+/**
+ * Restores one browser-local conversation before mounting CopilotChat. A reset
+ * rotates the thread and remounts the complete agent subtree.
+ */
+export function AgentStage() {
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+
+  useEffect(() => {
+    const saved = getWorkspace();
+    queueMicrotask(() => {
+      setWorkspace({
+        ...saved,
+        threadId: saved.threadId ?? crypto.randomUUID(),
+      });
+    });
+  }, []);
+
+  const onReset = useCallback(() => {
+    clearChatIntent();
+    clearWorkspace();
+    setWorkspace({
+      ...EMPTY_WORKSPACE,
+      threadId: crypto.randomUUID(),
+      messages: [],
+      agentState: {},
+      lastCanvas: null,
+    });
+  }, []);
+
+  if (!workspace?.threadId) return <LoadingStage />;
+
   return (
     <CopilotChatConfigurationProvider
-      agentId="argentina_insights"
-      threadId={threadId}
+      key={workspace.threadId}
+      agentId={AGENT_SESSION_ID}
+      threadId={workspace.threadId}
     >
-      <HomeStage
-        hasCanvas={hasCanvas}
-        hasStarted={hasStarted}
-        onClear={onClear}
-        chat={<ChatPanel threadId={threadId} />}
-        stage={
-          <CanvasActionProvider>
-            <AgentCanvas
-              onHasCanvas={onHasCanvas}
-              onHasStarted={onHasStarted}
-              clearSignal={clearSignal}
-            />
-          </CanvasActionProvider>
-        }
+      <AgentSession
+        workspace={workspace}
+        threadId={workspace.threadId}
+        onReset={onReset}
       />
     </CopilotChatConfigurationProvider>
   );

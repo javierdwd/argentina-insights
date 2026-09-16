@@ -8,6 +8,7 @@ import {
   useCopilotKit,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
+import { AGENT_SESSION_ID } from "@/lib/agent";
 import {
   embedOffersInProse,
   hasInlineButtons,
@@ -85,7 +86,7 @@ function AssistantWithActionsImpl(props: CopilotChatAssistantMessageProps) {
   const copyText = stripInlineButtons(prose);
   const inline = hasInlineButtons(prose);
   const { agent } = useAgent({
-    agentId: "argentina_insights",
+    agentId: AGENT_SESSION_ID,
     updates: [UseAgentUpdate.OnRunStatusChanged],
   });
   const { copilotkit } = useCopilotKit();

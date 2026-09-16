@@ -18,11 +18,12 @@ import {
   ChatCircleSlash,
   CircleNotch,
 } from "@phosphor-icons/react";
-import { motion } from "motion/react";
+import Link from "next/link";
 import {
   useAgent,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
+import { AGENT_SESSION_ID } from "@/lib/agent";
 import { latestTurnReasoning } from "./ChatActivity";
 
 const CHAT_PREF_KEY = "argentina-insights.chat-collapsed";
@@ -61,7 +62,7 @@ interface HomeStageProps {
 }
 
 /** Compact Argentine flag mark: celeste bands + Sol de Mayo. */
-function BrandMark({ compact }: { compact?: boolean }) {
+export function BrandMark({ compact }: { compact?: boolean }) {
   return (
     <span
       aria-hidden
@@ -122,7 +123,7 @@ function useIsDesktop(): boolean {
  */
 function MobileChatPeek({ onExpand }: { onExpand: () => void }) {
   const { agent } = useAgent({
-    agentId: "argentina_insights",
+    agentId: AGENT_SESSION_ID,
     updates: [
       UseAgentUpdate.OnMessagesChanged,
       UseAgentUpdate.OnRunStatusChanged,
@@ -192,21 +193,37 @@ export function HomeStage({
   onClear,
 }: HomeStageProps) {
   const isDesktop = useIsDesktop();
+  const { agent } = useAgent({
+    agentId: AGENT_SESSION_ID,
+    updates: [
+      UseAgentUpdate.OnMessagesChanged,
+      UseAgentUpdate.OnRunStatusChanged,
+      UseAgentUpdate.OnStateChanged,
+    ],
+  });
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  /** Mobile sheet — start minimized so the canvas stays in view. */
-  const [mobileExpanded, setMobileExpanded] = useState(false);
+  /** Empty/pending chats open first; a completed canvas minimizes the sheet. */
+  const [mobileExpanded, setMobileExpanded] = useState(true);
 
   useEffect(() => {
     const pref = readChatPref();
-    // Only honor an explicit user choice — never auto-collapse on canvas.
-    if (pref !== null) setCollapsed(pref);
-    setHydrated(true);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      // Only honor an explicit user choice — never auto-collapse on canvas.
+      if (pref !== null) setCollapsed(pref);
+      setHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // First canvas paint: keep focus on the stage, not a chat buried below.
   useEffect(() => {
-    if (hasCanvas) setMobileExpanded(false);
+    if (!hasCanvas) return;
+    queueMicrotask(() => setMobileExpanded(false));
   }, [hasCanvas]);
 
   const toggleChat = () => {
@@ -228,7 +245,11 @@ export function HomeStage({
 
   const chatHidden = hydrated && collapsed && isDesktop;
   const compact = hasCanvas;
-  const entry = !hasStarted;
+  const canClear =
+    hasStarted ||
+    hasCanvas ||
+    Boolean(agent.isRunning) ||
+    agent.messages.length > 0;
 
   const shell = useMemo<ChatShellValue>(
     () => ({ chatHidden, showChat }),
@@ -240,9 +261,7 @@ export function HomeStage({
       <main
         className={[
           "flex h-[100dvh] min-h-0 flex-col overflow-hidden md:grid md:transition-[grid-template-columns] md:duration-700 md:ease-[cubic-bezier(0.32,0.72,0,1)]",
-          entry ? "md:h-auto md:min-h-[100dvh] md:overflow-visible" : "",
-          hasStarted ? "stage-started" : "",
-          chatHidden || entry
+          chatHidden
             ? "md:grid-cols-[minmax(0,1fr)_minmax(0,0fr)]"
             : "md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
         ].join(" ")}
@@ -255,14 +274,10 @@ export function HomeStage({
         <div
           className={[
             "relative flex min-h-0 flex-1 flex-col overflow-hidden",
-            entry
-              ? "md:min-h-[100dvh] md:overflow-visible"
-              : "md:h-full",
+            "md:h-full",
             compact
               ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
-              : entry
-                ? "px-5 py-5 md:px-10 md:py-6 lg:px-14"
-                : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
+              : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
             // Clear the floating peek so widgets never sit under it.
             "max-md:pb-[var(--mobile-chat-peek)]",
           ].join(" ")}
@@ -274,17 +289,20 @@ export function HomeStage({
               compact ? "h-40" : "h-72",
             ].join(" ")}
           />
-          <motion.div
-            initial={false}
-            className="entry-reveal relative shrink-0"
-          >
+          <div className="relative shrink-0">
             <div
               className={[
                 "flex items-start",
-                compact || entry ? "gap-2.5" : "gap-3.5",
+                compact ? "gap-2.5" : "gap-3.5",
               ].join(" ")}
             >
-              <BrandMark compact={compact || entry} />
+              <Link
+                href="/"
+                aria-label="Ir al inicio"
+                className="shrink-0 rounded-[0.85rem] transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              >
+                <BrandMark compact={compact} />
+              </Link>
               <div className={["min-w-0 flex-1", compact ? "" : "pt-0.5"].join(" ")}>
                 <div className="flex items-center justify-between gap-3">
                   <h1
@@ -292,14 +310,17 @@ export function HomeStage({
                       "min-w-0 truncate pb-[0.1em] -mb-[0.1em] font-display font-semibold tracking-tight text-foreground",
                       compact
                         ? "text-lg leading-tight sm:text-xl md:text-2xl"
-                        : entry
-                          ? "text-lg leading-8"
                         : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.12]",
                     ].join(" ")}
                   >
-                    Argentina Insights
+                    <Link
+                      href="/"
+                      className="rounded-sm transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    >
+                      Argentina Insights
+                    </Link>
                   </h1>
-                  {hasStarted ? (
+                  {canClear && (isDesktop || !mobileExpanded) ? (
                     <div className="flex shrink-0 items-center gap-0.5 md:gap-1">
                       <button
                         type="button"
@@ -334,7 +355,7 @@ export function HomeStage({
                     </div>
                   ) : null}
                 </div>
-                {!compact && !entry ? (
+                {!compact ? (
                   <p className="mt-2.5 max-w-[36ch] text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
                     Economía, política, fútbol, cine argentino, días históricos
                     y cruces entre todo eso. Elegí una pregunta o escribí en el
@@ -343,18 +364,14 @@ export function HomeStage({
                 ) : null}
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={false}
+          <div
             className={[
-              "entry-reveal entry-reveal-delay-1 relative flex min-h-0 flex-1 flex-col overflow-hidden",
-              entry ? "md:overflow-visible" : "",
+              "relative flex min-h-0 flex-1 flex-col overflow-hidden",
               compact
                 ? "mt-4 md:mt-5"
-                : entry
-                  ? "mt-2 md:mt-3"
-                  : "mt-10 md:mt-12",
+                : "mt-10 md:mt-12",
             ].join(" ")}
           >
             {stage ?? (
@@ -362,7 +379,7 @@ export function HomeStage({
                 La vista aparece acá.
               </p>
             )}
-          </motion.div>
+          </div>
         </div>
 
         {/*
@@ -370,10 +387,10 @@ export function HomeStage({
           Minimized mobile keeps height 0 so CopilotChat stays mounted.
         */}
         <div
-          hidden={chatHidden || entry}
+          hidden={chatHidden}
           id="mobile-chat-sheet"
           className={[
-            chatHidden || entry ? "hidden" : "chat-panel-region flex flex-col",
+            chatHidden ? "hidden" : "chat-panel-region flex flex-col",
             "max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40",
             "max-md:overflow-hidden max-md:rounded-t-[1.5rem] max-md:border max-md:border-b-0 max-md:border-border max-md:bg-card",
             "max-md:transition-[height] max-md:duration-300 max-md:ease-[cubic-bezier(0.32,0.72,0,1)]",
@@ -393,15 +410,27 @@ export function HomeStage({
                   Profundizá la vista con otra pregunta
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setMobileExpanded(false)}
-                className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                aria-label="Minimizar chat"
-              >
-                <CaretDown size={14} weight="bold" aria-hidden />
-                Minimizar
-              </button>
+              <div className="flex items-center gap-1">
+                {canClear ? (
+                  <button
+                    type="button"
+                    onClick={onClear}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  >
+                    <Broom size={14} weight="regular" aria-hidden />
+                    Limpiar
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setMobileExpanded(false)}
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  aria-label="Minimizar chat"
+                >
+                  <CaretDown size={14} weight="bold" aria-hidden />
+                  Minimizar
+                </button>
+              </div>
             </div>
           ) : null}
           <div className="chat-spatial-panel flex min-h-0 flex-1 flex-col overflow-hidden bg-card pt-3 md:rounded-[1.35rem] md:pt-0">
@@ -430,7 +459,7 @@ export function HomeStage({
           </div>
         </div>
 
-        {hasStarted && !isDesktop && !mobileExpanded ? (
+        {canClear && !isDesktop && !mobileExpanded ? (
           <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
             <MobileChatPeek onExpand={() => setMobileExpanded(true)} />
           </div>

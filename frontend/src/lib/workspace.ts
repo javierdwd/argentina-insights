@@ -1,4 +1,4 @@
-/** Browser-only persistence for the last canvas. */
+/** Browser-only persistence for the active conversation and canvas. */
 
 import type { UINode } from "./uitree";
 
@@ -12,12 +12,18 @@ export type WorkspaceLastCanvas = {
 };
 
 export type Workspace = {
-  version: 1;
+  version: 2;
+  threadId: string | null;
+  messages: unknown[];
+  agentState: Record<string, unknown>;
   lastCanvas: WorkspaceLastCanvas | null;
 };
 
 export const EMPTY_WORKSPACE: Workspace = {
-  version: 1,
+  version: 2,
+  threadId: null,
+  messages: [],
+  agentState: {},
   lastCanvas: null,
 };
 
@@ -58,7 +64,10 @@ export function parseWorkspace(raw: string | null): Workspace {
     const data: unknown = JSON.parse(raw);
     if (!isRecord(data)) return EMPTY_WORKSPACE;
     return {
-      version: 1,
+      version: 2,
+      threadId: asString(data.threadId) ?? null,
+      messages: Array.isArray(data.messages) ? data.messages : [],
+      agentState: isRecord(data.agentState) ? data.agentState : {},
       lastCanvas: parseLastCanvas(data.lastCanvas),
     };
   } catch {
@@ -93,20 +102,25 @@ function notify(): void {
 
 function write(next: Workspace): boolean {
   const normalized: Workspace = {
-    version: 1,
+    version: 2,
+    threadId: next.threadId,
+    messages: next.messages,
+    agentState: next.agentState,
     lastCanvas: next.lastCanvas,
   };
-  const attempts: Workspace[] = [normalized];
-  if (normalized.lastCanvas) {
-    attempts.push({ ...normalized, lastCanvas: null });
-  }
+  // Agent datasets can be much larger than the visible conversation. If the
+  // browser quota is tight, retain messages and widgets before dropping them.
+  const attempts: Workspace[] = [
+    normalized,
+    { ...normalized, agentState: {} },
+  ];
   for (const candidate of attempts) {
     try {
       localStorage.setItem(WORKSPACE_KEY, JSON.stringify(candidate));
       notify();
-      return candidate === normalized;
+      return true;
     } catch {
-      // Quota or private-mode write failure — try a smaller payload.
+      // Quota or private-mode write failure — try the smaller snapshot.
     }
   }
   return false;
@@ -128,7 +142,24 @@ export function saveLastCanvas(uiTree: UINode, query?: string): boolean {
   }));
 }
 
-export function clearLastCanvas(): void {
+export function saveWorkspaceSession({
+  threadId,
+  messages,
+  agentState,
+}: {
+  threadId: string;
+  messages: unknown[];
+  agentState: Record<string, unknown>;
+}): boolean {
+  return update((current) => ({
+    ...current,
+    threadId,
+    messages,
+    agentState,
+  }));
+}
+
+export function clearWorkspace(): void {
   try {
     localStorage.removeItem(WORKSPACE_KEY);
     notify();

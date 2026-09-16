@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Broadcast } from "@phosphor-icons/react";
 import { DynamicRenderer } from "@/components/registry/DynamicRenderer";
 import type { UINode } from "@/lib/uitree";
-import { runViewTransition } from "@/lib/view-transition";
 import {
   loadEntryPreview,
   type EntryPreviewKind,
@@ -54,7 +53,7 @@ export function LiveCanvasPreview({
         aria-hidden
         className="absolute inset-0 -z-10 rounded-[3rem] bg-[radial-gradient(circle_at_45%_35%,color-mix(in_oklab,var(--sky)_30%,transparent),transparent_68%)] md:-inset-8"
       />
-      <div className="entry-preview-transition-surface overflow-hidden rounded-3xl border border-border/85 bg-card/85 p-3 shadow-[0_30px_75px_-52px_color-mix(in_oklab,var(--foreground)_40%,transparent),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-sm md:p-4 lg:rotate-[0.7deg]">
+      <div className="overflow-hidden rounded-3xl border border-border/85 bg-card/85 p-3 shadow-[0_30px_75px_-52px_color-mix(in_oklab,var(--foreground)_40%,transparent),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-sm md:p-4 lg:rotate-[0.7deg]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-3 pt-1">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-accent">
             <Broadcast size={14} weight="bold" aria-hidden />
@@ -81,9 +80,7 @@ export function LiveCanvasPreview({
               type="button"
               role="tab"
               aria-selected={kind === option.id}
-              onClick={() =>
-                void runViewTransition(() => setKind(option.id))
-              }
+              onClick={() => setKind(option.id)}
               className={[
                 "rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
                 kind === option.id

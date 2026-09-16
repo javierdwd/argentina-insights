@@ -28,7 +28,7 @@ export function CanvasPending({
 
   return (
     <section
-      className="canvas-transition-surface mx-auto w-full max-w-2xl rounded-3xl border border-border bg-card/75 p-6 shadow-[0_24px_60px_-48px_color-mix(in_oklab,var(--foreground)_35%,transparent)] md:p-8"
+      className="mx-auto w-full max-w-2xl rounded-3xl border border-border bg-card/75 p-6 shadow-[0_24px_60px_-48px_color-mix(in_oklab,var(--foreground)_35%,transparent)] md:p-8"
       aria-live="polite"
     >
       <div className="flex items-center gap-3 text-accent">

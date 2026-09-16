@@ -171,10 +171,10 @@ body::after {
   opacity: 0.07;
 }
 
-@keyframes entry-reveal {
+@keyframes route-enter {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -183,17 +183,8 @@ body::after {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .entry-reveal {
-    animation: entry-reveal 560ms var(--ease-out-expo) both;
-  }
-  .entry-reveal-delay-1 {
-    animation-delay: 80ms;
-  }
-  .entry-reveal-delay-2 {
-    animation-delay: 150ms;
-  }
-  .entry-reveal-delay-3 {
-    animation-delay: 220ms;
+  .route-transition {
+    animation: route-enter 180ms ease-out both;
   }
 }
 
@@ -201,82 +192,6 @@ body::after {
   .animate-pulse,
   .animate-spin {
     animation: none !important;
-  }
-}
-
-/*
- * AnimatePresence may retain the onboarding tree for its exit frame. Once the
- * shell opens the chat column, remove that wide composition synchronously so
- * its preview can never overlap the incoming stage.
- */
-.stage-started .home-onboarding {
-  display: none;
-}
-
-@supports (view-transition-name: none) {
-  .canvas-transition-surface {
-    view-transition-name: insights-canvas;
-  }
-
-  .entry-preview-transition-surface {
-    view-transition-name: insights-entry-preview;
-  }
-
-  ::view-transition-group(insights-canvas) {
-    animation-duration: 520ms;
-    animation-timing-function: var(--ease-out-expo);
-  }
-
-  ::view-transition-old(insights-canvas) {
-    animation: canvas-transition-out 260ms ease-in both;
-  }
-
-  ::view-transition-new(insights-canvas) {
-    animation: canvas-transition-in 520ms var(--ease-out-expo) both;
-  }
-
-  /*
-   * The home preview is not the resulting canvas. Keeping a separate identity
-   * prevents its snapshot from flying across the layout above the opening chat.
-   */
-  ::view-transition-group(insights-entry-preview) {
-    animation-duration: 220ms;
-    animation-timing-function: var(--ease-out-expo);
-  }
-
-  ::view-transition-old(insights-entry-preview) {
-    animation: entry-preview-transition-out 140ms ease-in both;
-  }
-
-  ::view-transition-new(insights-entry-preview) {
-    animation: entry-preview-transition-in 220ms var(--ease-out-expo) both;
-  }
-}
-
-@keyframes canvas-transition-out {
-  to {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-}
-
-@keyframes canvas-transition-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.985);
-  }
-}
-
-@keyframes entry-preview-transition-out {
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes entry-preview-transition-in {
-  from {
-    opacity: 0;
-    transform: scale(0.992);
   }
 }
 

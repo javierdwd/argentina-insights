@@ -12,6 +12,7 @@ import {
   useAgent,
   useDefaultRenderTool,
 } from "@copilotkit/react-core/v2";
+import { AGENT_SESSION_ID } from "@/lib/agent";
 
 const TEMP_RUN_ERROR =
   "Hubo un error temporal. Probá de nuevo en unos minutos.";
@@ -190,7 +191,7 @@ export function ChatToolActivity() {
  * AGENT_URL on Vercel).
  */
 export function ChatRunErrors() {
-  const { agent } = useAgent({ agentId: "argentina_insights" });
+  const { agent } = useAgent({ agentId: AGENT_SESSION_ID });
 
   useEffect(() => {
     let lastPostedAt = 0;
