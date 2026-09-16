@@ -410,6 +410,16 @@ Q_WIKI = ParamSpec(
     hint="Spanish Wikipedia article title for REST summary (extract, foto, url)",
     example="Presidencia de Javier Milei",
 )
+Q_NEWS = ParamSpec(
+    name="q",
+    type="string",
+    hint=(
+        "concise SPANISH Google News search terms chosen from the user's topic, "
+        "even if the user wrote in another language. Use names and distinctive "
+        "concepts, not a full conversational sentence"
+    ),
+    example="Milei inflación",
+)
 Q_CINE = ParamSpec(
     name="q",
     type="string",
@@ -657,6 +667,17 @@ EXTERNAL_ROUTES: dict[str, ExternalRoute] = {
             "day is not in /v1/historico/dias"
         ),
         params=(Q_WIKI,),
+    ),
+    "/v1/noticias": ExternalRoute(
+        path="/v1/noticias",
+        domain="other",
+        summary=(
+            "Google News RSS search for Argentine Spanish results. "
+            "Rows: title, source, publishedAt, url. Choose concise SPANISH q "
+            "keywords from the user's topic; optional desde/hasta ISO dates "
+            "support historical search. Bind News (client-side pagination)."
+        ),
+        params=(Q_NEWS, DESDE, HASTA),
     ),
     "/v1/cine/discover": ExternalRoute(
         path="/v1/cine/discover",

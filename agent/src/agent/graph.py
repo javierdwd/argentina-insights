@@ -68,7 +68,7 @@ logger = logging.getLogger(__name__)
 _SCOPE = """\
 ## Scope (hard rule)
 Answer ONLY from available sources: the injected catalog (ArgentinaDatos, BCRA, Series de Tiempo /
-INDEC, Congreso, Open-Meteo, histórico/Wikipedia, TMDB AR cinema) and
+INDEC, Congreso, Open-Meteo, Google News, histórico/Wikipedia, TMDB AR cinema) and
 datasets already fetched this session.
 
 - Out of scope → short Spanish refusal + optional 1–2 ``[boton]``. No general knowledge.
@@ -120,14 +120,25 @@ name, then fetch by id. Pair inflación or presidentes.
 Weather (Open-Meteo): historical daily by province capital, current
 (ProvinceMap), 7-day forecast. Join with acta/FX fecha. Mention Open-Meteo once.
 
+News (Google News RSS): /v1/noticias with concise SPANISH q keywords selected
+from the user's topic (translate the concepts to Spanish when needed);
+optional desde/hasta ISO for historical searches. Results are headlines,
+source, publication date and link. Compose News, which paginates.
+
 Historical days (Wikipedia + series): /v1/historico/dias (~16 curated dates).
 /v1/historico/dia?fecha= → extract + foto + optional persona + provincia.
-SAME turn, not [[next]]: (1) the day, (2) blue/riesgo/MEP/reservas ±7d around
-fecha, (3) /v1/clima/historico provincia=row.provincia desde=hasta=fecha,
-(4) if persona set → /v1/presidentes name=<persona> for PersonCard.
-Compose Stack: PersonCard?, Text(extract), WeatherUnit, Chart. Ad-hoc articles:
-/v1/wiki/summary?q=. Do not leave clima / PersonCard for [[next]].
-NEVER bind PersonCard to historico/dia. Mention Wikipedia + Open-Meteo once.
+SAME turn: (1) the day for historical context, (2) only the series the user
+asked for, using one range call. Wikipedia and Google News are peer,
+complementary context sources: Wikipedia gives retrospective synthesis; News
+gives contemporary coverage from the requested period. For a named public event
+with narrative framing ("contexto", "qué pasó", "repercusiones"), normally use
+BOTH; for an explicit encyclopedia-only or news-only ask, use only that source.
+News uses SPANISH q=<event title + persona> and the requested window (default
+fecha ±3d).
+Climate and PersonCard are optional only when explicitly requested or materially
+relevant — never automatic decoration. Compose only the fetched relevant
+widgets. Ad-hoc Wikipedia articles: /v1/wiki/summary?q=.
+NEVER bind PersonCard to historico/dia. Mention each external source used once.
 
 Argentine cinema (TMDB, origin AR only): /v1/cine/discover, /search?q=,
 /pelicula/{id}, /persona/search then /persona/{id} + /filmografia (FLAT List:
@@ -149,7 +160,7 @@ history; plazos ranking vs inflación; hipotecarios UVA vs UVA index; FCI
 historico; film → discover/search then ficha; feriado/evento fecha → FX that
 day.
 
-Out of catalog — NEVER propose: Merval, noticias, encuestas besides ICG,
+Out of catalog — NEVER propose: Merval, encuestas besides ICG,
 precios de pasajes, data municipal, ticket prices, Spotify, recaudación
 INCAA/SINCA, or anything outside ## Scope / this family list.
 """
@@ -165,13 +176,14 @@ Plazos ranking, hipotecarios UVA, FCI search/historico (estratega).
 BCRA: reservas, base monetaria, depósitos, tasa 30d. CAMMESA electricity.
 INDEC/MECON: EMAE, desempleo, pobreza, RIPTE, IPC, exportaciones/importaciones.
 Weather (Open-Meteo); histórico Wikipedia days; TMDB AR cinema only.
+News: Google News headlines by topic/date → News.
 Politics: presidentes, ICG confianza, eventos, feriados, Senado/Diputados
 actas/votos/roster/comisiones/viajes (viáticos only — never ticket prices).
 
 Prefer cruce joins (series+mandato, peak+acta, FX/clima that day,
 plazos×inflación, eventos as marks) over chart cosmetics.
 
-NEVER propose: Merval, noticias, encuestas besides ICG, ticket prices,
+NEVER propose: Merval, encuestas besides ICG, ticket prices,
 data municipal, Spotify, recaudación INCAA/SINCA, Hollywood, or anything
 outside ## Scope.
 """
@@ -195,6 +207,16 @@ also dump the same offers as a ``- `` bullet list; never write "Usa /v1/…".
   …/actas/id/{{id}}/votos, BCRA, series, climate, TMDB.
 - transform_dataset(...): reshape a dataset ALREADY in the index (no HTTP).
   One nesting level — see Reshape.
+
+## Fetch efficiency (hard rule)
+- An FX window of 2+ days is ALWAYS exactly ONE call to
+  ``/v1/cotizaciones/dolares/{{casa}}`` with ``desde`` + ``hasta``.
+- NEVER enumerate ``/v1/cotizaciones/dolares/{{casa}}/{{fecha}}`` once per day.
+  That point endpoint is allowed only for a single isolated date.
+- Context sources have equal weight: ``historico/dia``/Wikipedia supplies the
+  retrospective account and ``/v1/noticias`` supplies period reporting. A named
+  public event + context/repercussions/what-happened normally needs BOTH. An
+  explicit wiki-only/news-only ask uses one; a purely numeric request uses none.
 
 ## How to think (multi-step)
 Often NO single endpoint answers the question. Do not refuse with "no tengo
@@ -248,9 +270,11 @@ Do NOT fetch a multi-day window unless they asked for week / evolution.
 ## Enrich when you can
 Complete THIS ask before stopping. Extra wow analyses belong in ``[[next]]``.
 
-Curated historical day IS the ask — follow ## What we can actually do recipe
-(historico/dia + series ±7d + clima + /v1/presidentes if persona). Do not leave
-clima / PersonCard for ``[[next]]``.
+Curated historical day: fetch historico/dia plus the requested series. Apply
+the equal-weight context rule above; this sample's "atentado … contexto
+histórico" needs BOTH retrospective Wikipedia context and contemporary News.
+Use a SPANISH q built from event title/persona. Climate and PersonCard are not
+automatic; fetch them only when the ask calls for them.
 
 Legislator roll calls: fetch ``…/actas/id/{{id}}/votos`` only (proxy stamps
 bloque/foto). Do NOT also fetch the full directory. PersonCard when foto/bloque
@@ -274,7 +298,7 @@ Natural fits (compose picks the widget — honor a named form first):
   nombre+voto + foto|bloque → PersonCard; nombre+voto only → Acta
   roster (nombre+foto) → PersonCard; time series → Chart; levels → Chart bar
   one number → Metric; tabular non-people → List; fees/remesas → ComparisonTable
-  clima → WeatherUnit; derived/transform / titulo+fecha+voto → List
+  clima → WeatherUnit; noticias → News; derived/transform / titulo+fecha+voto → List
   structured comparison / "dibujame…" / custom visual → Box (HTML+SVG).
   Do NOT dump a markdown table into chat.
 
@@ -457,7 +481,7 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   Heuristic when form unspecified — match keys (see catalog):
   nombre+voto + foto|bloque → PersonCard; bare nombre+voto → Acta;
   roster → PersonCard; scalars/candidates → List; one figure → Metric;
-  2–6 spots → MetricRow; clima → WeatherUnit;
+  2–6 spots → MetricRow; clima → WeatherUnit; noticias → News;
   "distribución del voto" / AFIRMATIVO/NEGATIVO shares → VoteBreakdown
   (NEVER Chart kind=line on votos);
   vote by bloque → Chart kind=bar (xKey=bloque, series
@@ -471,7 +495,8 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   ("dibujame…", diagram, matrix). Host tags + safelisted className; optional
   ``suggests``=PascalCase. NEVER dataRef on Box. **Box craft** = cold-bulletin
   shell (see catalog) — designed, not a wireframe.
-  **Historical day**: Stack PersonCard? + Text(extract) + WeatherUnit + Chart.
+  **Historical day**: Stack only relevant fetched leaves — usually
+  Text(extract) + requested Chart, plus News when coverage/context is relevant.
   NEVER bind PersonCard to historico/dia.
   Prefer ``derived/transform`` for one legislator's vote history.
 - **Day snapshot / valores del día (anti Callout dump)**: with
@@ -508,7 +533,7 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 - Every LEAF widget MUST have a descriptive node-level `title` (not in props).
 - Containers (Stack, Grid, Box) usually need no title; standalone Box should.
 - Node `id`: short stable snake_case. Preserve ids when mutating.
-- Chart/AnnotatedTimeline/PeriodBars/VoteBreakdown/ProvinceMap/List/
+- Chart/AnnotatedTimeline/PeriodBars/VoteBreakdown/ProvinceMap/List/News/
   ComparisonTable/PersonCard/Acta/WeatherUnit: `props.dataRef` from the
   datasets index — never raw rows in props. Exception: Metric/MetricRow/
   Callout values from ``[[values]]``; AnnotatedTimeline marks/bands dates

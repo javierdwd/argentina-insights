@@ -21,15 +21,22 @@ from agent.ui.catalog import as_prompt_text as widget_catalog_text
 
 
 
-def test_historical_day_recipe_fetches_person_and_weather() -> None:
+def test_historical_day_recipe_fetches_only_relevant_context() -> None:
     caps = _CAPABILITIES.casefold()
     respond = _RESPOND_SYSTEM.casefold()
     compose = _COMPOSE_SYSTEM.casefold()
     assert "persona" in caps
-    assert "/v1/clima/historico" in _CAPABILITIES
-    assert "/v1/presidentes" in _RESPOND_SYSTEM
-    assert "do not leave clima" in respond or "not [[next]]" in caps
+    assert "weather" in caps
+    assert "/v1/noticias" in _CAPABILITIES
+    assert "equal weight" in respond
+    assert "retrospective" in respond
+    assert "period reporting" in respond
+    assert "purely numeric" in respond
+    assert "climate and personcard" in respond
+    assert "automatic" in respond
+    assert "spanish q" in respond
     assert "weatherunit" in compose
+    assert "news" in compose
     assert "never bind personcard to historico/dia" in compose
     catalog_text = catalog.as_prompt_text("data")
     assert "persona" in catalog_text

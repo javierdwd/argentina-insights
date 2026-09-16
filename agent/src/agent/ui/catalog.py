@@ -407,6 +407,24 @@ WIDGET_CATALOG: list[WidgetDef] = [
         },
     ),
     WidgetDef(
+        type="News",
+        role="leaf",
+        purpose="Paginated news headlines with source, publication date and article link.",
+        when_to_use=(
+            "/v1/noticias results. Show every returned headline in this dedicated "
+            "editorial list; pagination is handled inside the widget."
+        ),
+        when_not=(
+            "Legislation or generic tabular records → List. Narrative context → "
+            "Text. Never inline news rows in props."
+        ),
+        props="dataRef(str*)",
+        data=(
+            "dataRef = /v1/noticias dataset with title, source, publishedAt, url. "
+            "No authored rows and no columns mapping."
+        ),
+    ),
+    WidgetDef(
         type="List",
         role="leaf",
         purpose=(
@@ -493,7 +511,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "or group widgets in a single column. "
             "Cruce (politics + economy): Stack with political layer "
             "(Acta/PersonCard/VoteBreakdown) then economic — MetricRow "
-            "for same-day spots, Chart/AnnotatedTimeline for evolution."
+            "for same-day spots, Chart/AnnotatedTimeline for evolution. "
+            "Historical day: include only relevant fetched leaves; usually "
+            "Text + requested Chart, plus News for coverage/context."
         ),
         when_not=(
             "Single widget — no wrapper needed. "

@@ -30,7 +30,18 @@ from typing import Any
 
 from . import collections as coll
 from . import filters, names, upstream
-from . import bcra, cammesa, finanzas_productos, historico, openmeteo, rem, series, tmdb, wiki
+from . import (
+    bcra,
+    cammesa,
+    finanzas_productos,
+    historico,
+    news,
+    openmeteo,
+    rem,
+    series,
+    tmdb,
+    wiki,
+)
 from . import vector_index as vx
 from .cache import cache
 from .match import match_directory
@@ -979,6 +990,25 @@ async def _resolve_external(
                     f"{_NO_MATCH_GUIDANCE}"
                 )
             return row
+        if path == "/v1/noticias":
+            q = str(client_params.get("q") or "").strip()
+            if not q:
+                raise ProxyError("/v1/noticias requires q=… (search terms).")
+            try:
+                rows = await news.search(
+                    q,
+                    desde=desde,
+                    hasta=hasta,
+                    refresh=refresh,
+                )
+            except ValueError as exc:
+                raise ProxyError(str(exc)) from exc
+            if not rows:
+                raise NoMatch(
+                    f"No records: Google News matched no articles for q={q!r}, "
+                    f"desde={desde!r}, hasta={hasta!r}. {_NO_MATCH_GUIDANCE}"
+                )
+            return rows
 
         if path == "/v1/cine/discover":
             rows = await tmdb.discover(

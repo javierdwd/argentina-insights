@@ -20,6 +20,8 @@ import { Metric } from "./Metric";
 import { MetricNodeSchema } from "./Metric.schema";
 import { MetricRow } from "./MetricRow";
 import { MetricRowNodeSchema } from "./MetricRow.schema";
+import { News } from "./News";
+import { NewsNodeSchema } from "./News.schema";
 import { PeriodBars } from "./PeriodBars";
 import { PeriodBarsNodeSchema } from "./PeriodBars.schema";
 import { PersonCard } from "./PersonCard";
@@ -55,6 +57,7 @@ export const REGISTRY: Record<string, ComponentType<any>> = {
   List,
   Metric,
   MetricRow,
+  News,
   PeriodBars,
   PersonCard,
   ProvinceMap,
@@ -78,6 +81,7 @@ export const NODE_SCHEMAS = {
   List: ListNodeSchema,
   Metric: MetricNodeSchema,
   MetricRow: MetricRowNodeSchema,
+  News: NewsNodeSchema,
   PeriodBars: PeriodBarsNodeSchema,
   PersonCard: PersonCardNodeSchema,
   ProvinceMap: ProvinceMapNodeSchema,

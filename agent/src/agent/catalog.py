@@ -55,6 +55,7 @@ _DOMAIN_PREFIXES: list[tuple[str, str]] = [
     ("/v1/clima/", "other"),
     ("/v1/historico/", "other"),
     ("/v1/wiki/", "other"),
+    ("/v1/noticias", "other"),
     ("/v1/cine/", "other"),
 ]
 
@@ -70,6 +71,7 @@ _CROSS_CUTTING_PATHS: frozenset[str] = frozenset(
         "/v1/historico/dias",
         "/v1/historico/dia",
         "/v1/wiki/summary",
+        "/v1/noticias",
         "/v1/cine/discover",
         "/v1/cine/search",
         "/v1/cine/pelicula/{id}",
@@ -274,6 +276,14 @@ _SUMMARY_HINTS: dict[str, str] = {
         "desde=hasta=one day; Chart kind=bar xKey=casa series=venta. "
         "History for one house → /v1/cotizaciones/dolares/{casa}"
     ),
+    "/v1/cotizaciones/dolares/{casa}": (
+        "THE endpoint for any 2+ day FX window: ONE call with desde+hasta. "
+        "Never enumerate one request per date"
+    ),
+    "/v1/cotizaciones/dolares/{casa}/{fecha}": (
+        "Single isolated date ONLY. Never call repeatedly for a range; use "
+        "/v1/cotizaciones/dolares/{casa} with desde+hasta instead"
+    ),
     "/v1/senado/actas": _ACTAS_LIST_HINT.format(
         chamber="Senado",
         id_field="actaId",
@@ -363,10 +373,15 @@ _SUMMARY_HINTS: dict[str, str] = {
         "presidentes"
     ),
     "/v1/historico/dia": (
-        "Wikipedia extract for one date. SAME turn: FX ±7d, clima, "
-        "presidentes if persona. Stack: PersonCard, Text, WeatherUnit, Chart"
+        "Retrospective Wikipedia context for one curated date. Equal-weight "
+        "complement to period reporting from /v1/noticias: named public event "
+        "+ narrative context normally uses both. Climate/profile not automatic"
     ),
     "/v1/wiki/summary": "Ad-hoc Wikipedia when date isn't in historico/dias",
+    "/v1/noticias": (
+        "Google News headlines by topic. Choose short q keywords; optional "
+        "desde/hasta for history. News widget, never generic List"
+    ),
     "/v1/cine/discover": (
         "Browse AR films (TMDB). List foto+titulo+valor; then pelicula/{id}"
     ),

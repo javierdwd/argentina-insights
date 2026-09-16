@@ -27,6 +27,9 @@ export type { ListColumn, ListNode, ListProps } from "./List.schema";
 export { Metric } from "./Metric";
 export { MetricNodeSchema, MetricPropsSchema } from "./Metric.schema";
 export type { MetricNode, MetricProps } from "./Metric.schema";
+export { News } from "./News";
+export { NewsItemSchema, NewsNodeSchema, NewsPropsSchema } from "./News.schema";
+export type { NewsItem, NewsNode, NewsProps } from "./News.schema";
 export { PersonCard } from "./PersonCard";
 export {
   PersonCardNodeSchema,
