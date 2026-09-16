@@ -12,7 +12,7 @@ function getServerSnapshot(): Workspace {
   return EMPTY_WORKSPACE;
 }
 
-/** Reactive localStorage workspace (views + last canvas). */
+/** Reactive localStorage state for the last canvas. */
 export function useWorkspace(): Workspace {
   return useSyncExternalStore(
     subscribeWorkspace,
@@ -21,7 +21,7 @@ export function useWorkspace(): Workspace {
   );
 }
 
-/** Skip canvas-selection turns when naming a saved view. */
+/** Skip canvas-selection turns when identifying the active query. */
 export function lastUserQuery(
   messages: { role?: string; content?: unknown }[] | undefined,
 ): string | undefined {

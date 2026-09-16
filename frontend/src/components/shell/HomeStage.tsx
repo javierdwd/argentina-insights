@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  BookmarkSimple,
   Broom,
   CaretDown,
   CaretUp,
@@ -59,8 +58,6 @@ interface HomeStageProps {
   hasStarted?: boolean;
   /** Reset the current canvas and return to the entry state. */
   onClear?: () => void;
-  /** Save the current canvas in the workspace. */
-  onSave?: () => void;
 }
 
 /** Compact Argentine flag mark: celeste bands + Sol de Mayo. */
@@ -193,7 +190,6 @@ export function HomeStage({
   hasCanvas = false,
   hasStarted = false,
   onClear,
-  onSave,
 }: HomeStageProps) {
   const isDesktop = useIsDesktop();
   const [collapsed, setCollapsed] = useState(false);
@@ -305,17 +301,6 @@ export function HomeStage({
                   </h1>
                   {hasStarted ? (
                     <div className="flex shrink-0 items-center gap-0.5 md:gap-1">
-                      {hasCanvas ? (
-                        <button
-                          type="button"
-                          onClick={onSave}
-                          className="inline-flex h-9 w-9 items-center justify-center gap-1.5 rounded-lg text-sm text-accent transition-colors hover:bg-accent-soft hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 md:h-auto md:w-auto md:px-2.5 md:py-1.5"
-                          aria-label="Guardar vista"
-                        >
-                          <BookmarkSimple size={17} weight="regular" aria-hidden />
-                          <span className="hidden md:inline">Guardar vista</span>
-                        </button>
-                      ) : null}
                       <button
                         type="button"
                         onClick={onClear}

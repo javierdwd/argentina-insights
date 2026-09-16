@@ -16,10 +16,8 @@ import {
 import type { UINode } from "@/lib/uitree";
 import {
   clearLastCanvas,
-  compactTitle,
   getWorkspace,
   saveLastCanvas,
-  saveView,
 } from "@/lib/workspace";
 import { CanvasPending } from "./CanvasPending";
 import { HomeStage } from "./HomeStage";
@@ -36,7 +34,6 @@ import {
 import { CanvasActionProvider, useCanvasAction } from "./useCanvasAction";
 import { CanvasInspector } from "./CanvasInspector";
 import { lastUserQuery, useWorkspace } from "./useWorkspace";
-import { WorkspaceDock } from "./WorkspaceRail";
 
 const CHAT_LABELS = {
   chatInputPlaceholder: "Cotización, fútbol, cine, senadores…",
@@ -75,12 +72,10 @@ function AgentCanvas({
   onHasCanvas,
   onHasStarted,
   clearSignal,
-  saveSignal,
 }: {
   onHasCanvas?: (has: boolean) => void;
   onHasStarted?: (has: boolean) => void;
   clearSignal: number;
-  saveSignal: number;
 }) {
   "use no memo";
   const { agent, isReady } = useAgent({
@@ -98,7 +93,6 @@ function AgentCanvas({
   const reduceMotion = useReducedMotion();
   const hydratedRef = useRef(false);
   const handledClearRef = useRef(clearSignal);
-  const handledSaveRef = useRef(saveSignal);
   const [startedQuery, setStartedQuery] = useState<string | null>(null);
   const [clearedQuery, setClearedQuery] = useState<string | null>(null);
   // CopilotKit can briefly publish the previous thread state after
@@ -174,14 +168,6 @@ function AgentCanvas({
   ]);
 
   useEffect(() => {
-    if (handledSaveRef.current === saveSignal) return;
-    handledSaveRef.current = saveSignal;
-    if (!displayTree) return;
-    const title = compactTitle(query || displayTree.title || "Vista guardada");
-    saveView({ title, uiTree: displayTree, query });
-  }, [displayTree, query, saveSignal]);
-
-  useEffect(() => {
     if (!isReady || hydratedRef.current || canvasCleared) return;
     hydratedRef.current = true;
     if (agentTree) return;
@@ -210,7 +196,6 @@ function AgentCanvas({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <WorkspaceDock query={query} />
       {/* Horizontal inset so widget rings/shadows are not clipped by overflow-y. */}
       <div
         className={[
@@ -326,7 +311,6 @@ export function AgentStage() {
   const [hasCanvas, setHasCanvas] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [clearSignal, setClearSignal] = useState(0);
-  const [saveSignal, setSaveSignal] = useState(0);
   const onHasCanvas = useCallback((has: boolean) => {
     setHasCanvas(has);
   }, []);
@@ -337,10 +321,6 @@ export function AgentStage() {
     setThreadId(crypto.randomUUID());
     setClearSignal((current) => current + 1);
   }, []);
-  const onSave = useCallback(() => {
-    setSaveSignal((current) => current + 1);
-  }, []);
-
   return (
     <CopilotChatConfigurationProvider
       agentId="argentina_insights"
@@ -350,7 +330,6 @@ export function AgentStage() {
         hasCanvas={hasCanvas}
         hasStarted={hasStarted}
         onClear={onClear}
-        onSave={onSave}
         chat={<ChatPanel threadId={threadId} />}
         stage={
           <CanvasActionProvider>
@@ -358,7 +337,6 @@ export function AgentStage() {
               onHasCanvas={onHasCanvas}
               onHasStarted={onHasStarted}
               clearSignal={clearSignal}
-              saveSignal={saveSignal}
             />
           </CanvasActionProvider>
         }
