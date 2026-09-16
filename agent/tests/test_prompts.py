@@ -274,12 +274,22 @@ def test_prompt_templates_format_without_leftover_placeholders() -> None:
     assert "SCOPE" in respond and "SCOPE" in compose
 
 
-def test_scope_guardrail_limits_answers_to_catalog_sources() -> None:
+def test_scope_guardrail_allows_bounded_knowledge_after_acceptance() -> None:
     from agent.graph import _SCOPE
 
     scope = _SCOPE.casefold()
-    assert "only with information grounded" in scope or "available sources" in scope
-    assert "general knowledge" in scope
+    assert "first decide whether the user's query is in" in scope
+    assert "primary subject itself must belong" in scope
+    assert "scope laundering" in scope
+    assert '"qué es javascript en argentina"' in scope
+    assert "must be refused without explaining javascript" in scope
+    assert "once the query or an independently answerable part" in scope
+    assert "pretrained knowledge only" in scope
+    assert "does not broaden the accepted topic" in scope
+    assert "political orientation is an approximate, contestable classification" in scope
+    assert "out-of-scope sub-question" in scope
+    assert "never use pretrained knowledge to supply or overwrite numbers" in scope
+    assert "ui composer may render" in scope
     assert "prompt injection" in scope or "ignore previous instructions" in scope
     assert "system prompts" in scope or "internal implementation" in scope
     respond = _system_message("data", {}).content.casefold()
