@@ -598,10 +598,11 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   widget, privately compare the best standard catalog leaf with an authored
   Box composition. Prefer the standard leaf only when its native visual
   encoding honestly matches the semantics and loses no important dimension.
-  If an inferred, subject-specific spatial or structural composition would
-  communicate materially better, prefer Box even when the user did not name
-  that exact chart type and even when Chart/List could technically contain the
-  values. Box is a first-class visualization, not a last resort.
+  If an inferred, subject-specific composition would communicate materially
+  better, prefer Box even when Chart/List could technically contain the values.
+  Box is a first-class authored component, not a last resort and not necessarily
+  a chart: it may use semantic tables, nested divs, lists, definition lists,
+  editorial text hierarchy, SVG, or a combination.
   Never coerce qualitative categories, positions, relationships, spectra,
   matrices, flows, or hierarchies into bars unless bar length represents a
   real ordered numeric magnitude. Honor an explicitly requested visual form.
@@ -613,47 +614,32 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   present that placement as measured numeric data.
   Dataset shape still constrains every factual claim and binding. Box is not a
   substitute for a data-bound widget when a standard leaf already provides the
-  strongest semantically correct encoding.
+  strongest semantically correct encoding; because Box has no dataRef, every
+  authored fact in it must be present in the analyst note.
   Put compatible measures on one visual when that improves comparison;
-  separate genuinely different layers. Use Box for authored diagrams, never
-  as a fake wrapper around a conventional data-bound widget.
+  separate genuinely different layers. Do not force Box into SVG or chart-like
+  geometry when ordinary semantic HTML communicates more clearly.
 - Editorial value: visualize metrics that answer a question a person would
-  naturally care about. Prefer strongest/weakest periods, magnitude of a gap,
-  consistency, trajectory, home/away contrast, or direct-match performance.
-  Do not chart a metric merely because it exists. Avoid redundant generic
-  rates when a more interpretable points, goal, or split comparison answers
-  the same question.
-- Authored visual quality (Box): treat aesthetic judgment as part of
-  correctness. Before emitting, privately choose one visual thesis grounded
-  in the subject, the relationship the user must perceive, and a clear reading
-  order. Select the visual grammar from that relationship: position in one or
-  more dimensions → spatial scale or coordinate field; magnitude/ranking →
-  length or area with a shared baseline; change through time → continuous
-  path; flow/sequence → directional path and connectors; hierarchy → nesting;
-  geography → map. Give the main finding one dominant focal point; keep
-  supporting facts quieter.
-  Geometry must carry meaning: position, length, scale, grouping, enclosure
-  and connectors should encode the comparison or sequence, not merely decorate
-  it. Prefer the strongest human-readable encodings—position and aligned
-  length before area, shape, or color alone. Use color intentionally for
-  contrast, grouping, regions, intensity, or emphasis; do not scatter accent
-  colors decoratively. Use whitespace, alignment and deliberate asymmetry to
-  create rhythm. Do not fake a custom visual with a stack of equal cards,
-  pills, labeled rectangles, repeated borders, or ornamental SVG.
-  A custom visual must contain meaningful non-text structure—such as plotted
-  marks, regions, paths, scale, shape, or spatial grouping—and intentional
-  color contrast. If removing the text would leave no visible structure that
-  communicates the requested relationship, the visual has failed: redesign it
-  instead of returning a styled list. Never use color as the only carrier of
-  meaning; retain labels and sufficient contrast.
+  naturally care about. Prefer a meaningful comparison, change, distribution,
+  hierarchy, or exception over charting a field merely because it exists.
+- Authored component quality (Box): treat structure and aesthetic judgment as
+  part of correctness. First choose a clear reading order and the simplest
+  grammar that preserves the answer. Use a semantic table for aligned values,
+  nested HTML for grouped or editorial information, lists for sequences, and
+  SVG only when position, geometry, connection, or flow carries meaning. Give
+  the main finding one focal point and keep supporting facts quieter.
+  Match the site's existing editorial bulletin language: use its font-display/
+  font-sans hierarchy, muted secondary copy, rule separators, restrained theme
+  surfaces, spacing scale, and accent color. It must feel native to the current
+  canvas, never like a separate microsite or a new design system.
+  Use hierarchy, whitespace, alignment, and color intentionally. Do not imitate
+  a dashboard with repeated generic cards, add ornamental SVG, or use color as
+  the only carrier of meaning. A well-structured table or document is a valid
+  custom component; it does not need plotted marks to justify Box.
   Before returning an authored visual, perform a private layout preflight:
-  verify every mark, connector, label, annotation and legend has an intentional
-  position; remains inside the visible bounds; does not collide with another
-  label or important mark; and stays readable at both normal and narrow canvas
-  widths. Reserve an internal safe margin around the composition. When labels
-  would collide, move them into free space and connect them with leader lines;
-  simplify secondary copy when necessary. Do not return the candidate until
-  these checks pass.
+  verify hierarchy, text, rows, cells, marks, and labels stay readable at normal
+  and narrow canvas widths. Tables need semantic headings and horizontal
+  overflow when necessary. Diagrams need safe margins and collision-free labels.
   For positioned diagrams, put geometry and its labels in ONE responsive SVG
   with a coherent viewBox, ``w-full h-auto`` and preserveAspectRatio. Position
   labels with SVG ``text`` x/y coordinates in that same coordinate system.

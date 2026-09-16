@@ -39,8 +39,9 @@ def test_historical_day_recipe_fetches_only_relevant_context() -> None:
     catalog_text = catalog.as_prompt_text("data")
     assert "persona" in catalog_text
     widgets = widget_catalog_text().casefold()
-    assert "historico/dia" in widgets
-    assert "never historico/dia" in widgets or "not personcard" in widgets
+    assert "/v1/" not in widgets
+    assert "weather rows" in widgets
+    assert "one person profile or a roster" in widgets
 
 
 def test_query_routing_uses_structured_classification(monkeypatch) -> None:
@@ -201,21 +202,21 @@ def test_compose_prompt_grounds_brief_in_capabilities() -> None:
     assert "merval" in text.casefold()
 
 
-def test_compose_catalog_treats_box_as_first_class_visualization() -> None:
+def test_compose_catalog_treats_box_as_first_class_authored_component() -> None:
     catalog = widget_catalog_text().casefold()
     assert "### box" in catalog
     assert "svg" in catalog
     assert "first-class" in catalog
-    assert "qualitative position" in catalog
-    assert "no honest numeric magnitude" in catalog
+    assert "semantic table" in catalog
+    assert "ordinary nested html" in catalog
     assert "never invent scores/ranks" in catalog
     assert "dataref" in catalog  # banned on Box (when_not / props)
-    assert "user-named form still wins" in catalog
+    assert "honor a user-named form" in catalog
     compose = _COMPOSE_SYSTEM.casefold()
     assert "box" in compose
-    assert "authored diagrams" in compose
     assert "substitute" in compose and "data-bound widget" in compose
-    assert "box is a first-class visualization, not a last resort" in compose
+    assert "box is a first-class authored component" in compose
+    assert "semantic tables, nested divs" in compose
     assert "numeric axis is a factual claim" in compose
     assert "pseudo-scores" in compose
     assert "private layout preflight" in compose
@@ -224,13 +225,10 @@ def test_compose_catalog_treats_box_as_first_class_visualization() -> None:
     assert "never align html div/span labels" in compose
     assert "aesthetic judgment" in compose
     assert "focal point" in compose
-    assert "equal cards" in compose
-    assert "select the visual grammar from that relationship" in compose
-    assert "position and aligned" in compose
-    assert "use color intentionally" in compose
-    assert "meaningful non-text structure" in compose
-    assert "if removing the text would leave no visible structure" in compose
-    assert "never use color as the only carrier" in compose
+    assert "repeated generic cards" in compose
+    assert "semantic table for aligned values" in compose
+    assert "well-structured table or document is a valid" in compose
+    assert "does not need plotted marks" in compose
     assert "every node, including every html/svg host child" in compose
     assert "all host attributes" in compose
     assert "every child needs a unique id" in compose
@@ -363,8 +361,7 @@ def test_compose_prompt_prefers_one_visual_for_compatible_measures() -> None:
     )
     assert "compatible" in text
     assert "one visual" in text
-    assert "derived/series_overlay" in text
-    assert "derived/fx_spread" in text
+    assert "same X and grain" in text
 
 
 def test_compose_prompt_separates_genuinely_different_layers() -> None:
@@ -380,9 +377,8 @@ def test_compose_prompt_separates_genuinely_different_layers() -> None:
     assert "different layers" in text.casefold()
     assert "VoteBreakdown" in text
     catalog = widget_catalog_text()
-    assert "quiénes + blue" in catalog or "political layer" in catalog.casefold()
-    assert "distribución del voto" in catalog.casefold()
-    assert "de ese día" in catalog.casefold()
+    assert "one roll-call vote" in catalog
+    assert "values whose order, trend, or category spacing matters" in catalog.casefold()
 
 
 def test_respond_prompt_vote_composition_fetches_votos_and_same_day_spots() -> None:
@@ -394,7 +390,7 @@ def test_respond_prompt_vote_composition_fetches_votos_and_same_day_spots() -> N
     assert "de ese día" in text
 
 
-def test_compose_prompt_day_snapshot_uses_kv_list_not_callout() -> None:
+def test_compose_prompt_keeps_raw_values_out_of_callout() -> None:
     text = _build_compose_system(
         {
             "messages": [],
@@ -405,11 +401,9 @@ def test_compose_prompt_day_snapshot_uses_kv_list_not_callout() -> None:
         }
     )
     assert "key-value" in text.casefold() or "Key-value" in text
-    assert "valores del día" in text.casefold() or "Day snapshot" in text
     catalog = widget_catalog_text()
-    assert "derived/values" in catalog
     assert "Callout" in catalog
-    assert "valores del día" in catalog.casefold() or "day snapshot" in catalog.casefold()
+    assert "raw values without an interpretation" in catalog.casefold()
 
 
 def test_respond_prompt_mentions_spread_series_fetch() -> None:
@@ -433,9 +427,7 @@ def test_respond_prompt_peak_day_fetches_actas_by_date() -> None:
             "ui_tree_unbound": None,
         }
     )
-    assert "no hubo sesión" in compose.casefold()
-    catalog = widget_catalog_text().casefold()
-    assert "peak" in catalog or "pico" in catalog
+    assert "event markers or labeled intervals" in compose.casefold()
 
 
 def test_respond_prompt_named_law_forces_search() -> None:
@@ -642,10 +634,11 @@ def test_bind_chart_leaves_numeric_series_alone() -> None:
     assert out["props"]["data"] == datasets["ds_fx"]["rows"]
 
 
-def test_chart_catalog_documents_nominal_category_aggregation() -> None:
+def test_chart_catalog_documents_generic_data_grain() -> None:
     text = widget_catalog_text()
-    assert "exact vote labels visible in the dataset sample" in text
-    assert "Chart counts those labels" in text
+    assert "Wide data requires one row per xKey" in text
+    assert "For long data, set seriesBy" in text
+    assert "exact category values as series keys" in text
 
 
 
@@ -668,11 +661,12 @@ def test_respond_prompt_topic_switch_fetches_from_catalog() -> None:
     assert "leyes durante el mandato" in text.casefold() or "mandate" in text.casefold()
 
 
-def test_chart_catalog_mentions_series_overlay() -> None:
+def test_widget_catalog_is_independent_of_api_recipes() -> None:
     text = widget_catalog_text()
-    assert "derived/series_overlay" in text
-    assert "params.x" in text
-    assert "derived/fx_spread" in text
+    assert "/v1/" not in text
+    assert "derived/" not in text
+    assert "homePointsPerGame" not in text
+    assert "fx_spread" not in text
 
 
 def test_eventos_presidenciales_are_in_catalog_prompt() -> None:

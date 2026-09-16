@@ -189,6 +189,51 @@ def test_compose_schema_normalizes_flattened_host_node_shorthand() -> None:
     assert validate_tree(tree, {}).errors == ()
 
 
+def test_box_accepts_nested_semantic_html_table() -> None:
+    tree = {
+        "id": "authored_comparison",
+        "type": "Box",
+        "props": {"className": "overflow-x-auto"},
+        "children": [
+            {
+                "id": "comparison_table",
+                "type": "table",
+                "props": {"className": "min-w-full border-collapse"},
+                "children": [
+                    {
+                        "id": "comparison_head",
+                        "type": "thead",
+                        "props": {},
+                        "children": [
+                            {
+                                "id": "comparison_head_row",
+                                "type": "tr",
+                                "props": {},
+                                "children": [
+                                    {
+                                        "id": "comparison_heading",
+                                        "type": "th",
+                                        "props": {"text": "Alternativa"},
+                                        "children": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "id": "comparison_body",
+                        "type": "tbody",
+                        "props": {},
+                        "children": [],
+                    },
+                ],
+            }
+        ],
+    }
+
+    assert validate_tree(tree, {}).errors == ()
+
+
 def test_invalid_tree_is_repaired_once(monkeypatch) -> None:
     model = _StructuredModel(
         [

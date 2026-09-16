@@ -66,14 +66,12 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="leaf",
         purpose="Single key-value figure with optional percentage delta and trend.",
         when_to_use=(
-            "One spot value: current FX rate, inflation reading, yield, country risk. "
-            "Use for the most recent / current snapshot of a single indicator."
+            "Use when one scalar is the complete visual message and its label "
+            "provides enough context. Delta and trend may add a compact comparison."
         ),
         when_not=(
-            "2–6 spot values side by side (spread, blue+oficial+MEP) → MetricRow. "
-            "Multiple values over time → Chart. "
-            "A list of people (senators, deputies) → PersonCard. "
-            "A list of other comparable records/options → List."
+            "Several peer scalars → MetricRow. Values indexed by time or category "
+            "→ Chart. Repeated structured records → List or a subject-specific widget."
         ),
         props="label(str*); value(str|number*); unit?(str); delta?(number); trend?(up|down|flat)",
         data=None,
@@ -81,17 +79,14 @@ WIDGET_CATALOG: list[WidgetDef] = [
     WidgetDef(
         type="MetricRow",
         role="leaf",
-        purpose="Horizontal strip of 2–6 spot Metrics (FX casas, spread KPIs).",
+        purpose="Horizontal strip of 2–6 related scalar metrics.",
         when_to_use=(
-            "Same-day comparison of a few scalars the user wants to scan together: "
-            "blue vs oficial vs MEP, spread + riesgo, two mandate peaks. "
-            "Inline items[] like Metric (no dataRef)."
+            "Use for a small set of peer values that should be scanned and compared "
+            "as one snapshot. Items are authored inline and share Metric semantics."
         ),
         when_not=(
-            "One figure → Metric. Time series → Chart. "
-            "Spread evolution / serie del spread over days → Chart on "
-            "derived/fx_spread (not spot MetricRow). "
-            "One value per mandate/era with labels → PeriodBars."
+            "One scalar → Metric. Values whose order, trend, or category spacing "
+            "matters → Chart or PeriodBars. More than six records → List."
         ),
         props=(
             "items([{label,value,unit?,delta?,trend?}]*, min 2 max 6) — "
@@ -102,40 +97,34 @@ WIDGET_CATALOG: list[WidgetDef] = [
     WidgetDef(
         type="WeatherUnit",
         role="leaf",
-        purpose="Weather cards: icon + temp + min/max + rain, one per day.",
+        purpose="Weather observations or forecasts as icon-led cards.",
         when_to_use=(
-            "/v1/clima/historico, /pronostico, or one-province /actual. "
-            "Historical day: bind the same-fecha CABA (or row.provincia) "
-            "clima fetch — NEVER paste °C into Text. "
+            "Use for one or more weather rows when temperature, conditions, "
+            "minimum/maximum, or precipitation are the primary information."
         ),
         when_not=(
-            "All 24 provinces current temp → ProvinceMap. "
-            "Long climate series as evolution → Chart kind=line."
+            "Geographic comparison across provinces → ProvinceMap. "
+            "A long numeric evolution → Chart. Do not reproduce weather values in Text."
         ),
         props="dataRef(str*); sort?({key,dir:asc|desc}); limit?(int)",
-        data="dataRef = a /v1/clima/* dataset. Keys: fecha, provincia, tmin, tmax, temperatura, precipitacion, weather_code.",
+        data=(
+            "Rows may provide date, location, temperature, minimum, maximum, "
+            "precipitation and weather-code fields recognized by the widget."
+        ),
     ),
     WidgetDef(
         type="Text",
         role="leaf",
-        purpose="One-line caveat that sits under a data widget (source, lag, definition).",
+        purpose="Short contextual prose that belongs on the canvas.",
         when_to_use=(
-            "A short note that labels a Chart/List/Metric already on the canvas "
-            "(e.g. 'Serie mensual, última observación agosto'). Keep it to one "
-            "or two sentences. "
-            "Historical-day context from historico/dia or wiki/summary: use "
-            "Text with the full extract (3–6 sentences) — title = event headline. "
-            "PersonCard for the day's protagonists is a separate official-roster "
-            "or wiki/personas fetch, not this Text."
+            "Use for a source note, definition, caveat, or short narrative extract "
+            "that materially explains nearby widgets. Prefer one or two sentences; "
+            "a sourced narrative may be longer when prose itself is the content."
         ),
         when_not=(
-            "The answer to a question, a list of suggestions, 'qué más podríamos "
-            "agregar', explanations, chitchat, or a failed search ('no se "
-            "encontraron registros para X') — those go in `brief`, never on "
-            "the canvas. A highlighted finding under a chart → Callout. "
-            "Numeric series → Chart. A spot value → Metric. "
-            "Climate (tmin/tmax/temperatura, 'T° media… mm') → WeatherUnit "
-            "on the clima dataRef — never paste °C into content."
+            "Conversation, follow-up suggestions, errors, or search misses → brief. "
+            "A highlighted conclusion → Callout. Structured or numeric data → the "
+            "corresponding data widget; do not transcribe it into prose."
         ),
         props="content(str*)",
         data=None,
@@ -143,18 +132,14 @@ WIDGET_CATALOG: list[WidgetDef] = [
     WidgetDef(
         type="Callout",
         role="leaf",
-        purpose="Short anchored finding (peak date, join insight) under a chart.",
+        purpose="Short emphasized finding anchored to nearby evidence.",
         when_to_use=(
-            "One punchy takeaway that belongs next to a Chart/AnnotatedTimeline "
-            "(e.g. 'Pico de riesgo el 12-mar; ese día no hubo sesión'). "
-            "Keep to 1–2 sentences. tone=insight|info|warning."
+            "Use for one evidence-backed takeaway that deserves emphasis next to "
+            "the widget that supports it. Keep it to one or two sentences."
         ),
         when_not=(
-            "Full answer / chat reply → brief. Source caveats → Text. "
-            "Raw numbers without a finding → Metric. "
-            "NEVER dump same-day spot values (blue/MEP/CCL/riesgo/spreads, "
-            "'valores del día', detalle de una fecha) as a prose paragraph — "
-            "that is a key-value List on derived/values (or MetricRow)."
+            "Full answer → brief. Source or methodology note → Text. "
+            "Raw values without an interpretation → Metric, MetricRow, or List."
         ),
         props="content(str*); eyebrow?(str); tone?(insight|info|warning)",
         data=None,
@@ -166,18 +151,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "Numeric chart: line/area/bar, dual-axis line, scatter, or heatmap."
         ),
         when_to_use=(
-            "kind=line|area for ordered X (time/sequence). kind=bar for "
-            "totals/categories (few rows; xKey=label). "
-            "HARD: 2+ measures same X → ONE Chart with multiple series[] "
-            "(prefer derived/series_overlay). "
-            "Spread evolution → derived/fx_spread (xKey=fecha, "
-            "series spread|spread_pct) — replace spot Metric/MetricRow. "
-            "Dual scale: yAxisIndex 0|1. scatter=two numerics; heatmap=matrix. "
-            "Vote by bloque on raw nominal rows: kind=bar, xKey=bloque, "
-            "series keys must be the exact vote labels visible in the dataset "
-            "sample (usually AFIRMATIVO/NEGATIVO/ABSTENCIÓN/AUSENTE); Chart "
-            "counts those labels. On pre-aggregated rows, bind numeric vote "
-            "columns only when there is exactly one row per bloque."
+            "Use line or area for an ordered numeric evolution, bar for a small "
+            "categorical comparison, scatter for the relationship between two "
+            "numeric variables, and heatmap for a numeric matrix. Put compatible "
+            "measures sharing the same X and grain in one Chart; use yAxisIndex "
+            "when their scales differ."
         ),
         when_not=(
             "Spot → Metric/MetricRow. Marks/bands → AnnotatedTimeline. "
@@ -186,12 +164,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "or matrices with no source-backed numeric magnitude → authored "
             "Box. Never invent scores/ranks to force qualitative labels into "
             "bars or numeric axes. "
-            "National 'distribución del voto' (no bloque) → VoteBreakdown. "
-            "Same-day FX 'de ese día' → Metric/MetricRow from [[values]], "
-            "not Chart kind=line. Provinces → ProvinceMap. People → PersonCard. "
-            "Table → List. NEVER N Charts for shared axes. "
-            "Cruce ('quiénes + blue'): pair Charts with a political layer "
-            "(Acta/PersonCard/VoteBreakdown/ProvinceMap)."
+            "Geographic values → ProvinceMap. People → PersonCard. "
+            "Simple record lookup → List. Do not split compatible series that "
+            "share an axis and grain into multiple charts."
         ),
         props=(
             "kind(line|bar|area|scatter|heatmap*); xKey(str*); "
@@ -203,23 +178,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "sort?({key,dir}); limit?(int). Omit color unless user names hex."
         ),
         data=(
-            "dataRef = dataset id. series[].key must exist OR be exact vote "
-            "labels from the sample when xKey=bloque|partido on nominal rows. "
-            "Respect dataset grain: a wide-series Chart needs one row per xKey "
-            "after filtering unless the widget explicitly aggregates that row "
-            "shape. "
-            "Long-format team-season rows: xKey=season, seriesBy=team, "
-            "valueKey=the metric (for example pointsPerGame or "
-            "goalDifferencePerGame), and one series key per exact team value. "
-            "Never use team names as series keys without seriesBy+valueKey; "
-            "never bind two teams to one winRate series. For home/away columns "
-            "such as homePointsPerGame and awayPointsPerGame, use one Chart per "
-            "team with scalar where={team: exactName}; do not put two teams in "
-            "the same Chart because season repeats. "
-            "derived/series_overlay: xKey=params.x; one series per other key; "
-            "labels from params.labels. "
-            "derived/fx_spread: xKey=params.x; series spread|spread_pct. "
-            "sort+limit for 'últimos N' — never assume pre-trimmed size."
+            "series[].key must name numeric row columns. Wide data requires one "
+            "row per xKey after filtering. For long data, set seriesBy to the "
+            "category field, valueKey to the numeric measure, and use exact "
+            "category values as series keys. Apply sort and limit explicitly "
+            "when the requested order or count matters."
         ),
     ),
     WidgetDef(
@@ -229,17 +192,14 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "Time series with event markLines and/or mandate/era band overlays."
         ),
         when_to_use=(
-            "Blue/riesgo around a vote day; series + 'inicio de mandato'; "
-            "FX with colored bands per presidency. Peak of a series + "
-            "Congreso that day → mark the peak ISO (from the analyst note) "
-            "and List the day's actas underneath (or Callout if no session). "
-            "marks[] and bands[] are authored by compose (dates from the "
-            "analyst note), data via dataRef. Do not redraw the series as Box SVG."
+            "Use when event markers or labeled intervals are essential to "
+            "interpreting a dated numeric series. Author marks and bands from "
+            "source-backed dates; bind the numeric series through dataRef."
         ),
         when_not=(
             "Plain series with no events/bands → Chart kind=line. "
-            "One number per period → PeriodBars. Dual unrelated scales without "
-            "marks → Chart with yAxisIndex."
+            "One aggregate per labeled period → PeriodBars. Multiple scales without "
+            "annotations → Chart. Do not redraw a standard timeline as Box SVG."
         ),
         props=(
             "xKey(str*); series([{key,label,color?}]*); "
@@ -247,22 +207,21 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "dataRef(str*); sort?({key,dir:asc|desc}); limit?(int)"
         ),
         data=(
-            "dataRef → dated numeric rows. marks.x / bands.from|to should match "
-            "values present (or nearest) on the x axis (fecha ISO)."
+            "Rows need an ordered x field and numeric series fields. marks.x and "
+            "bands.from|to must use values compatible with the x-axis domain."
         ),
     ),
     WidgetDef(
         type="PeriodBars",
         role="leaf",
-        purpose="One bar per period/mandate with optional date-range sublabel.",
+        purpose="One prominent value per labeled period with an optional sublabel.",
         when_to_use=(
-            "Máximo blue por mandato, inflación media por gobierno — few "
-            "rows with a period label + numeric value (+ optional sublabel "
-            "with date window)."
+            "Use for a small set of already aggregated period rows where the "
+            "period labels and values matter more than within-period evolution."
         ),
         when_not=(
-            "Long time series → Chart/AnnotatedTimeline. "
-            "Same-day FX casas → MetricRow or Chart bar."
+            "Raw or long time series → Chart/AnnotatedTimeline. "
+            "Unordered categories → Chart bar. A scalar snapshot → MetricRow."
         ),
         props=(
             "labelKey(str*); valueKey(str*); sublabelKey?(str); "
@@ -272,35 +231,28 @@ WIDGET_CATALOG: list[WidgetDef] = [
         ),
         data=(
             "dataRef rows must include labelKey + valueKey (+ sublabelKey). "
-            "Prefer ``derived/period_levels`` (keys: label, value, sublabel) "
-            "or ``derived/values`` (label, value). "
-            "NEVER bind a raw dated series or a presidents roster alone — "
-            "those have no per-period aggregate column."
+            "Each row must already represent one period and one aggregate value; "
+            "the widget does not aggregate raw observations into periods."
         ),
     ),
     WidgetDef(
         type="VoteBreakdown",
         role="leaf",
-        purpose="Donut/pie of AFIRMATIVO / NEGATIVO / ABSTENCIÓN counts.",
+        purpose="Donut or pie showing the composition of one roll-call vote.",
         when_to_use=(
-            "Summarize one roll call's result composition — "
-            "'distribución del voto', how the chamber split, "
-            "AFIRMATIVO/NEGATIVO/ABSTENCIÓN shares. Pass the votos "
-            "dataset; widget aggregates by voteKey (default 'voto')."
+            "Use when the primary question is how one roll call divides across "
+            "vote categories. The widget counts rows by voteKey."
         ),
         when_not=(
-            "Who voted how (people) → PersonCard or Acta. "
-            "Split by bloque/partido → Chart kind=bar (xKey=bloque, "
-            "series keys copied exactly from voto values on the same nominal "
-            "votos rows), or numeric vote columns from a block-only aggregate. "
-            "Many bills → List. Province lean → ProvinceMap. "
-            "NEVER a Chart kind=line on votos rows."
+            "Individual voters → PersonCard or Acta. Vote categories crossed with "
+            "another dimension → Chart. Multiple roll calls → List. Geographic "
+            "distribution → ProvinceMap."
         ),
         props=(
             "dataRef(str*); voteKey?(str=voto); kind?(donut|pie); "
             "sort?({key,dir:asc|desc}); limit?(int)"
         ),
-        data="dataRef = roll-call rows with a scalar voto field.",
+        data="Rows must contain one scalar vote category per voter under voteKey.",
     ),
     WidgetDef(
         type="ProvinceMap",
@@ -310,34 +262,23 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "concentration, gaps, and outliers visible at a glance."
         ),
         when_to_use=(
-            "Prefer ProvinceMap whenever province is a meaningful comparison "
-            "dimension — even if the request also asks for another grouping such "
-            "as bloque, partido, category, or vote sense. Examples: vote lean or "
-            "counts by provincia, negativos por provincia, senators by district, "
-            "or any indicator available for several provinces. If the complete "
-            "answer also needs a non-geographic breakdown, compose ProvinceMap "
-            "with the appropriate Chart/VoteBreakdown instead of replacing the "
-            "map with one crowded chart. The map encodes one measure: choose the "
-            "measure emphasized by the question (for example 'negativo') and use "
-            "the companion widget for the full multi-series breakdown. Set "
-            "nameKey=provincia and valueKey to a numeric count column OR a vote "
-            "label when rows are a raw roll call with provincia+voto; the widget "
-            "counts matching rows per province."
+            "Use when province is a meaningful comparison dimension and spatial "
+            "patterns are part of the answer. Encode one measure; add a companion "
+            "widget if another non-geographic breakdown is also required."
         ),
         when_not=(
-            "Person roster → PersonCard. National time series → Chart. "
-            "Vote shares without geography → VoteBreakdown. Do not omit the map "
-            "merely because the same request also mentions bloque or vote sense."
+            "Geography is incidental or only one province is present → another "
+            "widget. Time evolution → Chart. People → PersonCard. Non-geographic "
+            "composition → Chart or a subject-specific breakdown."
         ),
         props=(
             "dataRef(str*); nameKey?(str=provincia); valueKey(str*); "
             "sort?({key,dir:asc|desc}); limit?(int)"
         ),
         data=(
-            "Prefer rows already counted per province "
-            "(provincia + count/total/n). Raw …/votos rows also work: set "
-            "valueKey to the vote to count (e.g. 'negativo') and nameKey="
-            "provincia — the widget aggregates. Never invent province totals."
+            "nameKey identifies the province. valueKey identifies the numeric "
+            "measure, or a supported category to count when rows are nominal. "
+            "Never invent or infer missing provincial values."
         ),
     ),
     WidgetDef(
@@ -349,26 +290,13 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "one detailed profile, or a roster list/grid of many."
         ),
         when_to_use=(
-            "Legislator/president profile, roster, OR …/votos with "
-            "foto|imagen and/or bloque|partido — map voto→role, "
-            "foto/imagen→photoUrl, bloque/partido→party. "
-            "Historical day with persona: 1-row /v1/presidentes "
-            "(name←nombre, photoUrl←imagen, party←partido, "
-            "role←periodoPresidencial) — NEVER historico/dia. "
-            "Other named public figures: /v1/wiki/personas "
-            "(name←nombre, photoUrl←foto, party←partido, bio←bio, "
-            "links←redes). Prefer official rosters when available. "
-            "Film cast: bind /v1/cine/pelicula/{id} (nested elenco); "
-            "name←name|nombre, photoUrl←foto, role←role|cargo. "
-            "Single profile with email/telefono/redes → map those too. "
-            "Wikipedia bio attaches automatically on 1-row cards. "
-            "layout=list for long lists; grid (default) for compact. "
-            "One row → profile; 2+ → roster."
+            "Use for one person profile or a roster when identity and person-specific "
+            "attributes are the primary content. One row renders a profile; multiple "
+            "rows render a grid or list."
         ),
         when_not=(
-            "Names-only roll call (nombre+voto, no foto/bloque) → Acta. "
-            "Tabular non-people → List. historico/dia → Text, not PersonCard. "
-            "Series → Chart. Custom linked visual among people → Box."
+            "A roll call whose structure matters → Acta. Non-people records → List. "
+            "Numeric series → Chart. A custom relationship among people → Box."
         ),
         props=(
             "dataRef(str*); fields({name(*), photoUrl?, role?, party?, "
@@ -377,15 +305,9 @@ WIDGET_CATALOG: list[WidgetDef] = [
         ),
         data=(
             "dataRef = dataset id — NEVER type names/photos into props. "
-            "`fields` maps card field → row key, e.g. "
-            "{name:'nombre', photoUrl:'foto', party:'bloque'} or "
-            "{name:'nombre', photoUrl:'imagen', role:'voto'} or "
-            "{name:'nombre', photoUrl:'imagen', party:'partido', "
-            "role:'periodoPresidencial'}. "
-            "NEVER map role/party to nested objects (periodoLegal/Real). "
-            "Never map role→bloque. Map email/telefono/redes/bio on profiles. "
-            "Join split names: {name:['nombre','apellido']}. "
-            "Non-key values are literals (role:'Senador')."
+            "`fields` maps semantic card fields to scalar row keys. A field may "
+            "join multiple keys, and literal values are allowed for shared metadata. "
+            "Do not map fields to nested objects."
         ),
         data_prop="people",
         field_aliases={
@@ -411,19 +333,18 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "with player portraits/names, formations, coaches and substitutes."
         ),
         when_to_use=(
-            "Only for /v1/football/matches/{matchId}/lineup or "
-            "/v1/football/league/latest-lineup. For a specific match, pass "
-            "homeTeam/awayTeam and logos from its result when available. Show "
-            "the two returned side rows together in one FootballLineup."
+            "Use for one match's lineup data when player positions, formation, "
+            "starters, substitutes, and coaches should be read as a team shape. "
+            "Show both returned sides together in one widget."
         ),
         when_not=(
-            "Standings, results or team-season statistics → ComparisonTable, "
-            "Chart or MetricRow. Do not render eleven PersonCards, a generic "
-            "List, authored SVG players, or invented positions."
+            "Standings, results, or aggregate statistics → ComparisonTable, Chart, "
+            "or MetricRow. Do not replace a lineup with PersonCards/List or invent "
+            "missing positions."
         ),
         props="dataRef(str*)",
         data=(
-            "dataRef = lineup dataset. It already contains 1–2 rows shaped as "
+            "Rows must use the lineup contract: "
             "side(home|away), team, logo?, formation?, isProjected, starting[], "
             "substitutes[] and coach?. No fields map and no authored player data."
         ),
@@ -436,34 +357,20 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "then the roll call of how each legislator voted."
         ),
         when_to_use=(
-            "A single acta / bill roll call that is NAMES + voto ONLY (no "
-            "foto/imagen and no bloque/partido on the rows): 'cuándo se votó "
-            "y cómo votó cada uno' before roster enrichment. Shared "
-            "titulo/fecha/resultado belong in the header, not repeated per row."
+            "Use for one legislative roll call when the act metadata and each "
+            "legislator's vote should be read as one document. Shared metadata "
+            "appears once in the header."
         ),
         when_not=(
-            "``/search/actas`` or any bill directory (titulo/fecha/resultado, "
-            "no nombre+voto) → List — Acta would show an empty roll call. "
-            "Rows with nombre+voto PLUS foto|imagen|bloque|partido → "
-            "PersonCard layout=list (map voto→role, foto/imagen→photoUrl, "
-            "bloque/partido→party). "
-            "Several candidate bills (more than one distinct título, no voto "
-            "column) → List. "
-            "A directory of people without a vote column → PersonCard. "
-            "A numeric series → Chart. "
-            "NEVER render a nombre+voto dataset as List with columns "
-            "titulo/fecha/resultado — that hides who voted."
+            "A directory of acts or bills without voter rows → List. Multiple "
+            "distinct roll calls → List first. A people directory without votes "
+            "→ PersonCard. Numeric evolution → Chart."
         ),
         props="dataRef(str*); sort?({key,dir:asc|desc}); limit?(int)",
         data=(
-            "dataRef must be an id from the available datasets index — ONLY "
-            "``…/actas/id/{actaId}/votos`` (or equivalent rows with nombre+voto). "
-            "NEVER bind ``/search/actas`` hits here: those rows are "
-            "id/titulo/fecha/resultado/camara with NO voto column → use List. "
-            "You never type names or the acta title into props. The widget "
-            "reads titulo/fecha/resultado once from the rows and lists each "
-            "legislator's nombre + voto. Do NOT also emit a List of the same "
-            "votes."
+            "Rows must represent one roll call and contain voter + vote fields; "
+            "title, date, and result may repeat and are rendered once. Do not "
+            "author names or metadata in props or duplicate the same votes in List."
         ),
         field_aliases={
             "title": ("titulo", "title"),
@@ -478,8 +385,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="leaf",
         purpose="Paginated news headlines with source, publication date and article link.",
         when_to_use=(
-            "/v1/noticias results. Show every returned headline in this dedicated "
-            "editorial list; pagination is handled inside the widget."
+            "Use for a collection of news articles when headline, source, date, "
+            "and link are the relevant fields. Pagination is internal."
         ),
         when_not=(
             "Legislation or generic tabular records → List. Narrative context → "
@@ -487,8 +394,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
         ),
         props="dataRef(str*)",
         data=(
-            "dataRef = /v1/noticias dataset with title, source, publishedAt, url. "
-            "No authored rows and no columns mapping."
+            "Rows must follow the news contract with title, source, publication "
+            "date, and URL. No authored rows or columns mapping."
         ),
     ),
     WidgetDef(
@@ -496,23 +403,17 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="leaf",
         purpose=(
             "Compact table of records — a set of items that share fields but "
-            "aren't a numeric time series, a person, or a single acta roll call: "
-            "many laws/sessions, bank rates, generic listings."
+            "are not better represented by a semantic or quantitative widget."
         ),
         when_to_use=(
-            "Tabular SCALAR records (leyes título/fecha/resultado; "
-            "derived/transform vote history titulo/fecha/voto). "
-            "HARD — day snapshot / 'valores del día' / canvas fecha: with "
-            "derived/values emit ONE List as a key-value table "
-            "(columns label→Indicador, value→Valor, unit→Unidad). "
-            "Never paste those figures into Callout."
+            "Use for repeated scalar records, directories, search results, or a "
+            "key-value detail whose columns are important and comparable."
         ),
         when_not=(
-            "Series → Chart. People with foto → PersonCard. "
-            "Full roll call nombre+voto → Acta. "
-            "NEVER a ``votos`` array column (transform first). "
-            "Spot → Metric/MetricRow. Climate → WeatherUnit. "
-            "Fees/remesas → ComparisonTable. Narrative → Text."
+            "Numeric evolution → Chart. People → PersonCard. One roll call → Acta. "
+            "A decision-oriented comparison → ComparisonTable. Scalar highlights "
+            "→ Metric/MetricRow. Narrative → Text. A bespoke grouped or hierarchical "
+            "table whose structure cannot be expressed by columns → Box."
         ),
         props=(
             "columns([{key,label,kind?(text|image|date|url|number)}]*); "
@@ -520,41 +421,27 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "kind=image for foto URL fields (or inferred from .jpg/.png)."
         ),
         data=(
-            "dataRef = dataset id. Scalar columns only — nested arrays "
-            "(filmografia, votos, viajes) show a count; fetch a flat endpoint "
-            "or columns foto+titulo+valor. "
-            "All-fields asks → every scalar key. "
-            "sort+limit REQUIRED for 'últimas N' — raw API order is not trimmed."
+            "Columns should reference scalar row keys. Nested collections are not "
+            "expanded as records; transform them first or show only an intentional "
+            "summary. Apply sort and limit explicitly when order or count matters."
         ),
     ),
     WidgetDef(
         type="ComparisonTable",
         role="leaf",
         purpose=(
-            "Side-by-side comparison of alternatives — fees, brokers, remesas, "
-            "plazos fijos, hipotecarios UVA, short REM vs-real windows — with "
-            "optional highlight of the best numeric value."
+            "Side-by-side comparison of alternatives with typed columns and an "
+            "optional best-value highlight."
         ),
         when_to_use=(
-            "/v1/plazos/ranking, /v1/hipotecarios-uva, "
-            "/v1/finanzas/brokers/comisiones, cobros/comisiones, remesas, "
-            "or a short /v1/rem/vs-real/{alias} slice where rows are options "
-            "to weigh. primary=true on the entity column (entidad, "
-            "nombreComercial, compania, periodo). "
-            "highlight={key,direction:min|max} for best TNA (max) / cheapest "
-            "fee / lowest mortgage TNA (min). "
-            "Set kind explicitly per column (percent|money|number|date|url|"
-            "text) — do not rely on key-name inference. "
-            "Curated plazos/hipotecarios already expose TNA as percent "
-            "(18.5). Raw fee tasas/aranceles are fractions (0.005); either "
-            "kind=number or pre-scale — kind=percent prints the raw value + %."
+            "Use when rows are alternatives the user may evaluate across the same "
+            "criteria. Mark the identifying column as primary and use highlight "
+            "only when a lower-is-better or higher-is-better rule is valid. Set "
+            "column kinds explicitly; percent expects values already in display units."
         ),
         when_not=(
-            "Long time series → Chart. Generic law/session listings → List. "
-            "People rosters → PersonCard. Spot KPIs → Metric/MetricRow. "
-            "Full REM history vs reality as evolution → Chart on "
-            "/v1/rem/vs-real/{alias} (esperado+real or error). "
-            "FCI history → Chart on /v1/fci/{slug}/historico."
+            "Time evolution → Chart. Records not being weighed as alternatives "
+            "→ List. People → PersonCard. Scalar snapshot → Metric/MetricRow."
         ),
         props=(
             "columns([{key,label,kind?(text|number|percent|money|date|url),"
@@ -562,11 +449,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "highlight?({key,direction:min|max}); sort?({key,dir}); limit?(int)"
         ),
         data=(
-            "dataRef = plazos/hipotecarios/fee/remesa/vs-real dataset. "
-            "Plazos keys: entidad, tna, plazoDias. Hipotecarios: entidad, "
-            "tna, plazoMaxAnios. Fee endpoints return flat rows "
-            "(entidad, producto, tasa/arancel, …). vs-real keys: "
-            "periodo/fecha, esperado, real, error, error_pct."
+            "Rows must be flat alternatives with one scalar value per criterion. "
+            "Column keys and highlight.key must exist in the rows."
         ),
     ),
     WidgetDef(
@@ -574,13 +458,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="container",
         purpose="Vertical column layout for grouping 2–4 leaf widgets.",
         when_to_use=(
-            "Combine a Chart with a Callout or Metric below/above it, "
-            "or group widgets in a single column. "
-            "Cruce (politics + economy): Stack with political layer "
-            "(Acta/PersonCard/VoteBreakdown) then economic — MetricRow "
-            "for same-day spots, Chart/AnnotatedTimeline for evolution. "
-            "Historical day: include only relevant fetched leaves; usually "
-            "Text + requested Chart, plus News for coverage/context."
+            "Use to group related widgets in a deliberate top-to-bottom reading "
+            "order, especially a primary visual followed by context or a finding."
         ),
         when_not=(
             "Single widget — no wrapper needed. "
@@ -594,10 +473,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
         role="container",
         purpose="Responsive 2–3 column layout for leaf widgets.",
         when_to_use=(
-            "Put a Chart beside a VoteBreakdown/PersonCard, or two series "
-            "side by side. columns=2 (default) or 3. "
-            "ONLY when the user asked for side-by-side. Historical day "
-            "defaults to Stack (PersonCard, Text, WeatherUnit, Chart)."
+            "Use when two or three peer widgets benefit from direct side-by-side "
+            "comparison and remain readable at equal hierarchy."
         ),
         when_not=(
             "Single column flow → Stack. "
@@ -610,27 +487,26 @@ WIDGET_CATALOG: list[WidgetDef] = [
         type="Box",
         role="container",
         purpose=(
-            "First-class free HTML/SVG visualization when a subject-specific "
-            "composition communicates the requested relationship better than "
-            "catalog leaves can (position, linked steps, ordered transitions, "
-            "flows, hierarchies, facet grids, conceptual matrices). Must match "
-            "the bulletin look — not a bare wireframe."
+            "First-class authored HTML/SVG composition for structures that fixed "
+            "widgets cannot express well: custom prose layouts, nested groups, "
+            "semantic tables, diagrams, flows, hierarchies, and visual matrices. "
+            "It must look native to the existing site, not like an embedded microsite."
         ),
         when_to_use=(
-            "Use whenever a catalog leaf would flatten or distort the important "
-            "relationship — even if the user did not name the ideal form and "
-            "PersonCard/List/Chart could technically contain the same facts. "
-            "Typical structures: qualitative position, spectrum, diagram, "
-            "flow, matrix, linked steps, ordered transitions, hierarchy, or "
-            "conceptual relationships with no honest numeric magnitude. "
-            "Infer the strongest visual form; user-named form still wins. "
-            "Craft: font-display for names, text-muted-foreground for "
-            "secondary lines, text-accent + SVG currentColor connectors, "
-            "gap-4/6 + border-rule blocks, bg-accent-soft pads. Build one "
-            "subject-specific composition with a dominant focal point and "
-            "meaningful spatial encoding; use hierarchy, whitespace and "
-            "alignment deliberately. Never emit a naked stack of unstyled "
-            "text or a generic grid of equal cards disguised as custom work. "
+            "Use whenever authored structure communicates the answer better than "
+            "a fixed leaf, even if a generic List or Chart could technically hold "
+            "the same facts. It may be ordinary nested HTML, a semantic table, or "
+            "SVG; custom does not imply chart-like. Infer the strongest form and "
+            "honor a user-named form. "
+            "Follow the site's editorial bulletin system: restrained surfaces, "
+            "font-display for headings or names, font-sans for body copy, "
+            "text-muted-foreground for secondary lines, text-accent sparingly, "
+            "border-rule separators, and the existing spacing scale. Reuse only "
+            "allowlisted theme tokens; never introduce a competing palette or "
+            "unrelated visual language. Build one "
+            "coherent composition with clear reading order; use semantic hierarchy, "
+            "whitespace, alignment, and emphasis deliberately. A restrained table "
+            "or nested document structure is valid when it best serves the content. "
             "For positioned diagrams, use one responsive SVG viewBox for BOTH "
             "marks and their text labels. Do not overlay absolute HTML labels: "
             "arbitrary position classes are not in the safelist and will be "
@@ -639,10 +515,10 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "Optional suggests=PascalCaseName for a future named widget."
         ),
         when_not=(
-            "Plain 'plot this series' / roll call / weather with no custom "
-            "form ask → Chart / Acta / WeatherUnit. "
+            "A standard semantic or data widget already expresses the relationship "
+            "honestly → use that widget. "
             "Spot figures → Metric/MetricRow. Punchy finding → Callout. "
-            "Source caveat / wiki extract → Text. "
+            "Source caveat or narrative extract → Text. "
             "Default people roster with no special structure → PersonCard. "
             "NEVER put dataRef on Box — author copy from the analyst note."
         ),
@@ -654,7 +530,8 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "(viewBox, d, x/y, x1/y1/x2/y2, cx/cy/r, width/height, stroke, "
             "fill, markerEnd, strokeWidth, textAnchor, fontSize/fontWeight, "
             "preserveAspectRatio, and HTTPS href for image). "
-            "Hosts: div,p,span,h2,h3,ul,ol,li,dl,dt,dd,strong,em, "
+            "Hosts: div,section,header,p,span,h2,h3,ul,ol,li,dl,dt,dd,strong,em, "
+            "table,thead,tbody,tr,th,td, "
             "svg,g,path,line,polyline,polygon,circle,rect,text,image,defs,marker."
         ),
         data=None,

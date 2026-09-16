@@ -37,9 +37,8 @@ class UINode(BaseModel):
     type: str = Field(
         description=(
             "Widget type key. Prefer a catalog type (Metric, Text, Chart, "
-            "Stack, Box, …). Host tags (div, p, span, h2, h3, ul, ol, li, "
-            "dl, dt, dd, strong, em, and SVG svg/g/path/line/image/…) are allowed "
-            "ONLY as children of Box."
+            "Stack, Box, …). Allowlisted semantic HTML (including nested divs, "
+            "lists and tables) and SVG host tags are allowed ONLY inside Box."
         )
     )
     title: str | None = Field(

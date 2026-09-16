@@ -46,6 +46,13 @@ test("isHostType accepts allowlisted tags only", () => {
   assert.equal(isSvgHostType("div"), false);
 });
 
+test("semantic table tags are valid Box hosts", () => {
+  for (const tag of ["table", "thead", "tbody", "tr", "th", "td"]) {
+    assert.equal(isHostType(tag), true);
+    assert.equal(isSvgHostType(tag), false);
+  }
+});
+
 test("HOST_CLASS_VOCAB includes core bulletin layout tokens", () => {
   for (const token of [
     "flex",
@@ -106,6 +113,19 @@ test("sanitizeHostProps allows safe SVG image and text attributes", () => {
   assert.equal(out.dominantBaseline, "central");
   assert.equal(out.fontSize, "16");
   assert.equal(out.fontWeight, "600");
+});
+
+test("sanitizeHostProps keeps safe semantic table attributes", () => {
+  const out = sanitizeHostProps({
+    scope: "col",
+    colSpan: 2,
+    rowSpan: "3",
+    onClick: "alert(1)",
+  });
+  assert.equal(out.scope, "col");
+  assert.equal(out.colSpan, 2);
+  assert.equal(out.rowSpan, "3");
+  assert.equal("onClick" in out, false);
 });
 
 test("sanitizeHostProps rejects unsafe paint and paths", () => {

@@ -1,13 +1,15 @@
 /**
- * Allowlisted host tags + Tailwind class vocabulary for Box fallback trees.
+ * Allowlisted host tags + Tailwind class vocabulary for authored Box trees.
  *
- * compose_ui may emit these when no catalog widget fits. DynamicRenderer
+ * compose_ui may emit these for semantic HTML or SVG compositions. DynamicRenderer
  * maps them with createElement — never eval / JSX from the model.
  */
 
 export const HOST_TAGS = new Set([
   // HTML
   "div",
+  "section",
+  "header",
   "p",
   "span",
   "h2",
@@ -20,6 +22,12 @@ export const HOST_TAGS = new Set([
   "dd",
   "strong",
   "em",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
   // SVG (succession arrows, simple diagrams)
   "svg",
   "g",
@@ -85,6 +93,7 @@ export const HOST_CLASS_VOCAB = new Set([
   "gap-8",
   "gap-10",
   "min-w-0",
+  "min-w-full",
   "min-w-[12rem]",
   "max-w-xl",
   "max-w-2xl",
@@ -92,6 +101,7 @@ export const HOST_CLASS_VOCAB = new Set([
   "shrink-0",
   "grow",
   "w-full",
+  "w-max",
   "w-4",
   "w-6",
   "w-8",
@@ -107,6 +117,7 @@ export const HOST_CLASS_VOCAB = new Set([
   "absolute",
   "overflow-hidden",
   "overflow-x-auto",
+  "border-collapse",
   // spacing
   "mt-1",
   "mt-1.5",
@@ -152,6 +163,7 @@ export const HOST_CLASS_VOCAB = new Set([
   "md:text-5xl",
   "text-center",
   "text-left",
+  "text-right",
   "leading-relaxed",
   "leading-snug",
   "leading-tight",
@@ -238,6 +250,9 @@ const HOST_ATTR_KEYS = new Set([
   "markerUnits",
   "xmlns",
   "role",
+  "scope",
+  "colSpan",
+  "rowSpan",
   "aria-hidden",
   "aria-label",
   "preserveAspectRatio",
@@ -258,6 +273,8 @@ const ATTR_ALIASES: Record<string, string> = {
   "ref-y": "refY",
   "aria-hidden": "aria-hidden",
   "aria-label": "aria-label",
+  colspan: "colSpan",
+  rowspan: "rowSpan",
   viewbox: "viewBox",
 };
 
@@ -311,6 +328,8 @@ function isSafeAttrValue(key: string, value: string): boolean {
       return v === "http://www.w3.org/2000/svg";
     case "role":
       return /^[a-z]+$/.test(v);
+    case "scope":
+      return /^(row|col|rowgroup|colgroup)$/.test(v);
     case "aria-hidden":
       return v === "true" || v === "false";
     case "aria-label":

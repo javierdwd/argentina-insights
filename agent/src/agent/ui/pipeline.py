@@ -22,9 +22,10 @@ from .schemas import UINode
 LAYOUT_TYPES = frozenset({"Stack", "Grid", "Box"})
 HOST_TYPES = frozenset(
     {
-        "div", "p", "span", "h2", "h3", "ul", "ol", "li", "dl", "dt",
-        "dd", "strong", "em", "svg", "g", "path", "line", "polyline",
-        "polygon", "circle", "rect", "text", "image", "defs", "marker", "title",
+        "div", "section", "header", "p", "span", "h2", "h3", "ul", "ol", "li",
+        "dl", "dt", "dd", "strong", "em", "table", "thead", "tbody", "tr", "th",
+        "td", "svg", "g", "path", "line", "polyline", "polygon", "circle", "rect",
+        "text", "image", "defs", "marker", "title",
     }
 )
 MAX_TREE_DEPTH = 12
