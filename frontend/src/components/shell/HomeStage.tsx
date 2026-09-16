@@ -286,12 +286,12 @@ export function HomeStage({
                 <div className="flex items-center justify-between gap-3">
                   <h1
                     className={[
-                      "min-w-0 truncate font-display font-semibold tracking-tight text-foreground",
+                      "min-w-0 truncate pb-[0.1em] -mb-[0.1em] font-display font-semibold tracking-tight text-foreground",
                       compact
                         ? "text-lg leading-tight sm:text-xl md:text-2xl"
                         : entry
                           ? "text-lg leading-8"
-                        : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.05]",
+                        : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.12]",
                     ].join(" ")}
                   >
                     Argentina Insights

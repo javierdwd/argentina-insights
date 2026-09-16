@@ -149,7 +149,12 @@ function AgentCanvas({
     if (agent.isRunning) agent.abortRun();
     chatConfiguration?.startNewThread();
     agent.setMessages([]);
-    agent.setState({});
+    // CopilotKit can merge state updates, so an empty object does not remove
+    // the previous canvas. Explicitly clear both the rendered and source tree.
+    agent.setState({
+      ui_tree: null,
+      ui_tree_unbound: null,
+    });
     clearLastCanvas();
     canvas.clearSelected();
     setClearedQuery(userQuery ?? startedQuery);
