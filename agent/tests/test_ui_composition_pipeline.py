@@ -139,6 +139,99 @@ def test_semantic_duplicate_is_repaired_as_patch(monkeypatch) -> None:
     assert update["ui_tree"]["title"] == "Blue de hoy"
 
 
+def test_mixed_duplicate_and_new_widget_is_pruned_without_repair(monkeypatch) -> None:
+    datasets = {
+        "ds_geo": {
+            "id": "ds_geo",
+            "path": "/v1/diputados/votos",
+            "params": {},
+            "rows": [{"provincia": "Córdoba", "negativo": 2}],
+            "keys": ["provincia", "negativo"],
+            "N": 1,
+            "status": "hit",
+        },
+        "ds_blocs": {
+            "id": "ds_blocs",
+            "path": "derived/votos_por_bloque",
+            "params": {},
+            "rows": [{"bloque": "A", "afirmativo": 3, "negativo": 2}],
+            "keys": ["bloque", "afirmativo", "negativo"],
+            "N": 1,
+            "status": "hit",
+        },
+    }
+    existing = {
+        "id": "desglose_provincial",
+        "type": "ProvinceMap",
+        "title": "Votación por provincia",
+        "props": {
+            "dataRef": "ds_geo",
+            "nameKey": "provincia",
+            "valueKey": "negativo",
+        },
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="Incorporé el cruce por bloque.",
+                tree={
+                    "id": "cruce",
+                    "type": "Stack",
+                    "children": [
+                        {
+                            "id": "mapa_repetido",
+                            "type": "ProvinceMap",
+                            "title": "Votación por provincia",
+                            "props": {
+                                "dataRef": "ds_geo",
+                                "nameKey": "provincia",
+                                "valueKey": "negativo",
+                            },
+                        },
+                        {
+                            "id": "bloques",
+                            "type": "Chart",
+                            "title": "Votos por bloque",
+                            "props": {
+                                "dataRef": "ds_blocs",
+                                "kind": "bar",
+                                "xKey": "bloque",
+                                "series": [
+                                    {"key": "afirmativo", "label": "Afirmativo"},
+                                    {"key": "negativo", "label": "Negativo"},
+                                ],
+                            },
+                        },
+                    ],
+                },
+            )
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+
+    update = compose_ui_node(
+        {
+            "query_type": "ui",
+            "messages": [
+                HumanMessage(
+                    content="Cruzá la votación por provincia con cada bloque"
+                )
+            ],
+            "datasets": datasets,
+            "ui_tree": existing,
+            "ui_tree_unbound": existing,
+            "respond_note": "",
+        }
+    )
+
+    assert len(model.calls) == 1
+    children = update["ui_tree"]["children"]
+    assert [child["id"] for child in children] == [
+        "desglose_provincial",
+        "bloques",
+    ]
+
+
 def test_failed_repair_keeps_previous_canvas(monkeypatch) -> None:
     existing = {
         "id": "blue",

@@ -43,6 +43,7 @@ from .ui.datasets import hit_ids as dataset_hit_ids
 from .ui.datasets import tool_call_source as _tool_call_source
 from .ui.pipeline import bind_tree as bind_ui_tree
 from .ui.pipeline import merge_canvas as merge_ui_canvas
+from .ui.pipeline import omit_existing_data_widgets
 from .ui.pipeline import validate_patch
 from .ui.pipeline import validate_tree as validate_ui_tree
 from .ui.schemas import ComposeOutput
@@ -524,6 +525,12 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   measures on one visual when that improves comparison; separate genuinely
   different layers. Use Box only for authored diagrams, never as a substitute
   for a data-bound widget.
+- HARD geography rule: if the user asks for a comparison "por provincia",
+  across provinces, or by district and a fetched dataset has a provincia/
+  province field, the canvas MUST include ProvinceMap. When the request also
+  needs bloque, partido, category, or several vote senses, add the appropriate
+  Chart/VoteBreakdown as a companion; never use that non-geographic widget as
+  a replacement for the map.
 - Widget configuration must use real dataset keys. Do not invent columns,
   series, mappings, values, entities, or visual claims.
 - Never ASCII art / markdown tables in `brief`.
@@ -1280,6 +1287,58 @@ def _apply_patch(tree: dict, patch: dict[str, dict]) -> dict:
     return walk(tree)
 
 
+def _tree_has_type(tree: object, widget_type: str) -> bool:
+    if not isinstance(tree, dict):
+        return False
+    if tree.get("type") == widget_type:
+        return True
+    return any(
+        _tree_has_type(child, widget_type)
+        for child in (tree.get("children") or [])
+    )
+
+
+def _province_map_error(state: AgentState, candidate: object) -> str | None:
+    """Require geographic output when the current ask compares provinces."""
+    last_human = next(
+        (
+            _message_text(message.content)
+            for message in reversed(state.get("messages") or [])
+            if isinstance(message, HumanMessage)
+        ),
+        "",
+    ).casefold()
+    if not re.search(
+        r"\b(?:por provincia|provincias?|provinciales?|distritos?)\b",
+        last_human,
+    ):
+        return None
+
+    datasets = state.get("datasets") or {}
+    has_province_data = any(
+        dataset.get("status", "hit") == "hit"
+        and dataset.get("N")
+        and any(
+            isinstance(row, dict) and ("provincia" in row or "province" in row)
+            for row in (dataset.get("rows") or [])
+        )
+        for dataset in datasets.values()
+    )
+    if not has_province_data:
+        return None
+
+    current = state.get("ui_tree_unbound") or state.get("ui_tree")
+    if _tree_has_type(candidate, "ProvinceMap") or _tree_has_type(
+        current, "ProvinceMap"
+    ):
+        return None
+    return (
+        "The user requested a province-level comparison and province data is "
+        "available: the tree MUST include a ProvinceMap. Add Chart or "
+        "VoteBreakdown only as a companion for non-geographic dimensions."
+    )
+
+
 # ── Nodes ─────────────────────────────────────────────────────────────────────
 
 
@@ -1642,6 +1701,41 @@ def compose_ui_node(state: AgentState) -> dict:
         )
     if validation and validation.errors:
         repair_errors.extend(validation.errors)
+    province_map_error = _province_map_error(state, tree_dict)
+    if province_map_error:
+        repair_errors.append(province_map_error)
+
+    # A mixed result may repeat one visible widget while adding a genuinely new
+    # companion. The output schema cannot express "patch old + add new", so
+    # retain the new subtree deterministically instead of asking the model to
+    # force both operations into a patch.
+    if (
+        tree_dict is not None
+        and not from_patch
+        and any("already visible" in error for error in repair_errors)
+    ):
+        pruned_tree = omit_existing_data_widgets(
+            tree_dict,
+            state.get("ui_tree_unbound") or state.get("ui_tree"),
+        )
+        pruned_validation = (
+            validate_ui_tree(
+                pruned_tree,
+                datasets,
+                allowed_refs=allowed_refs,
+                existing_tree=state.get("ui_tree_unbound"),
+            )
+            if pruned_tree is not None
+            else None
+        )
+        pruned_semantic_error = _province_map_error(state, pruned_tree)
+        if (
+            pruned_validation
+            and pruned_validation.valid
+            and not pruned_semantic_error
+        ):
+            tree_dict = pruned_tree
+            repair_errors = []
 
     # A single specialized repair pass replaces every domain-specific fallback
     # and coercion. It sees exact invariant failures and the rejected candidate.
@@ -1690,7 +1784,13 @@ def compose_ui_node(state: AgentState) -> dict:
                 if repaired.patch
                 else ()
             )
-            if repaired_tree is not None and repaired_validation and repaired_validation.valid:
+            repaired_semantic_error = _province_map_error(state, repaired_tree)
+            if (
+                repaired_tree is not None
+                and repaired_validation
+                and repaired_validation.valid
+                and not repaired_semantic_error
+            ):
                 if not repaired_patch_errors:
                     result = repaired
                     tree_dict = repaired_tree
@@ -1708,6 +1808,8 @@ def compose_ui_node(state: AgentState) -> dict:
                     if repaired_validation
                     else ("repair returned no tree for available data",)
                 )
+                if repaired_semantic_error:
+                    repair_errors.append(repaired_semantic_error)
             if repaired_patch_errors:
                 repair_errors = list(repaired_patch_errors)
         except Exception as exc:  # noqa: BLE001

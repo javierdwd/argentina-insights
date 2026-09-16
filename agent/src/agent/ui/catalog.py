@@ -285,16 +285,29 @@ WIDGET_CATALOG: list[WidgetDef] = [
     WidgetDef(
         type="ProvinceMap",
         role="leaf",
-        purpose="Province totals as map bubbles (fallback: ranked bars).",
+        purpose=(
+            "Geographic comparison across Argentine provinces: makes regional "
+            "concentration, gaps, and outliers visible at a glance."
+        ),
         when_to_use=(
-            "Vote lean or counts by provincia (negativos por provincia, "
-            "senadores por distrito). nameKey=provincia, valueKey=numeric "
-            "count column OR a vote label ('negativo') when rows are a raw "
-            "roll call with provincia+voto — the widget counts per province."
+            "Prefer ProvinceMap whenever province is a meaningful comparison "
+            "dimension — even if the request also asks for another grouping such "
+            "as bloque, partido, category, or vote sense. Examples: vote lean or "
+            "counts by provincia, negativos por provincia, senators by district, "
+            "or any indicator available for several provinces. If the complete "
+            "answer also needs a non-geographic breakdown, compose ProvinceMap "
+            "with the appropriate Chart/VoteBreakdown instead of replacing the "
+            "map with one crowded chart. The map encodes one measure: choose the "
+            "measure emphasized by the question (for example 'negativo') and use "
+            "the companion widget for the full multi-series breakdown. Set "
+            "nameKey=provincia and valueKey to a numeric count column OR a vote "
+            "label when rows are a raw roll call with provincia+voto; the widget "
+            "counts matching rows per province."
         ),
         when_not=(
             "Person roster → PersonCard. National time series → Chart. "
-            "Vote shares without geography → VoteBreakdown."
+            "Vote shares without geography → VoteBreakdown. Do not omit the map "
+            "merely because the same request also mentions bloque or vote sense."
         ),
         props=(
             "dataRef(str*); nameKey?(str=provincia); valueKey(str*); "

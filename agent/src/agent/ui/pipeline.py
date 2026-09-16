@@ -281,6 +281,47 @@ def _identity(node: dict) -> tuple[str, str, str] | None:
     )
 
 
+def omit_existing_data_widgets(
+    incoming: dict | None,
+    existing: dict | None,
+) -> dict | None:
+    """Drop repeated data widgets while preserving new siblings.
+
+    A compose result can legitimately contain both an already-visible widget
+    and a new companion. Rejecting the whole tree makes the repair model choose
+    between ``tree`` and ``patch`` even though neither can express both actions.
+    """
+    existing_identities: set[tuple[str, str, str]] = set()
+
+    def collect(node: object) -> None:
+        if not isinstance(node, dict):
+            return
+        identity = _identity(node)
+        if identity is not None:
+            existing_identities.add(identity)
+        for child in node.get("children") or []:
+            collect(child)
+
+    def prune(node: object) -> dict | None:
+        if not isinstance(node, dict):
+            return None
+        identity = _identity(node)
+        if identity is not None and identity in existing_identities:
+            return None
+        cleaned = dict(node)
+        cleaned["children"] = [
+            child
+            for item in node.get("children") or []
+            if (child := prune(item)) is not None
+        ]
+        if cleaned.get("type") in {"Stack", "Grid"} and not cleaned["children"]:
+            return None
+        return cleaned
+
+    collect(existing)
+    return prune(incoming)
+
+
 def merge_canvas(previous: dict | None, incoming: dict) -> dict:
     """Append widgets, replacing equal id or equal type+dataRef+where."""
     if not previous:

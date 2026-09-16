@@ -14,10 +14,47 @@ from agent.graph import (
     _ensure_brief_actions,
     _message_text,
     _next_to_actions_block,
+    _province_map_error,
     _sanitize_user_facing,
     _system_message,
 )
 from agent.ui.catalog import as_prompt_text as widget_catalog_text
+
+
+def test_province_comparison_requires_map_when_geographic_data_exists() -> None:
+    from langchain_core.messages import HumanMessage
+
+    state = {
+        "messages": [
+            HumanMessage(
+                content=(
+                    "Contar los 72 votos por bloque y provincia, "
+                    "separados por sentido del voto"
+                )
+            )
+        ],
+        "datasets": {
+            "votes": {
+                "status": "hit",
+                "N": 2,
+                "rows": [
+                    {"provincia": "Córdoba", "bloque": "A", "voto": "AFIRMATIVO"},
+                    {"provincia": "Santa Fe", "bloque": "B", "voto": "NEGATIVO"},
+                ],
+            }
+        },
+    }
+    chart_only = {"id": "votes", "type": "Chart", "children": []}
+    assert _province_map_error(state, chart_only)
+
+    with_map = {
+        "id": "votes",
+        "type": "Stack",
+        "children": [
+            {"id": "by_province", "type": "ProvinceMap", "children": []}
+        ],
+    }
+    assert _province_map_error(state, with_map) is None
 
 
 

@@ -111,6 +111,10 @@ function AgentCanvas({
   const handledSaveRef = useRef(saveSignal);
   const [startedQuery, setStartedQuery] = useState<string | null>(null);
   const [clearedQuery, setClearedQuery] = useState<string | null>(null);
+  // CopilotKit can briefly publish the previous thread state after
+  // startNewThread. Keep a local tombstone so that stale tree cannot win the
+  // agentTree/workspace fallback and paint again after the user clears.
+  const [canvasCleared, setCanvasCleared] = useState(false);
 
   const agentTree = isUiTree(
     (agent.state as Record<string, unknown> | undefined)?.ui_tree,
@@ -118,7 +122,9 @@ function AgentCanvas({
     ? ((agent.state as Record<string, unknown>).ui_tree as UINode)
     : null;
 
-  const displayTree = agentTree ?? workspace.lastCanvas?.uiTree ?? null;
+  const displayTree = canvasCleared
+    ? null
+    : agentTree ?? workspace.lastCanvas?.uiTree ?? null;
   const userQuery = lastUserQuery(agent.messages);
   const activeQuery =
     userQuery && userQuery !== clearedQuery ? userQuery : startedQuery;
@@ -155,6 +161,7 @@ function AgentCanvas({
       ui_tree: null,
       ui_tree_unbound: null,
     });
+    setCanvasCleared(true);
     clearLastCanvas();
     canvas.clearSelected();
     setClearedQuery(userQuery ?? startedQuery);
@@ -181,7 +188,7 @@ function AgentCanvas({
   }, [displayTree, query, saveSignal]);
 
   useEffect(() => {
-    if (!isReady || hydratedRef.current) return;
+    if (!isReady || hydratedRef.current || canvasCleared) return;
     hydratedRef.current = true;
     if (agentTree) return;
     const saved = getWorkspace().lastCanvas?.uiTree;
@@ -197,15 +204,15 @@ function AgentCanvas({
     queueMicrotask(() => {
       agent.setState(next);
     });
-  }, [agent, agentTree, isReady]);
+  }, [agent, agentTree, canvasCleared, isReady]);
 
   useEffect(() => {
-    if (!agentTree) return;
+    if (!agentTree || canvasCleared) return;
     const timer = window.setTimeout(() => {
       saveLastCanvas(agentTree, query);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [agentTree, query]);
+  }, [agentTree, canvasCleared, query]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -244,6 +251,7 @@ function AgentCanvas({
             ) : (
               <StarterBubbles
                 onStart={(nextQuery) => {
+                  setCanvasCleared(false);
                   setClearedQuery(null);
                   setStartedQuery(nextQuery);
                 }}
