@@ -29,7 +29,6 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field
@@ -39,6 +38,7 @@ from .analytics.report import (
     build_football_analysis_context,
 )
 from .catalog import catalog
+from .checkpointer import ActivityMemorySaver
 from .models import get_model
 from .state import AgentState
 from .tools import fetch_argentinadatos, search_actas, transform_dataset
@@ -2128,7 +2128,7 @@ def _respond_router(state: AgentState) -> str:
 
 
 def build_graph() -> StateGraph:
-    """Build and compile the agent graph with MemorySaver checkpointer."""
+    """Build and compile the agent graph with an idle-aware checkpointer."""
     builder = StateGraph(AgentState)
 
     builder.add_node("classify", classify_node)
@@ -2160,7 +2160,7 @@ def build_graph() -> StateGraph:
     builder.add_edge("bind_data", END)
 
     # TODO: swap for PostgresSaver before launch.
-    return builder.compile(checkpointer=MemorySaver())
+    return builder.compile(checkpointer=ActivityMemorySaver())
 
 
 # Compiled singleton imported by app.py

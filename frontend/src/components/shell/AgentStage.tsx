@@ -5,7 +5,6 @@ import {
   useAgent,
   CopilotChatConfigurationProvider,
   UseAgentUpdate,
-  useConfigureSuggestions,
 } from "@copilotkit/react-core/v2";
 import { CopilotChat } from "@copilotkit/react-core/v2";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -34,18 +33,10 @@ import {
   ReasoningHeader,
   ThinkingCursor,
 } from "./ChatActivity";
-import { chatSuggestionPrompts } from "./starter-prompts";
 import { CanvasActionProvider, useCanvasAction } from "./useCanvasAction";
 import { CanvasInspector } from "./CanvasInspector";
 import { lastUserQuery, useWorkspace } from "./useWorkspace";
 import { WorkspaceDock } from "./WorkspaceRail";
-
-const CHAT_SUGGESTIONS = {
-  suggestions: chatSuggestionPrompts(6).map((prompt) => ({
-    title: prompt.text,
-    message: prompt.text,
-  })),
-};
 
 const CHAT_LABELS = {
   chatInputPlaceholder: "Cotización, fútbol, cine, senadores…",
@@ -291,16 +282,6 @@ const MemoCanvasTree = memo(function MemoCanvasTree({
   );
 });
 
-/**
- * Welcome pills. Lives beside CopilotChat (not as its parent) so
- * reloadSuggestions cannot flushSync during the chat's first commit.
- */
-function ChatSuggestions() {
-  "use no memo";
-  useConfigureSuggestions(CHAT_SUGGESTIONS, []);
-  return null;
-}
-
 const CopilotChatPanel = memo(function CopilotChatPanel({
   threadId,
 }: {
@@ -318,11 +299,10 @@ const CopilotChatPanel = memo(function CopilotChatPanel({
   );
 });
 
-function ChatWithStarters({ threadId }: { threadId: string }) {
+function ChatPanel({ threadId }: { threadId: string }) {
   "use no memo";
   return (
     <div className="relative h-full min-h-0">
-      <ChatSuggestions />
       <ChatToolActivity />
       <ChatRunErrors />
       <CopilotChatPanel threadId={threadId} />
@@ -371,7 +351,7 @@ export function AgentStage() {
         hasStarted={hasStarted}
         onClear={onClear}
         onSave={onSave}
-        chat={<ChatWithStarters threadId={threadId} />}
+        chat={<ChatPanel threadId={threadId} />}
         stage={
           <CanvasActionProvider>
             <AgentCanvas

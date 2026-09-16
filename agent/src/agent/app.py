@@ -7,8 +7,11 @@ Endpoints:
     GET  /argentina_insights/health       — agent health (from ag-ui-langgraph)
 """
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
+from contextlib import suppress
+from datetime import timedelta
 from typing import Any
 
 from ag_ui_langgraph import add_langgraph_fastapi_endpoint
@@ -22,12 +25,37 @@ load_dotenv()
 
 from . import proxy  # noqa: E402
 from .catalog import catalog  # noqa: E402
+from .checkpointer import ActivityMemorySaver  # noqa: E402
 from .graph import graph  # noqa: E402
+
+
+_CLEANUP_INTERVAL = timedelta(minutes=15)
+_THREAD_MAX_IDLE = timedelta(minutes=10)
+
+
+async def _cleanup_inactive_threads(checkpointer: ActivityMemorySaver) -> None:
+    """Periodically release checkpoints for conversations that went idle."""
+    while True:
+        await asyncio.sleep(_CLEANUP_INTERVAL.total_seconds())
+        checkpointer.purge_inactive(_THREAD_MAX_IDLE)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
-    yield
+    checkpointer = graph.checkpointer
+    if not isinstance(checkpointer, ActivityMemorySaver):
+        raise RuntimeError("Graph must use ActivityMemorySaver")
+
+    cleanup_task = asyncio.create_task(
+        _cleanup_inactive_threads(checkpointer),
+        name="inactive-thread-cleanup",
+    )
+    try:
+        yield
+    finally:
+        cleanup_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await cleanup_task
 
 
 app = FastAPI(

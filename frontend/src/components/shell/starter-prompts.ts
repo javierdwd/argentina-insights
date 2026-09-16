@@ -204,8 +204,7 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
     topic: "cruce",
     preview: "weather",
   },
-  // Histórico — Wikipedia + series. Mixed Macri / kirchnerismo / actual;
-  // first two also feed the chat pills.
+  // Histórico — Wikipedia + series. Mixed Macri / kirchnerismo / actual.
   {
     id: "historico-holdouts-2016",
     text: "1 de marzo de 2016 — acuerdo con los holdouts: explicá el conflicto, mostrá la ficha de Mauricio Macri y las noticias publicadas esa semana",
@@ -401,22 +400,3 @@ const FEATURED_STARTER_IDS = new Set([
 export const FEATURED_STARTERS = STARTER_PROMPTS.filter((prompt) =>
   FEATURED_STARTER_IDS.has(prompt.id),
 );
-
-/** Chat welcome pills: broad coverage across all available topics. */
-export function chatSuggestionPrompts(limit = 6): StarterPrompt[] {
-  const historico = STARTER_PROMPTS.filter((p) => p.topic === "historico");
-  const cruce = STARTER_PROMPTS.filter((p) => p.topic === "cruce");
-  const economia = STARTER_PROMPTS.filter((p) => p.topic === "economia");
-  const politica = STARTER_PROMPTS.filter((p) => p.topic === "politica");
-  const cine = STARTER_PROMPTS.filter((p) => p.topic === "cine");
-  const football = STARTER_PROMPTS.filter((p) => p.topic === "football");
-  const mixed = [
-    ...historico.slice(0, 1),
-    ...cruce.slice(0, Math.max(0, limit - 5)),
-    ...economia.slice(0, 1),
-    ...politica.slice(0, 1),
-    ...cine.slice(0, 1),
-    ...football.slice(0, 1),
-  ];
-  return mixed.slice(0, limit);
-}
