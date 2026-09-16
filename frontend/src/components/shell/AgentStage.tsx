@@ -218,7 +218,7 @@ function AgentCanvas({
     <div className="relative flex h-full min-h-0 flex-col">
       <WorkspaceDock query={query} />
       {/* Horizontal inset so widget rings/shadows are not clipped by overflow-y. */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-6 pb-6 md:pt-8 md:pb-8">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1 pt-6 pb-6 md:pt-8 md:pb-8">
         <AnimatePresence initial={false} mode="wait">
           <motion.div
             key={stageKey}

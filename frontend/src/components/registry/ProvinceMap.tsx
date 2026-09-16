@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useCallback, useMemo } from "react";
-import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import argentinaOutline from "./geo/argentina-outline.json";
 import { provinceCentroid } from "./geo/provinces";
 import type { ProvinceMapProps } from "./ProvinceMap.schema";
+import { ResponsiveEChart } from "./ResponsiveEChart";
 import { asNumber, ACCENT_HEX } from "./chart-utils";
 import {
   useCanvasBrush,
@@ -314,7 +314,7 @@ export const ProvinceMap = memo(function ProvinceMap({
 
   return (
     <div className="border-t border-rule pt-4">
-      <ReactECharts
+      <ResponsiveEChart
         option={option}
         style={canvas ? MAP_STYLE_POINTER : MAP_STYLE}
         notMerge

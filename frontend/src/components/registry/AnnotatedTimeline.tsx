@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useCallback, useMemo } from "react";
-import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import type { AnnotatedTimelineProps } from "./AnnotatedTimeline.schema";
+import { ResponsiveEChart } from "./ResponsiveEChart";
 import {
   useCanvasNode,
   useCanvasWriteOptional,
@@ -183,7 +183,7 @@ export const AnnotatedTimeline = memo(function AnnotatedTimeline(
 
   return (
     <div className="border-t border-rule pt-4">
-      <ReactECharts
+      <ResponsiveEChart
         option={option}
         style={canvas ? CHART_STYLE_POINTER : CHART_STYLE}
         notMerge

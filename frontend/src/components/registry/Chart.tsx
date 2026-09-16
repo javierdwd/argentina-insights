@@ -1,9 +1,9 @@
 "use client";
 
 import { memo, useCallback, useMemo, useState } from "react";
-import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import type { ChartProps } from "./Chart.schema";
+import { ResponsiveEChart } from "./ResponsiveEChart";
 import {
   CanvasSelectionCaption,
   useCanvasBrush,
@@ -526,7 +526,7 @@ export const Chart = memo(function Chart(props: ChartProps) {
           ) : null}
         </div>
       ) : null}
-      <ReactECharts
+      <ResponsiveEChart
         option={option}
         style={canvas ? CHART_STYLE_POINTER : CHART_STYLE}
         notMerge

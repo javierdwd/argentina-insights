@@ -1,10 +1,10 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
-import ReactECharts from "echarts-for-react";
-import type { EChartsOption, EChartsType } from "echarts";
+import { memo, useMemo } from "react";
+import type { EChartsOption } from "echarts";
 import type { VoteBreakdownProps } from "./VoteBreakdown.schema";
 import { ChartEmpty, ACCENT_HEX } from "./chart-utils";
+import { ResponsiveEChart } from "./ResponsiveEChart";
 
 const VOTE_COLORS: Record<string, string> = {
   AFIRMATIVO: ACCENT_HEX,
@@ -65,56 +65,21 @@ export const VoteBreakdown = memo(function VoteBreakdown({
   kind = "donut",
   data,
 }: VoteBreakdownProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<EChartsType | null>(null);
   const option = useMemo(
     () => (data?.length ? buildOption(kind, voteKey, data) : null),
     [kind, voteKey, data],
   );
   const chartVisible = Boolean(data?.length && option);
 
-  const resizeChart = useCallback(() => {
-    chartRef.current?.resize({ width: "auto", height: "auto" });
-  }, []);
-
-  const onChartReady = useCallback(
-    (chart: EChartsType) => {
-      chartRef.current = chart;
-      requestAnimationFrame(resizeChart);
-    },
-    [resizeChart],
-  );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    let frame = 0;
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(resizeChart);
-    });
-    observer.observe(container);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      chartRef.current = null;
-    };
-  }, [chartVisible, resizeChart]);
-
   if (!chartVisible || !option) return <ChartEmpty />;
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full min-w-0 max-w-full overflow-hidden border-t border-rule pt-4"
-    >
-      <ReactECharts
-        className="w-full min-w-0 max-w-full"
+    <div className="w-full min-w-0 max-w-full overflow-hidden border-t border-rule pt-4">
+      <ResponsiveEChart
         option={option}
         style={CHART_STYLE}
         notMerge
         lazyUpdate
-        onChartReady={onChartReady}
       />
     </div>
   );

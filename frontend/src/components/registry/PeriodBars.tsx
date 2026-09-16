@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useCallback, useMemo } from "react";
-import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import { formatNumber } from "@/lib/format";
 import type { PeriodBarsProps } from "./PeriodBars.schema";
 import { asNumber, ChartEmpty, CHART_COLORS } from "./chart-utils";
+import { ResponsiveEChart } from "./ResponsiveEChart";
 import {
   CanvasSelectionCaption,
   useCanvasNode,
@@ -153,7 +153,7 @@ export const PeriodBars = memo(function PeriodBars(props: PeriodBarsProps) {
 
   return (
     <div className="border-t border-rule pt-4">
-      <ReactECharts
+      <ResponsiveEChart
         option={option}
         style={canvas ? CHART_STYLE_POINTER : CHART_STYLE}
         notMerge

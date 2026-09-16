@@ -52,7 +52,7 @@ export function LiveCanvasPreview({
     <div className="relative min-w-0 lg:pt-10">
       <div
         aria-hidden
-        className="absolute -inset-8 -z-10 rounded-[3rem] bg-[radial-gradient(circle_at_45%_35%,color-mix(in_oklab,var(--sky)_30%,transparent),transparent_68%)]"
+        className="absolute inset-0 -z-10 rounded-[3rem] bg-[radial-gradient(circle_at_45%_35%,color-mix(in_oklab,var(--sky)_30%,transparent),transparent_68%)] md:-inset-8"
       />
       <div className="entry-preview-transition-surface overflow-hidden rounded-3xl border border-border/85 bg-card/85 p-3 shadow-[0_30px_75px_-52px_color-mix(in_oklab,var(--foreground)_40%,transparent),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-sm md:p-4 lg:rotate-[0.7deg]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-2 pb-3 pt-1">
