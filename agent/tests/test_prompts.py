@@ -226,6 +226,9 @@ def test_compose_catalog_includes_box_last_resort() -> None:
     assert "box" in compose
     assert "authored diagrams" in compose
     assert "substitute" in compose and "data-bound widget" in compose
+    assert "aesthetic judgment" in compose
+    assert "focal point" in compose
+    assert "equal cards" in compose
     assert "flechas" not in compose  # principle, not keyword triggers
 
 

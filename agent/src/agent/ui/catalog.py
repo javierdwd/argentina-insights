@@ -613,8 +613,11 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "User-named form beats the default leaf. "
             "Craft: font-display for names, text-muted-foreground for "
             "secondary lines, text-accent + SVG currentColor connectors, "
-            "gap-4/6 + border-rule blocks, bg-accent-soft pads — never a "
-            "naked stack of unstyled p tags. "
+            "gap-4/6 + border-rule blocks, bg-accent-soft pads. Build one "
+            "subject-specific composition with a dominant focal point and "
+            "meaningful spatial encoding; use hierarchy, whitespace and "
+            "alignment deliberately. Never emit a naked stack of unstyled "
+            "text or a generic grid of equal cards disguised as custom work. "
             "Optional suggests=PascalCaseName for a future named widget."
         ),
         when_not=(

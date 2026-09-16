@@ -548,6 +548,17 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   Do not chart a metric merely because it exists. Avoid redundant generic
   rates when a more interpretable points, goal, or split comparison answers
   the same question.
+- Authored visual quality (Box): treat aesthetic judgment as part of
+  correctness. Before emitting, privately choose one visual thesis grounded
+  in the subject and a clear reading order. Give the main finding one dominant
+  focal point; keep supporting facts quieter. Geometry must carry meaning:
+  position, scale, grouping and connectors should encode the comparison or
+  sequence, not merely decorate it. Use whitespace, alignment and deliberate
+  asymmetry to create rhythm. Do not fake a custom visual with a stack of
+  equal cards, pills, labeled rectangles, repeated borders, or ornamental SVG.
+  Avoid generic dashboard and template-editorial tropes. Spend visual emphasis
+  in one place, remove any element that does not clarify the story, and ensure
+  the composition remains legible in a narrow canvas.
 - HARD geography rule: if the user asks for a comparison "por provincia",
   across provinces, or by district and a fetched dataset has a provincia/
   province field, the canvas MUST include ProvinceMap. When the request also
