@@ -9,6 +9,7 @@ import pytest
 from agent.tools.transform import (
     explode_rows,
     group_count,
+    group_duration,
     project_rows,
     run_transform,
     unnest_match,
@@ -152,6 +153,41 @@ def test_group_count_builds_wide_chart_rows():
     assert rows == [
         {"bloque": "UCR", "afirmativo": 2, "negativo": 1, "ausente": 0},
         {"bloque": "LLA", "negativo": 1, "afirmativo": 0, "ausente": 0},
+    ]
+
+
+def test_group_duration_builds_chart_ready_totals():
+    terms = [
+        {
+            "nombre": "President A",
+            "partido": "Partido Uno",
+            "inicio": "2020-01-01",
+            "fin": "2020-01-11",
+        },
+        {
+            "nombre": "President B",
+            "partido": "Partido Uno",
+            "inicio": "2021-01-01",
+            "fin": "2021-01-06",
+        },
+        {
+            "nombre": "President C",
+            "partido": "Partido Dos",
+            "inicio": "2022-01-01",
+            "fin": None,
+        },
+    ]
+    rows = group_duration(
+        terms,
+        group_by=["partido"],
+        start_field="inicio",
+        end_field="fin",
+        as_of="2022-01-04",
+        output_field="dias_acumulados",
+    )
+    assert rows == [
+        {"partido": "Partido Uno", "dias_acumulados": 15, "periods": 2},
+        {"partido": "Partido Dos", "dias_acumulados": 3, "periods": 1},
     ]
 
 

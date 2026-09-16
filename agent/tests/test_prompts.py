@@ -241,6 +241,13 @@ def test_respond_routes_structured_comparison_to_compose() -> None:
     assert "flechas" not in text
 
 
+def test_respond_materializes_presidential_duration_aggregates() -> None:
+    text = _RESPOND_SYSTEM.casefold()
+    assert "group_duration" in text
+    assert "dias_acumulados" in text
+    assert "never claim an aggregate was calculated" in text
+
+
 def test_prompt_templates_format_without_leftover_placeholders() -> None:
     respond = _RESPOND_SYSTEM.format(
         domain="data",

@@ -299,6 +299,17 @@ Nested arrays like ``votos=[{{nombre,voto}},…]×72`` cannot be read by List �
 reshape first.
 - ``explode`` makes every nested object a row.
 - ``group_count`` turns categorical rows into chart-ready counts.
+- ``group_duration`` sums elapsed days between ISO date fields by category.
+
+Accumulated presidential time by party:
+1. Fetch /v1/presidentes.
+2. transform_dataset: op=group_duration, group_by=["partido"],
+   start_field="inicio", end_field="fin", as_of=<requested cutoff or today>,
+   output_field="dias_acumulados".
+3. Compose the transformed rows as a sorted bar Chart with xKey=partido and
+   series key=dias_acumulados.
+Never claim an aggregate was calculated until the transform result containing
+that metric has been indexed.
 
 One person's votes across many bills:
   1. Read their term from the index (periodoReal / Legal / Mandato).
@@ -808,6 +819,11 @@ _INTERNAL_PAREN_RE = re.compile(
     r"transform_dataset)[^()]*\)",
     re.IGNORECASE,
 )
+_CANVAS_CHANGE_CLAIM_RE = re.compile(
+    r"\b(?:agregu[eé]|arm[eé]|actualic[eé]|correg[ií]|cre[eé]|gener[eé]|"
+    r"mostr[eé]|organic[eé]|reemplac[eé])\b",
+    re.IGNORECASE,
+)
 
 
 def _sanitize_user_facing(text: str) -> str:
@@ -828,6 +844,11 @@ def _sanitize_user_facing(text: str) -> str:
     out = re.sub(r" +([,.;:])", r"\1", out)
     out = re.sub(r" *\n *", "\n", out)
     return out.strip()
+
+
+def _brief_claims_canvas_change(brief: str) -> bool:
+    """Detect first-person mutation claims that require a tree or patch."""
+    return bool(_CANVAS_CHANGE_CLAIM_RE.search(brief or ""))
 
 
 def _parse_route(note: str) -> str | None:
@@ -1894,6 +1915,14 @@ def compose_ui_node(state: AgentState) -> dict:
         else None
     )
     repair_errors = [compose_error] if compose_error else []
+    if (
+        tree_dict is None
+        and not result.patch
+        and _brief_claims_canvas_change(result.brief)
+    ):
+        repair_errors.append(
+            "brief claims the canvas changed, but both tree and patch are null"
+        )
     if result.patch:
         repair_errors.extend(
             validate_patch(
@@ -1987,6 +2016,13 @@ def compose_ui_node(state: AgentState) -> dict:
                 else ()
             )
             repaired_semantic_error = _province_map_error(state, repaired_tree)
+            repaired_claim_error = (
+                "brief claims the canvas changed, but both tree and patch are null"
+                if repaired_tree is None
+                and not repaired.patch
+                and _brief_claims_canvas_change(repaired.brief)
+                else None
+            )
             if (
                 repaired_tree is not None
                 and repaired_validation
@@ -1998,7 +2034,11 @@ def compose_ui_node(state: AgentState) -> dict:
                     tree_dict = repaired_tree
                     from_patch = repaired_from_patch
                     repair_errors = []
-            elif repaired_tree is None and not current_hits:
+            elif (
+                repaired_tree is None
+                and not current_hits
+                and not repaired_claim_error
+            ):
                 if not repaired_patch_errors:
                     result = repaired
                     tree_dict = None
@@ -2012,6 +2052,8 @@ def compose_ui_node(state: AgentState) -> dict:
                 )
                 if repaired_semantic_error:
                     repair_errors.append(repaired_semantic_error)
+                if repaired_claim_error:
+                    repair_errors.append(repaired_claim_error)
             if repaired_patch_errors:
                 repair_errors = list(repaired_patch_errors)
         except Exception as exc:  # noqa: BLE001

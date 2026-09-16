@@ -169,6 +169,42 @@ def test_invalid_tree_is_repaired_once(monkeypatch) -> None:
     assert "validation error" in model.calls[1][-1].content
 
 
+def test_brief_cannot_claim_canvas_change_without_tree_or_patch(monkeypatch) -> None:
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="Generé una tabla con los resultados",
+                tree=None,
+                patch=None,
+            ),
+            ComposeOutput(
+                brief="Organicé los resultados en el canvas",
+                tree={
+                    "id": "blue",
+                    "type": "Chart",
+                    "title": "Dólar blue",
+                    "props": {"dataRef": "ds_blue"},
+                },
+                patch=None,
+            ),
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+    update = compose_ui_node(
+        {
+            "query_type": "ui",
+            "messages": [HumanMessage(content="armá una tabla")],
+            "datasets": _dataset(),
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+            "respond_note": "",
+        }
+    )
+    assert len(model.calls) == 2
+    assert "both tree and patch are null" in model.calls[1][-1].content
+    assert update["ui_tree"]["id"] == "blue"
+
+
 def test_semantic_duplicate_is_repaired_as_patch(monkeypatch) -> None:
     existing = {
         "id": "blue",

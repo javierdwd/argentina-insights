@@ -7,6 +7,7 @@ groups them before composition. No HTTP; reads ``state.datasets``.
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
 from langchain_core.tools import tool
@@ -14,7 +15,13 @@ from langgraph.prebuilt import InjectedState
 
 from ..proxy import filters
 
-OpName = Literal["unnest_match", "explode", "group_count", "project"]
+OpName = Literal[
+    "unnest_match",
+    "explode",
+    "group_count",
+    "group_duration",
+    "project",
+]
 
 
 def _child_matches(child: dict, where: dict[str, Any]) -> bool:
@@ -146,6 +153,56 @@ def group_count(
     return list(grouped.values())
 
 
+def group_duration(
+    rows: list[dict],
+    *,
+    group_by: list[str],
+    start_field: str,
+    end_field: str,
+    as_of: str | None,
+    output_field: str,
+) -> list[dict]:
+    """Sum elapsed calendar days between two ISO date fields per group."""
+    try:
+        cutoff = date.fromisoformat(as_of) if as_of else date.today()
+    except ValueError as exc:
+        raise ValueError("group_duration as_of must be an ISO date.") from exc
+
+    grouped: dict[tuple, dict] = {}
+    for source in rows:
+        if any(source.get(field) in (None, "") for field in group_by):
+            continue
+        raw_start = source.get(start_field)
+        raw_end = source.get(end_field)
+        if raw_start in (None, ""):
+            continue
+        try:
+            start = datetime.fromisoformat(str(raw_start)[:10]).date()
+            end = (
+                datetime.fromisoformat(str(raw_end)[:10]).date()
+                if raw_end not in (None, "")
+                else cutoff
+            )
+        except ValueError:
+            continue
+        end = min(end, cutoff)
+        if end < start:
+            continue
+
+        key = tuple(source.get(field) for field in group_by)
+        row = grouped.setdefault(
+            key,
+            {
+                **{field: source.get(field) for field in group_by},
+                output_field: 0,
+                "periods": 0,
+            },
+        )
+        row[output_field] += (end - start).days
+        row["periods"] += 1
+    return list(grouped.values())
+
+
 def run_transform(
     datasets: dict,
     *,
@@ -160,6 +217,10 @@ def run_transform(
     group_by: list[str] | None = None,
     category: str | None = None,
     categories: list[str] | None = None,
+    start_field: str | None = None,
+    end_field: str | None = None,
+    as_of: str | None = None,
+    output_field: str | None = None,
 ) -> list[dict]:
     """Apply a whitelisted reshape against an indexed dataset."""
     ds = datasets.get(source)
@@ -189,6 +250,20 @@ def run_transform(
             categories=categories,
         )
 
+    if op == "group_duration":
+        if not group_by or not start_field or not end_field:
+            raise ValueError(
+                "group_duration requires group_by, start_field and end_field."
+            )
+        return group_duration(
+            rows,
+            group_by=group_by,
+            start_field=start_field,
+            end_field=end_field,
+            as_of=as_of,
+            output_field=output_field or "days",
+        )
+
     if op == "unnest_match":
         if not nested:
             raise ValueError("unnest_match requires nested=<array key> (e.g. 'votos').")
@@ -201,7 +276,10 @@ def run_transform(
             drop_unmatched=drop_unmatched,
         )
 
-    raise ValueError(f"Unknown op {op!r}. Use unnest_match or project.")
+    raise ValueError(
+        f"Unknown op {op!r}. Use unnest_match, explode, group_count, "
+        "group_duration or project."
+    )
 
 
 @tool
@@ -217,6 +295,10 @@ def transform_dataset(
     group_by: list[str] | None = None,
     category: str | None = None,
     categories: list[str] | None = None,
+    start_field: str | None = None,
+    end_field: str | None = None,
+    as_of: str | None = None,
+    output_field: str | None = None,
     state: Annotated[dict, InjectedState] = None,  # type: ignore[assignment]
 ) -> str:
     """Reshape an already-fetched dataset (no HTTP). One nesting level.
@@ -234,6 +316,8 @@ def transform_dataset(
         nested filmografia/elenco or any array that must become a List/cards.
       - group_count: count ``category`` values per ``group_by`` fields into
         wide chart-ready rows (for example vote counts per bloque).
+      - group_duration: sum elapsed days from ``start_field`` to ``end_field``
+        per group, using ``as_of`` for open/current periods.
       - project: keep only top-level ``fields`` on each row.
 
     Example (legislator vote history after fetch …/actas?includeVotes=true):
@@ -251,7 +335,7 @@ def transform_dataset(
 
     Args:
         source: Dataset id from the "Already fetched" index (ds_…).
-        op: unnest_match | project.
+        op: unnest_match | explode | group_count | group_duration | project.
         nested: Array key on each parent row (unnest_match), e.g. "votos".
         where: Child field → needle to match (unnest_match), e.g. nombre.
         keep: Parent keys to copy onto each output row.
@@ -261,6 +345,10 @@ def transform_dataset(
         group_by: Grouping keys for group_count.
         category: Field whose values become count columns for group_count.
         categories: Optional complete category list; missing counts become 0.
+        start_field: ISO start-date key for group_duration.
+        end_field: ISO end-date key for group_duration.
+        as_of: Optional ISO cutoff/default end date for group_duration.
+        output_field: Result metric key for group_duration (default ``days``).
 
     Returns:
         JSON list of flat rows, or a No records / Error message.
@@ -280,6 +368,10 @@ def transform_dataset(
             group_by=group_by,
             category=category,
             categories=categories,
+            start_field=start_field,
+            end_field=end_field,
+            as_of=as_of,
+            output_field=output_field,
         )
     except ValueError as exc:
         return f"Error: {exc}"
