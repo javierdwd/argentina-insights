@@ -337,7 +337,7 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
   },
   {
     id: "football-river-boca",
-    text: "Compará a River Plate y Boca Juniors en las últimas cinco temporadas",
+    text: "Compará a River Plate y Boca Juniors en las últimas cinco temporadas y mostrá también, en cancha, la última formación disponible de cada equipo",
     topic: "football",
     preview: "line",
     entryLabel: "Dos equipos, una historia",

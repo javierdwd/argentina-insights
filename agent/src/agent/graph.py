@@ -42,6 +42,7 @@ from .models import get_model
 from .state import AgentState
 from .tools import fetch_argentinadatos, search_actas, transform_dataset
 from .ui.catalog import as_prompt_text as widget_catalog_text
+from .ui.catalog import required_widgets_for_dataset_keys
 from .ui.datasets import current_turn_ids as _this_turn_dataset_ids
 from .ui.datasets import dataset_record
 from .ui.datasets import hit_ids as dataset_hit_ids
@@ -202,6 +203,8 @@ matches, standings and team-stats; Argentina national-team seasons and matches.
 One club over time or two-club comparison → team-stats with pipe-separated
 teams/seasons. Direct meetings only → headToHead=true. Latest lineup for a
 named club → league/latest-lineup directly; do not scan league matches. A
+two-club comparison asking for each club's latest lineup → call
+league/latest-lineup once per club and compose each result as FootballLineup. A
 specific match lineup → fetch by matchId. Compose FootballLineup. Do not offer
 foreign leagues.
 
@@ -1023,9 +1026,8 @@ def _should_compose(
 ) -> bool:
     """Whether respond should hand off to compose_ui.
 
-    - Hits this turn → always compose.
-    - Exception: after tools ran, an explicit ``chat`` route means the analyst
-      found no new visualizable detail; preserve the existing canvas.
+    - Hits this turn → always compose. The model cannot downgrade fetched rows
+      to chat-only; compose owns widget selection and deduplication.
     - ``[[route]] compose`` / derived note → compose.
     - No tools this turn → always compose. Compose owns the user brief and
       may emit Box or leave ``tree`` null (clarifying / chitchat). Respond
@@ -1033,13 +1035,15 @@ def _should_compose(
     - Tools ran but every call missed → stay in chat (caller passes
       fetched_this_turn=True, fetched_hits=False).
     """
+    if fetched_hits:
+        return True
     if (
         fetched_this_turn
         and route == "chat"
         and not _note_should_compose(note)
     ):
         return False
-    if fetched_hits or route == "compose":
+    if route == "compose":
         return True
     if _note_should_compose(note):
         return True
@@ -1432,6 +1436,27 @@ def _tree_has_type(tree: object, widget_type: str) -> bool:
         return True
     return any(
         _tree_has_type(child, widget_type)
+        for child in (tree.get("children") or [])
+    )
+
+
+def _tree_has_widget_for_refs(
+    tree: object,
+    widget_type: str,
+    refs: set[str],
+) -> bool:
+    """Whether a tree contains ``widget_type`` bound to one of ``refs``."""
+    if not isinstance(tree, dict):
+        return False
+    props = tree.get("props") or {}
+    if (
+        tree.get("type") == widget_type
+        and isinstance(props, dict)
+        and props.get("dataRef") in refs
+    ):
+        return True
+    return any(
+        _tree_has_widget_for_refs(child, widget_type, refs)
         for child in (tree.get("children") or [])
     )
 
@@ -1928,6 +1953,18 @@ def compose_ui_node(state: AgentState) -> dict:
         if str(ds.get("path") or "").startswith("derived/")
     )
     current_hits = dataset_hit_ids(datasets, this_turn)
+    required_widgets: set[str] = set()
+    for ds_id in current_hits:
+        dataset = datasets.get(ds_id) or {}
+        keys = set(dataset.get("keys") or [])
+        if not keys:
+            keys = {
+                key
+                for row in dataset.get("rows") or []
+                if isinstance(row, dict)
+                for key in row
+            }
+        required_widgets.update(required_widgets_for_dataset_keys(keys))
     tool_turn_ids = _this_turn_dataset_ids(state.get("messages") or [])
     all_hits = {
         ds_id
@@ -1965,6 +2002,27 @@ def compose_ui_node(state: AgentState) -> dict:
         else None
     )
     repair_errors = [compose_error] if compose_error else []
+    if current_hits and tree_dict is None and not result.patch:
+        repair_errors.append(
+            "current-turn datasets contain rows: render the requested result "
+            "with a compatible data-bound widget; brief-only output is invalid"
+        )
+    visible_tree = state.get("ui_tree_unbound") or state.get("ui_tree")
+    missing_required = [
+        widget_type
+        for widget_type in sorted(required_widgets)
+        if not _tree_has_widget_for_refs(tree_dict, widget_type, current_hits)
+        and not _tree_has_widget_for_refs(
+            visible_tree,
+            widget_type,
+            current_hits,
+        )
+    ]
+    if missing_required:
+        repair_errors.append(
+            "current-turn dataset shape requires specialized widget(s): "
+            + ", ".join(missing_required)
+        )
     if result.patch:
         repair_errors.extend(
             validate_patch(
@@ -2080,10 +2138,25 @@ def compose_ui_node(state: AgentState) -> dict:
                 if repaired.patch
                 else ()
             )
+            repaired_missing_required = [
+                widget_type
+                for widget_type in sorted(required_widgets)
+                if not _tree_has_widget_for_refs(
+                    repaired_tree,
+                    widget_type,
+                    current_hits,
+                )
+                and not _tree_has_widget_for_refs(
+                    visible_tree,
+                    widget_type,
+                    current_hits,
+                )
+            ]
             if (
                 repaired_tree is not None
                 and repaired_validation
                 and repaired_validation.valid
+                and not repaired_missing_required
             ):
                 if not repaired_patch_errors:
                     result = repaired
@@ -2107,6 +2180,13 @@ def compose_ui_node(state: AgentState) -> dict:
                 )
             if repaired_patch_errors:
                 repair_errors = list(repaired_patch_errors)
+            if repaired_missing_required:
+                repair_errors.extend(
+                    [
+                        "repair omitted specialized widget(s): "
+                        + ", ".join(repaired_missing_required)
+                    ]
+                )
         except Exception as exc:  # noqa: BLE001
             logger.exception("compose_ui repair failed")
             repair_errors = [f"repair failed: {exc}"]

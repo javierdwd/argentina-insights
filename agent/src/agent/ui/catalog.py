@@ -33,6 +33,9 @@ class WidgetDef:
     #: mapping left out.  A tuple of keys means "join these values", and is
     #: only used when every key in it is present.
     field_aliases: dict[str, tuple] = field(default_factory=dict)
+    #: When non-empty, rows containing all these keys require this specialized
+    #: widget instead of a generic/text-only representation.
+    required_data_keys: frozenset[str] = field(default_factory=frozenset)
 
 
 def _widget(widget_type: str) -> WidgetDef | None:
@@ -58,6 +61,16 @@ def requires_data_ref(widget_type: str) -> bool:
     """Whether a catalog widget is backed by a fetched dataset."""
     widget = _widget(widget_type)
     return bool(widget and widget.data)
+
+
+def required_widgets_for_dataset_keys(keys: set[str]) -> set[str]:
+    """Specialized widgets whose declared row contract matches ``keys``."""
+    return {
+        widget.type
+        for widget in WIDGET_CATALOG
+        if widget.required_data_keys
+        and widget.required_data_keys.issubset(keys)
+    }
 
 
 WIDGET_CATALOG: list[WidgetDef] = [
@@ -348,6 +361,7 @@ WIDGET_CATALOG: list[WidgetDef] = [
             "side(home|away), team, logo?, formation?, isProjected, starting[], "
             "substitutes[] and coach?. No fields map and no authored player data."
         ),
+        required_data_keys=frozenset({"side", "team", "starting"}),
     ),
     WidgetDef(
         type="Acta",

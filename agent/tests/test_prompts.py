@@ -728,8 +728,8 @@ def test_should_compose_routes_without_legacy_fallback() -> None:
         )
         is False
     )
-    # A deepen may fetch the existing collection yet find no dedicated detail.
-    # Explicit chat keeps the current canvas instead of redrawing those rows.
+    # Once a tool returns rows, compose owns widget selection and deduplication;
+    # the model cannot bypass it with an explicit chat marker.
     assert (
         _should_compose(
             "No hay una ficha ni estadísticas adicionales para este feriado.",
@@ -737,7 +737,7 @@ def test_should_compose_routes_without_legacy_fallback() -> None:
             route="chat",
             fetched_this_turn=True,
         )
-        is False
+        is True
     )
 
     explainer = (

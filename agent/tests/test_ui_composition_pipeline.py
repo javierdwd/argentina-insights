@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import ValidationError
 
 from agent.graph import compose_ui_node
+from agent.series_util import _dataset_id
 from agent.ui.pipeline import validate_tree
 from agent.ui.schemas import ComposeOutput
 
@@ -714,6 +715,85 @@ def test_semantic_patch_is_repaired_as_new_widget(monkeypatch) -> None:
     assert len(model.calls) == 2
     assert "cannot add props" in model.calls[1][-1].content
     assert update["ui_tree"]["children"][1]["type"] == "PersonCard"
+
+
+def test_lineup_rows_require_football_lineup_widget(monkeypatch) -> None:
+    path = "/v1/football/league/latest-lineup"
+    params = {"team": "River", "season": "2026"}
+    ds_id = _dataset_id(path, params)
+    dataset = {
+        "id": ds_id,
+        "path": path,
+        "params": params,
+        "status": "hit",
+        "N": 2,
+        "keys": ["side", "team", "formation", "starting", "substitutes", "coach"],
+        "rows": [
+            {
+                "side": "away",
+                "team": "River Plate",
+                "formation": "4-2-3-1",
+                "starting": [{"name": "Jugador"}],
+                "substitutes": [],
+                "coach": {"name": "DT"},
+            },
+            {
+                "side": "home",
+                "team": "Atlético Tucumán",
+                "formation": "4-4-2",
+                "starting": [{"name": "Rival"}],
+                "substitutes": [],
+                "coach": {"name": "DT rival"},
+            },
+        ],
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="La formación fue 4-2-3-1.",
+                tree=None,
+            ),
+            ComposeOutput(
+                brief="Mostré la formación completa.",
+                tree={
+                    "id": "river_lineup",
+                    "type": "FootballLineup",
+                    "title": "Última formación de River",
+                    "props": {"dataRef": ds_id},
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+    messages = [
+        HumanMessage(content="Mostrame la alineación completa de River"),
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "call_lineup",
+                    "name": "fetch_argentinadatos",
+                    "args": {"path": path, "params": params},
+                }
+            ],
+        ),
+    ]
+
+    update = compose_ui_node(
+        {
+            "query_type": "data",
+            "messages": messages,
+            "datasets": {ds_id: dataset},
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+            "respond_note": "Formación completa disponible.",
+        }
+    )
+
+    assert len(model.calls) == 2
+    assert "brief-only output is invalid" in model.calls[1][-1].content
+    assert "FootballLineup" in model.calls[1][-1].content
+    assert update["ui_tree"]["type"] == "FootballLineup"
 
 
 def test_repair_prompt_resolves_vote_grain_and_required_province_map(
