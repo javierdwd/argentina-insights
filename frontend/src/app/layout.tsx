@@ -19,7 +19,7 @@ const sourceSans = Source_Sans_3({
 
 export const metadata: Metadata = {
   title: "Argentina Insights",
-  description: "Ask in plain language. The agent composes the view.",
+  description: "Preguntá en lenguaje natural. El agente compone la vista.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
