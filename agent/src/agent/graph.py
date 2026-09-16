@@ -616,6 +616,9 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   substitute for a data-bound widget when a standard leaf already provides the
   strongest semantically correct encoding; because Box has no dataRef, every
   authored fact in it must be present in the analyst note.
+  The same grounding rule applies to Text and Callout: use only facts stated in
+  the analyst note or visible dataset sample. Never write placeholders, inferred
+  biographies, expected fields, or background knowledge as if they were data.
   Put compatible measures on one visual when that improves comparison;
   separate genuinely different layers. Do not force Box into SVG or chart-like
   geometry when ordinary semantic HTML communicates more clearly.
@@ -1822,10 +1825,10 @@ def compose_ui_node(state: AgentState) -> dict:
     if validation and validation.errors:
         repair_errors.extend(validation.errors)
 
-    # A mixed result may repeat one visible widget while adding a genuinely new
-    # companion. The output schema cannot express "patch old + add new", so
-    # retain the new subtree deterministically instead of asking the model to
-    # force both operations into a patch.
+    # Always prune repeated visible data widgets before repair. A mixed result
+    # may repeat one visible widget while adding valid and invalid companions;
+    # repair should see only the genuinely new subtree, preserving valid siblings
+    # as its base instead of reconstructing the old canvas.
     if (
         tree_dict is not None
         and not from_patch
@@ -1845,12 +1848,22 @@ def compose_ui_node(state: AgentState) -> dict:
             if pruned_tree is not None
             else None
         )
-        if (
-            pruned_validation
-            and pruned_validation.valid
-        ):
-            tree_dict = pruned_tree
-            repair_errors = []
+        tree_dict = pruned_tree
+        repair_errors = [compose_error] if compose_error else []
+        if result.patch:
+            repair_errors.extend(
+                validate_patch(
+                    state.get("ui_tree_unbound") or state.get("ui_tree"),
+                    result.patch,
+                )
+            )
+        if pruned_validation:
+            repair_errors.extend(pruned_validation.errors)
+        else:
+            repair_errors.append(
+                "candidate only repeated widgets already visible; use patch "
+                "to update them or return a genuinely new tree"
+            )
 
     # A single specialized repair pass replaces every domain-specific fallback
     # and coercion. It sees exact invariant failures and the rejected candidate.
@@ -1869,13 +1882,23 @@ def compose_ui_node(state: AgentState) -> dict:
                         content=(
                             "Repair the proposed UI output exactly once. Preserve the "
                             "user's intent, brief, and actions, but fix every "
-                            "validation error. "
+                            "validation error. The candidate has already had widgets "
+                            "that repeat the current canvas removed; do not recreate "
+                            "them. Keep valid candidate siblings unchanged whenever "
+                            "possible and repair only invalid subtrees. You may remove "
+                            "an incompatible Chart, but when the user explicitly asked "
+                            "for the information it represented, replace it with a "
+                            "compatible widget or authored structure grounded in the "
+                            "available data; do not return only another requested part. "
                             "Re-read the dataset index in the system prompt before "
                             "editing: you may replace invalid dataRefs, props, or "
                             "widgets. Check each Chart's row grain against xKey; a "
                             "duplicate-x error requires a compatible data shape or "
                             "selection, not cosmetic changes. Satisfy required widget "
                             "types with real keys from compatible allowed datasets. "
+                            "Every authored Text, Callout, or Box fact must appear in "
+                            "the analyst note or dataset sample. Never emit placeholder "
+                            "biographies, expected fields, or unsupported prose. "
                             "Use only allowedDataRefs and return the complete "
                             "ComposeOutput with every error resolved.\n"
                             + json.dumps(feedback, ensure_ascii=False)
@@ -1942,10 +1965,11 @@ def compose_ui_node(state: AgentState) -> dict:
     if repair_errors:
         logger.warning("Discarding invalid composed tree: %s", "; ".join(repair_errors))
         tree_dict = None
-        brief = (
-            "No pude actualizar el canvas de forma segura. "
-            "Probá de nuevo o reformulá la consulta."
-        )
+        if not brief:
+            brief = (
+                "No pude actualizar el canvas de forma segura. "
+                "Probá de nuevo o reformulá la consulta."
+            )
     else:
         tree_dict = _append_statistical_callout(
             tree_dict,

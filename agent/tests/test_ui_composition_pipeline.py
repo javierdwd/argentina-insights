@@ -443,6 +443,115 @@ def test_mixed_duplicate_and_new_widget_is_pruned_without_repair(monkeypatch) ->
     ]
 
 
+def test_repair_receives_pruned_tree_and_keeps_valid_siblings(monkeypatch) -> None:
+    datasets = {
+        **_dataset(),
+        "ds_stats": {
+            "id": "ds_stats",
+            "path": "derived/person_stats",
+            "params": {},
+            "rows": [{"categoria": "Asistencia", "valor": 12}],
+            "keys": ["categoria", "valor"],
+            "N": 1,
+            "status": "hit",
+        },
+    }
+    existing = {
+        "id": "blue",
+        "type": "Chart",
+        "title": "Dólar blue",
+        "props": {"dataRef": "ds_blue"},
+    }
+    model = _StructuredModel(
+        [
+            ComposeOutput(
+                brief="Preparé la ficha y sus estadísticas.",
+                tree={
+                    "id": "person_detail",
+                    "type": "Stack",
+                    "children": [
+                        {
+                            "id": "repeated_blue",
+                            "type": "Chart",
+                            "title": "Dólar blue",
+                            "props": {"dataRef": "ds_blue"},
+                        },
+                        {
+                            "id": "grounded_profile",
+                            "type": "Text",
+                            "title": "Ficha",
+                            "props": {"content": "Representante por Córdoba."},
+                        },
+                        {
+                            "id": "invalid_stats",
+                            "type": "Chart",
+                            "title": "Estadísticas",
+                            "props": {
+                                "dataRef": "ds_stats",
+                                "kind": "bar",
+                                "xKey": "categoria",
+                                "series": [
+                                    {"key": "inventado", "label": "Inventado"}
+                                ],
+                            },
+                        },
+                    ],
+                },
+            ),
+            ComposeOutput(
+                brief="Preparé la ficha y sus estadísticas.",
+                tree={
+                    "id": "person_detail",
+                    "type": "Stack",
+                    "children": [
+                        {
+                            "id": "grounded_profile",
+                            "type": "Text",
+                            "title": "Ficha",
+                            "props": {"content": "Representante por Córdoba."},
+                        },
+                        {
+                            "id": "valid_stats",
+                            "type": "Chart",
+                            "title": "Estadísticas",
+                            "props": {
+                                "dataRef": "ds_stats",
+                                "kind": "bar",
+                                "xKey": "categoria",
+                                "series": [{"key": "valor", "label": "Valor"}],
+                            },
+                        },
+                    ],
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr("agent.graph.get_model", lambda _: _Model(model))
+
+    update = compose_ui_node(
+        {
+            "query_type": "ui",
+            "messages": [HumanMessage(content="Profundizá en la ficha y estadísticas")],
+            "datasets": datasets,
+            "ui_tree": existing,
+            "ui_tree_unbound": existing,
+            "respond_note": "Representante por Córdoba. Asistencia: 12.",
+        }
+    )
+
+    assert len(model.calls) == 2
+    repair_prompt = model.calls[1][-1].content
+    assert '"id": "repeated_blue"' not in repair_prompt
+    assert '"id": "grounded_profile"' in repair_prompt
+    assert "Keep valid candidate siblings unchanged" in repair_prompt
+    assert "do not return only another requested part" in repair_prompt
+    assert [child["id"] for child in update["ui_tree"]["children"]] == [
+        "blue",
+        "grounded_profile",
+        "valid_stats",
+    ]
+
+
 def test_repair_prompt_resolves_vote_grain_and_required_province_map(
     monkeypatch,
 ) -> None:
@@ -579,7 +688,8 @@ def test_failed_repair_keeps_previous_canvas(monkeypatch) -> None:
         "props": {"dataRef": "ds_blue"},
     }
     invalid = ComposeOutput(
-        brief="Mostré datos",
+        brief="No pude representar todos los datos solicitados.",
+        actions=["Reintentá con otro período"],
         tree={
             "id": "ghost",
             "type": "Chart",
@@ -601,4 +711,7 @@ def test_failed_repair_keeps_previous_canvas(monkeypatch) -> None:
     )
     assert len(model.calls) == 2
     assert "ui_tree" not in update
-    assert "forma segura" in update["messages"][0].content
+    message = update["messages"][0].content
+    assert "No pude representar todos los datos solicitados." in message
+    assert "[[actions]]\nReintentá con otro período\n[[/actions]]" in message
+    assert "forma segura" not in message

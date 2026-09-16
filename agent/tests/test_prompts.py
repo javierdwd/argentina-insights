@@ -229,6 +229,9 @@ def test_compose_catalog_treats_box_as_first_class_authored_component() -> None:
     assert "semantic table for aligned values" in compose
     assert "well-structured table or document is a valid" in compose
     assert "does not need plotted marks" in compose
+    assert "same grounding rule applies to text and callout" in compose
+    assert "never write placeholders" in compose
+    assert "inferred" in compose and "biographies" in compose
     assert "every node, including every html/svg host child" in compose
     assert "all host attributes" in compose
     assert "every child needs a unique id" in compose
