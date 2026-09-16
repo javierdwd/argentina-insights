@@ -244,6 +244,7 @@ export function HomeStage({
       <main
         className={[
           "flex h-[100dvh] min-h-0 flex-col overflow-hidden md:grid md:transition-[grid-template-columns] md:duration-700 md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          entry ? "md:h-auto md:min-h-[100dvh] md:overflow-visible" : "",
           hasStarted ? "stage-started" : "",
           chatHidden || entry
             ? "md:grid-cols-[minmax(0,1fr)_minmax(0,0fr)]"
@@ -257,7 +258,10 @@ export function HomeStage({
       >
         <div
           className={[
-            "relative flex min-h-0 flex-1 flex-col overflow-hidden md:h-full",
+            "relative flex min-h-0 flex-1 flex-col overflow-hidden",
+            entry
+              ? "md:min-h-[100dvh] md:overflow-visible"
+              : "md:h-full",
             compact
               ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
               : entry
@@ -360,6 +364,7 @@ export function HomeStage({
             initial={false}
             className={[
               "entry-reveal entry-reveal-delay-1 relative flex min-h-0 flex-1 flex-col overflow-hidden",
+              entry ? "md:overflow-visible" : "",
               compact
                 ? "mt-4 md:mt-5"
                 : entry
