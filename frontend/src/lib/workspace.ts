@@ -129,7 +129,12 @@ export function saveLastCanvas(uiTree: UINode, query?: string): boolean {
 }
 
 export function clearLastCanvas(): void {
-  update((current) => ({ ...current, lastCanvas: null }));
+  try {
+    localStorage.removeItem(WORKSPACE_KEY);
+    notify();
+  } catch {
+    write(EMPTY_WORKSPACE);
+  }
 }
 
 export function subscribeWorkspace(onStoreChange: () => void): () => void {

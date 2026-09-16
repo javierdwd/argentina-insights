@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   useAgent,
   CopilotChatConfigurationProvider,
@@ -93,6 +93,7 @@ function AgentCanvas({
   const reduceMotion = useReducedMotion();
   const hydratedRef = useRef(false);
   const handledClearRef = useRef(clearSignal);
+  const persistTimerRef = useRef<number | null>(null);
   const [startedQuery, setStartedQuery] = useState<string | null>(null);
   const [clearedQuery, setClearedQuery] = useState<string | null>(null);
   // CopilotKit can briefly publish the previous thread state after
@@ -136,6 +137,10 @@ function AgentCanvas({
   useEffect(() => {
     if (handledClearRef.current === clearSignal) return;
     handledClearRef.current = clearSignal;
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
     if (agent.isRunning) agent.abortRun();
     agent.setMessages([]);
     // A new thread must not inherit any client state that runAgent could send
@@ -189,9 +194,15 @@ function AgentCanvas({
   useEffect(() => {
     if (!agentTree || canvasCleared) return;
     const timer = window.setTimeout(() => {
+      if (persistTimerRef.current !== timer) return;
+      persistTimerRef.current = null;
       saveLastCanvas(agentTree, query);
     }, 400);
-    return () => window.clearTimeout(timer);
+    persistTimerRef.current = timer;
+    return () => {
+      window.clearTimeout(timer);
+      if (persistTimerRef.current === timer) persistTimerRef.current = null;
+    };
   }, [agentTree, canvasCleared, query]);
 
   return (
@@ -304,10 +315,7 @@ function ChatPanel({ threadId }: { threadId: string }) {
  */
 export function AgentStage() {
   "use no memo";
-  const threadSeed = useId();
-  const [threadId, setThreadId] = useState(
-    () => `argentina-insights-${threadSeed.replaceAll(":", "")}`,
-  );
+  const [threadId, setThreadId] = useState(() => crypto.randomUUID());
   const [hasCanvas, setHasCanvas] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [clearSignal, setClearSignal] = useState(0);
