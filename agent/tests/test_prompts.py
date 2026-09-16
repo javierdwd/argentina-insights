@@ -200,6 +200,21 @@ def test_compose_message_drops_internal_implementation_actions() -> None:
     assert "ds_abcdef12" not in out
 
 
+def test_compose_message_drops_machine_style_action_identifiers() -> None:
+    out = _compose_message(
+        "Comisiones mostradas.",
+        [
+            "actualizar_ficha_profunda_bedia",
+            "profundizar_comisiones_dt",
+            "Compará los cargos de Bedia entre comisiones",
+        ],
+    )
+
+    assert "actualizar_ficha_profunda_bedia" not in out
+    assert "profundizar_comisiones_dt" not in out
+    assert "Compará los cargos de Bedia entre comisiones" in out
+
+
 def test_sanitize_user_facing_drops_internal_implementation_sentences() -> None:
     out = _sanitize_user_facing(
         "Revisaré si el Widget B necesita patch en props.series. "

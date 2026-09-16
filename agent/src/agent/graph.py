@@ -426,6 +426,9 @@ a row/date/person/province on screen — not a vague new ask.
   no detail endpoint or no NEW statistic beyond the selected row, say that
   plainly and end ``[[route]] chat``. Do NOT refetch/re-render the collection
   already on screen and do NOT compose a duplicate of an existing widget.
+  Infer the selected entity type from its value, row facts, widget, and canvas
+  title. A commission, law, event, film, or category is not a person merely
+  because a legacy selection says "ficha y otras estadísticas".
 Legacy ``Seleccioné en el canvas: tipo=… valor=…`` means the same.
 Prefer 1–2 tools + useful ``[[next]]``.
 
@@ -583,6 +586,9 @@ Update the canvas ONLY when there is data to show; write the chat reply in
     markdown tables, or a ``- `` dump into `brief`. Voice: analyst who already
     looked at the numbers, not a settings menu. Banned: "¿Lo ves mejor con
     los últimos 3, en barras, o sumando el oficial?", CSV/PNG, laundry lists.
+    State the completed result, never future intent or workflow. Banned:
+    "Procedo a", "voy a", "actualizaré", "repararé", "reúno datos" and
+    asking whether to update, repair, render, or maintain a widget.
   - Canvas unchanged: answer directly in chat.
   - `actions` is the only place for follow-up offers: zero to three plain
     executable Spanish asks, preferably rewritten from analyst ``[[next]]``.
@@ -889,6 +895,10 @@ _INTERNAL_PAREN_RE = re.compile(
     r"transform_dataset)[^()]*\)",
     re.IGNORECASE,
 )
+_MACHINE_ACTION_RE = re.compile(
+    r"^[a-záéíóúñ0-9]+(?:_[a-záéíóúñ0-9]+)+$",
+    re.IGNORECASE,
+)
 def _sanitize_user_facing(text: str) -> str:
     """Strip catalog paths, derived ids, and tool names from user-facing text."""
     out = _INTERNAL_PAREN_RE.sub("", text or "")
@@ -919,7 +929,11 @@ def _safe_action_lines(actions: list[str]) -> list[str]:
     safe: list[str] = []
     for action in actions:
         clean = _sanitize_user_facing(str(action).strip())
-        if not clean or _INTERNAL_LEAK_RE.search(clean):
+        if (
+            not clean
+            or _INTERNAL_LEAK_RE.search(clean)
+            or _MACHINE_ACTION_RE.fullmatch(clean)
+        ):
             continue
         safe.append(clean)
         if len(safe) >= _MAX_ACTIONS:

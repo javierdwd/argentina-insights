@@ -88,11 +88,13 @@ export function formatCanvasSelection(s: CanvasSelection): string {
           ? `Quiero el detalle de ${quote(short)} (${valor}) en ${quote(ctx)}: mostrá cómo votó cada legislador.`
           : `Quiero el detalle de ${quote(short)} (${valor}): mostrá cómo votó cada legislador.`;
       }
-      // Film / titled list row — ask for the ficha by title.
+      // Generic rows may be films, commissions, events, categories, etc.
+      // Do not call every titled row a person/profile; context lets the agent
+      // choose the relevant detail source and semantic widget.
       if (titleFact || s.widget === "List") {
         return ctx
-          ? `Profundizá sobre ${quote(valor)} (en ${quote(ctx)}): ficha y otras estadísticas.`
-          : `Profundizá sobre ${quote(valor)}: ficha y otras estadísticas.`;
+          ? `Profundizá en ${quote(valor)} de ${quote(ctx)}: mostrá detalles y estadísticas relacionadas.`
+          : `Profundizá en ${quote(valor)}: mostrá detalles y estadísticas relacionadas.`;
       }
       return ctx
         ? `Quiero profundizar en ${quote(valor)} de ${quote(ctx)}.`

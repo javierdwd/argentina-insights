@@ -1,9 +1,9 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   useAgent,
-  useCopilotChatConfiguration,
+  CopilotChatConfigurationProvider,
   UseAgentUpdate,
   useConfigureSuggestions,
 } from "@copilotkit/react-core/v2";
@@ -103,7 +103,6 @@ function AgentCanvas({
     ],
   });
   const canvas = useCanvasAction();
-  const chatConfiguration = useCopilotChatConfiguration();
   const workspace = useWorkspace();
   const reduceMotion = useReducedMotion();
   const hydratedRef = useRef(false);
@@ -153,13 +152,18 @@ function AgentCanvas({
     if (handledClearRef.current === clearSignal) return;
     handledClearRef.current = clearSignal;
     if (agent.isRunning) agent.abortRun();
-    chatConfiguration?.startNewThread();
     agent.setMessages([]);
-    // CopilotKit can merge state updates, so an empty object does not remove
-    // the previous canvas. Explicitly clear both the rendered and source tree.
+    // A new thread must not inherit any client state that runAgent could send
+    // as its initial snapshot. Clear the complete graph state, not only UI.
     agent.setState({
+      query_type: "data",
       ui_tree: null,
       ui_tree_unbound: null,
+      datasets: {},
+      has_tool_calls: false,
+      skip_compose: false,
+      respond_note: "",
+      statistical_report: null,
     });
     setCanvasCleared(true);
     clearLastCanvas();
@@ -171,7 +175,6 @@ function AgentCanvas({
   }, [
     agent,
     canvas,
-    chatConfiguration,
     clearSignal,
     onHasCanvas,
     onHasStarted,
@@ -298,11 +301,16 @@ function ChatSuggestions() {
   return null;
 }
 
-const CopilotChatPanel = memo(function CopilotChatPanel() {
+const CopilotChatPanel = memo(function CopilotChatPanel({
+  threadId,
+}: {
+  threadId: string;
+}) {
   "use no memo";
   return (
     <CopilotChat
       agentId="argentina_insights"
+      threadId={threadId}
       className="h-full"
       messageView={CHAT_MESSAGE_VIEW}
       labels={CHAT_LABELS}
@@ -310,14 +318,14 @@ const CopilotChatPanel = memo(function CopilotChatPanel() {
   );
 });
 
-function ChatWithStarters() {
+function ChatWithStarters({ threadId }: { threadId: string }) {
   "use no memo";
   return (
     <div className="relative h-full min-h-0">
       <ChatSuggestions />
       <ChatToolActivity />
       <ChatRunErrors />
-      <CopilotChatPanel />
+      <CopilotChatPanel threadId={threadId} />
     </div>
   );
 }
@@ -331,6 +339,10 @@ function ChatWithStarters() {
  */
 export function AgentStage() {
   "use no memo";
+  const threadSeed = useId();
+  const [threadId, setThreadId] = useState(
+    () => `argentina-insights-${threadSeed.replaceAll(":", "")}`,
+  );
   const [hasCanvas, setHasCanvas] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [clearSignal, setClearSignal] = useState(0);
@@ -342,6 +354,7 @@ export function AgentStage() {
     setHasStarted(has);
   }, []);
   const onClear = useCallback(() => {
+    setThreadId(crypto.randomUUID());
     setClearSignal((current) => current + 1);
   }, []);
   const onSave = useCallback(() => {
@@ -349,22 +362,27 @@ export function AgentStage() {
   }, []);
 
   return (
-    <HomeStage
-      hasCanvas={hasCanvas}
-      hasStarted={hasStarted}
-      onClear={onClear}
-      onSave={onSave}
-      chat={<ChatWithStarters />}
-      stage={
-        <CanvasActionProvider>
-          <AgentCanvas
-            onHasCanvas={onHasCanvas}
-            onHasStarted={onHasStarted}
-            clearSignal={clearSignal}
-            saveSignal={saveSignal}
-          />
-        </CanvasActionProvider>
-      }
-    />
+    <CopilotChatConfigurationProvider
+      agentId="argentina_insights"
+      threadId={threadId}
+    >
+      <HomeStage
+        hasCanvas={hasCanvas}
+        hasStarted={hasStarted}
+        onClear={onClear}
+        onSave={onSave}
+        chat={<ChatWithStarters threadId={threadId} />}
+        stage={
+          <CanvasActionProvider>
+            <AgentCanvas
+              onHasCanvas={onHasCanvas}
+              onHasStarted={onHasStarted}
+              clearSignal={clearSignal}
+              saveSignal={saveSignal}
+            />
+          </CanvasActionProvider>
+        }
+      />
+    </CopilotChatConfigurationProvider>
   );
 }
