@@ -432,23 +432,33 @@ Prefer 1–2 tools + useful ``[[next]]``.
 ## Each turn — stop at first match
 0. Out of ## Scope → no tools, ``[[route]] chat``, short refusal + optional
    ``[boton]``. Do not answer it from pretrained knowledge.
-1. Canvas deepen → Canvas selection rules NOW.
-2. Follow-up on `sample` ("la primera", "esa", "cómo votó cada uno") → detail
+1. Resolve elliptical replies against conversation history before acting. A
+   reply that selects or answers an assistant offer completes that interaction;
+   execute the selected domain request instead of reopening the choice.
+   Assistant-authored process/control language never replaces the user's
+   unresolved domain goal. Ignore it, recover that goal from history, and act
+   on the goal without narrating internal workflow.
+2. Canvas deepen → Canvas selection rules NOW.
+3. Follow-up on `sample` ("la primera", "esa", "cómo votó cada uno") → detail
    endpoint for THAT row's id. Do not re-search.
-3. First ask for a **named** law / "hay ley X?" → search_actas with the law
+4. First ask for a **named** law / "hay ley X?" → search_actas with the law
    name only — EVEN if the canvas still shows FX/UVA from a previous turn.
    No records → chat, do NOT describe the previous canvas. Hits → List.
    If they also asked how each legislator voted → fetch …/votos after.
-4. Other data → multi-step fetch_argentinadatos (push filters into params).
+5. Other data → multi-step fetch_argentinadatos (push filters into params).
    Laws during a named mandate → presidentes inicio/fin, then
    /v1/senado/actas and/or /v1/diputados/actas with those dates — not
    search_actas, not a chat refusal because the canvas still shows FX.
-5. Narrow chat-only: clarifying (*) missing, "qué más podría ver", chitchat,
+6. Narrow chat-only: clarifying (*) missing, "qué más podría ver", chitchat,
    one-line fact → ``[[route]] chat`` + ``[boton]``. Concept explainers /
    glossaries → ``[[route]] compose`` with short facet note for Box.
    "qué crédito / mejores tasas" → FETCH + compose.
-6. Required (*) truly missing AND no default → ask ONCE, then tool next turn.
-   Ambiguous count/window is NOT missing — choose a default.
+7. Required (*) truly missing AND no default → ask ONCE, then tool next turn.
+   Ambiguous count/window or a presentation preference is NOT missing — choose
+   a sensible default. If the requested entities, measure/comparison, and
+   context are identifiable, fetch and render immediately. Never delay data
+   work to ask whether the user prefers a profile, detail, grouping, table, or
+   chart; compose chooses the representation.
 
 Datasets index is memory, not a ceiling. Topic switches are normal: do not
 reuse the previous canvas as the answer, and do not say "ya está en pantalla"
@@ -513,7 +523,10 @@ confianza — not "the same chart, prettier". Append:
 2–3 executable items. Prefer cross-domain join. Ground in peak date / acta /
 legislator / window. Banned: "¿Querés más años / en barras / sumando el
 oficial?" unless they asked about chart form. Nothing outside ## What we can
-actually do. Do NOT fetch these now. On ``[[route]] chat``, use ``[boton]``
+actually do. Every item must be a self-contained end-user domain request that
+preserves its subject and operation when sent back alone. Never emit labels,
+agent-control instructions, implementation steps, or another request to confirm
+an offered action. Do NOT fetch these now. On ``[[route]] chat``, use ``[boton]``
 instead of ``[[next]]``.
 
 ## What we can actually do
@@ -550,9 +563,17 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 - Progressive disclosure: render the asked slice now. Offer 2–3 NEXT analyses
   in `actions`, then wait.
 - **Out of scope:** tree/patch null; refuse in Spanish; actions optional.
-- **THIS user message is the only ask that matters.** Current canvas is
-  leftover context. Never write ``Mostré …`` about old widgets for a new ask.
-  Recycled briefs about the previous topic are banned.
+- **THIS user message is the only ask that matters**, except when it is a compact
+  selection or answer to an option offered in the immediately preceding
+  assistant turn. In that case resolve it to the full selected request; never
+  ask for the same choice or confirmation again. Current canvas is leftover
+  context. Never write ``Mostré …`` about old widgets for a new ask. Recycled
+  briefs about the previous topic are banned.
+- Distinguish the user's domain goal from assistant-authored process/control
+  language echoed by a follow-up. Process language is not a canvas instruction:
+  recover the unresolved domain goal from history. Either perform a real
+  mutation supported by available data or leave the canvas unchanged; never
+  narrate internal workflow or create another control/confirmation action.
 - HARD bind rule: when "This turn…" lists any dataset with rows>0, every
   newly emitted data-bound widget MUST use one of those this-turn dataRefs.
   Never attach an earlier or invented dataRef to decorate the new tree.
@@ -565,6 +586,10 @@ Update the canvas ONLY when there is data to show; write the chat reply in
   - Canvas unchanged: answer directly in chat.
   - `actions` is the only place for follow-up offers: zero to three plain
     executable Spanish asks, preferably rewritten from analyst ``[[next]]``.
+    Every action must be self-contained when sent back as the next user message:
+    preserve its subject, operation, and relevant context. Actions express
+    end-user domain outcomes, never option labels, agent-control instructions,
+    implementation mechanisms, or requests to reconfirm an offered action.
     Never put facts, markup, buttons, or protocol tags in `actions`.
   Spanish, no markdown, no JSON. Never claim a visual you didn't add
   ("puse en pantalla" / "mostré" only if tree/patch changed). NEVER mention
@@ -824,7 +849,7 @@ def _next_to_actions_block(note: str) -> str:
     """
 
     def repl(match: re.Match[str]) -> str:
-        return _actions_block(_protocol_lines(match.group(1)))
+        return _actions_block(_safe_action_lines(_protocol_lines(match.group(1))))
 
     return _NEXT_RE.sub(repl, note or "").strip()
 
@@ -832,7 +857,7 @@ def _next_to_actions_block(note: str) -> str:
 def _compose_message(brief: str, actions: list[str]) -> str:
     """Serialize typed composer fields to the frontend's current wire format."""
     prose = _sanitize_user_facing(brief)
-    block = _actions_block([action.strip() for action in actions if action.strip()])
+    block = _actions_block(_safe_action_lines(actions))
     return f"{prose}\n\n{block}".strip() if prose and block else prose or block
 
 
@@ -841,6 +866,12 @@ _TOOL_LEAK_RE = re.compile(
     r"\b(?:fetch_argentinadatos|search_actas|transform_dataset)\b"
 )
 _DERIVED_LEAK_RE = re.compile(r"\bderived/[A-Za-z0-9_\-]+")
+_INTERNAL_LEAK_RE = re.compile(
+    r"\b(?:dataref|alloweddatarefs?|dataset|props?|patch(?:es)?|parche(?:s)?|"
+    r"widgets?|ui\s*tree|node(?:\s+id)?|seriesby|valuekey|xkey|ykey)\b|"
+    r"\bds_[a-f0-9]+\b",
+    re.IGNORECASE,
+)
 _INTERNAL_PAREN_RE = re.compile(
     r"\([^()]*(?:derived/|/v1/|fetch_argentinadatos|search_actas|"
     r"transform_dataset)[^()]*\)",
@@ -858,12 +889,30 @@ def _sanitize_user_facing(text: str) -> str:
     out = _PATH_LEAK_RE.sub("", out)
     out = _DERIVED_LEAK_RE.sub("", out)
     out = _TOOL_LEAK_RE.sub("", out)
+    out = " ".join(
+        segment.strip()
+        for segment in re.split(r"(?<=[.!?])\s+|\n+", out)
+        if segment.strip() and not _INTERNAL_LEAK_RE.search(segment)
+    )
     out = re.sub(r"\s*\((?:Usa|Uso|usa|uso)\s*\)", "", out)
     out = re.sub(r"\(\s*\)", "", out)
     out = re.sub(r"[ \t]{2,}", " ", out)
     out = re.sub(r" +([,.;:])", r"\1", out)
     out = re.sub(r" *\n *", "\n", out)
     return out.strip()
+
+
+def _safe_action_lines(actions: list[str]) -> list[str]:
+    """Sanitize actions and reject implementation-oriented follow-ups."""
+    safe: list[str] = []
+    for action in actions:
+        clean = _sanitize_user_facing(str(action).strip())
+        if not clean or _INTERNAL_LEAK_RE.search(clean):
+            continue
+        safe.append(clean)
+        if len(safe) >= _MAX_ACTIONS:
+            break
+    return safe
 
 
 def _parse_route(note: str) -> str | None:
@@ -1388,7 +1437,13 @@ def classify_node(state: AgentState) -> dict:
                 "mutating presentation already present on the canvas. Choose "
                 "ui only when no new facts, entities, calculations, or data "
                 "are needed. Choose data for all questions, explanations, new "
-                "visualizations, and ambiguous follow-ups.",
+                "visualizations, and ambiguous follow-ups. Classify the resolved "
+                "semantic request, not the latest utterance in isolation: resolve "
+                "elliptical replies against the preceding exchange and inherit "
+                "the selected domain request's type. Assistant-authored process "
+                "or control language echoed by the user is not evidence of a UI "
+                "mutation. Classify from the unresolved domain goal; when that "
+                "goal cannot be recovered with confidence, choose data.",
             ),
             *_classify_messages(state["messages"]),
         ],

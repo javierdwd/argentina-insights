@@ -10,6 +10,7 @@ from agent.graph import (
     _EARLIER_DATASET_CAP,
     _RESPOND_SYSTEM,
     _build_compose_system,
+    _compose_message,
     _compact_datasets,
     _message_text,
     _next_to_actions_block,
@@ -57,6 +58,11 @@ def test_query_routing_uses_structured_classification(monkeypatch) -> None:
 
         def invoke(self, messages, config):
             assert messages
+            classifier_prompt = messages[0][1]
+            assert "resolved semantic request" in classifier_prompt
+            assert "elliptical replies" in classifier_prompt
+            assert "Assistant-authored process or control language" in classifier_prompt
+            assert "choose data" in classifier_prompt
             return {"query_type": "ui"}
 
     monkeypatch.setattr("agent.graph.get_model", lambda role: Classifier())
@@ -176,6 +182,42 @@ def test_sanitize_user_facing_strips_residual_internal_tags() -> None:
     assert "[[next]]" not in out
     assert "[[route]]" not in out
     assert "[boton]Revisar 2025[/boton]" in out
+
+
+def test_compose_message_drops_internal_implementation_actions() -> None:
+    out = _compose_message(
+        "Comparación preparada.",
+        [
+            "Compará sus votos con los demás representantes de la provincia",
+            "Revisá si el widget necesita patch en props.series",
+            "Actualizá el dataRef a ds_abcdef12",
+        ],
+    )
+    assert "Compará sus votos" in out
+    assert "widget" not in out.casefold()
+    assert "patch" not in out.casefold()
+    assert "dataref" not in out.casefold()
+    assert "ds_abcdef12" not in out
+
+
+def test_sanitize_user_facing_drops_internal_implementation_sentences() -> None:
+    out = _sanitize_user_facing(
+        "Revisaré si el Widget B necesita patch en props.series. "
+        "La comparación de votos sigue disponible."
+    )
+    assert out == "La comparación de votos sigue disponible."
+
+
+def test_analyst_next_actions_drop_internal_implementation_actions() -> None:
+    out = _next_to_actions_block(
+        "[[next]]\n"
+        "- Compará los votos por provincia\n"
+        "- Aplicá un parche al widget actual\n"
+        "[[/next]]"
+    )
+    assert "Compará los votos por provincia" in out
+    assert "parche" not in out.casefold()
+    assert "widget" not in out.casefold()
 
 
 def test_compose_brief_bans_derived_paths() -> None:
@@ -544,8 +586,39 @@ def test_compose_prompt_separates_prose_from_typed_actions() -> None:
             "ui_tree_unbound": None,
         }
     )
-    assert "`actions` is the only place for follow-up offers" in text
-    assert "Never put facts, markup, buttons, or protocol tags" in text
+    compact = " ".join(text.split())
+    assert "`actions` is the only place for follow-up offers" in compact
+    assert "Never put facts, markup, buttons, or protocol tags" in compact
+
+
+def test_prompts_prevent_option_confirmation_loops() -> None:
+    respond = _system_message("data", {}).content
+    compose = _build_compose_system(
+        {
+            "messages": [],
+            "datasets": {},
+            "respond_note": "",
+            "ui_tree": None,
+            "ui_tree_unbound": None,
+        }
+    )
+    respond_compact = " ".join(respond.split())
+    compose_compact = " ".join(compose.split())
+
+    assert "Resolve elliptical replies against conversation history" in respond_compact
+    assert "execute the selected domain request" in respond_compact
+    assert "presentation preference is NOT missing" in respond_compact
+    assert "self-contained end-user domain request" in respond_compact
+    assert "agent-control instructions" in respond_compact
+    assert "Assistant-authored process/control language" in respond_compact
+
+    assert "compact selection or answer" in compose_compact
+    assert "never ask for the same choice or confirmation again" in compose_compact
+    assert "Every action must be self-contained" in compose_compact
+    assert "end-user domain outcomes" in compose_compact
+    assert "implementation mechanisms" in compose_compact
+    assert "assistant-authored process/control language" in compose_compact.casefold()
+    assert "recover the unresolved domain goal from history" in compose_compact
 
 
 
