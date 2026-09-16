@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Outfit, Source_Sans_3 } from "next/font/google";
+import { Newsreader, Outfit, Source_Sans_3 } from "next/font/google";
 import { Providers } from "./providers";
 import "@copilotkit/react-core/v2/styles.css";
 import "./globals.css";
@@ -17,6 +17,12 @@ const sourceSans = Source_Sans_3({
   display: "swap",
 });
 
+const newsreader = Newsreader({
+  variable: "--font-editorial",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Argentina Insights",
   description: "Preguntá en lenguaje natural. El agente compone la vista.",
@@ -25,8 +31,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
-      className={`${outfit.variable} ${sourceSans.variable} h-full antialiased`}
+      lang="es"
+      className={`${outfit.variable} ${sourceSans.variable} ${newsreader.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <Analytics />

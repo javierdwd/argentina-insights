@@ -6,6 +6,8 @@ merges the canvas, and binds rows to widget props.
 
 from __future__ import annotations
 
+import json
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +29,37 @@ HOST_TYPES = frozenset(
 )
 MAX_TREE_DEPTH = 12
 MAX_TREE_NODES = 100
+
+
+def _filter_value(value: object) -> object:
+    if isinstance(value, str):
+        normalized = unicodedata.normalize("NFKD", value)
+        return " ".join(
+            "".join(char for char in normalized if not unicodedata.combining(char))
+            .casefold()
+            .split()
+        )
+    return value
+
+
+def _matches_where(row: dict, where: dict) -> bool:
+    """AND across fields, OR across list values; strings ignore case/accents."""
+    for key, expected in where.items():
+        options = expected if isinstance(expected, list) else [expected]
+        actual = _filter_value(row.get(key))
+        if not any(actual == _filter_value(option) for option in options):
+            return False
+    return True
+
+
+def _valid_where_value(value: object) -> bool:
+    if isinstance(value, (dict, tuple, set)):
+        return False
+    if isinstance(value, list):
+        return bool(value) and all(
+            not isinstance(item, (dict, list, tuple, set)) for item in value
+        )
+    return True
 
 
 @dataclass(frozen=True)
@@ -55,8 +88,8 @@ def validate_tree(
         return ValidationResult(None, (f"tree schema is invalid: {exc}",))
 
     errors: list[str] = []
-    identities: set[tuple[str, str]] = set()
-    existing_identities: set[tuple[str, str]] = set()
+    identities: set[tuple[str, str, str]] = set()
+    existing_identities: set[tuple[str, str, str]] = set()
     node_ids: set[str] = set()
     node_count = 0
     known_types = set(widget_types()) | HOST_TYPES
@@ -119,6 +152,19 @@ def validate_tree(
             errors.append(f"{location}: raw rows are forbidden; use dataRef")
 
         data_ref = props.get("dataRef")
+        where = props.get("where")
+        if where is not None and (
+            not isinstance(where, dict)
+            or not where
+            or any(not isinstance(key, str) or not key for key in where)
+            or any(not _valid_where_value(value) for value in where.values())
+        ):
+            errors.append(
+                f"{location}: where must be a non-empty object of scalar or scalar-list values"
+            )
+            where = None
+        if where is not None and not data_ref:
+            errors.append(f"{location}: where requires dataRef")
         if kind in HOST_TYPES | {"Box"} and data_ref:
             errors.append(f"{location}: {kind} cannot bind dataRef")
         if requires_data_ref(str(kind)) and not data_ref:
@@ -131,7 +177,29 @@ def validate_tree(
                 errors.append(f"{location}: dataRef {data_ref!r} has no rows")
             elif allowed_refs is not None and data_ref not in allowed_refs:
                 errors.append(f"{location}: dataRef {data_ref!r} is not from this turn")
-            identity = (str(kind), data_ref)
+            rows = [
+                row
+                for row in (dataset or {}).get("rows") or []
+                if isinstance(row, dict)
+            ]
+            if isinstance(where, dict):
+                missing = [
+                    key for key in where if not any(key in row for row in rows)
+                ]
+                if missing:
+                    errors.append(
+                        f"{location}: where keys do not exist in {data_ref!r}: "
+                        + ", ".join(repr(key) for key in missing)
+                    )
+                elif not any(_matches_where(row, where) for row in rows):
+                    errors.append(
+                        f"{location}: where matches no rows in {data_ref!r}"
+                    )
+            identity = (
+                str(kind),
+                data_ref,
+                json.dumps(where or {}, ensure_ascii=False, sort_keys=True),
+            )
             if identity in identities:
                 errors.append(f"{location}: duplicate widget/dataRef {identity!r}")
             if identity in existing_identities:
@@ -196,15 +264,25 @@ def _children(node: dict) -> list[dict]:
     return [node]
 
 
-def _identity(node: dict) -> tuple[str, str] | None:
-    data_ref = (node.get("props") or {}).get("dataRef")
+def _identity(node: dict) -> tuple[str, str, str] | None:
+    props = node.get("props") or {}
+    data_ref = props.get("dataRef")
     if not isinstance(data_ref, str) or not data_ref:
         return None
-    return str(node.get("type") or ""), data_ref
+    where = props.get("where")
+    return (
+        str(node.get("type") or ""),
+        data_ref,
+        json.dumps(
+            where if isinstance(where, dict) else {},
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+    )
 
 
 def merge_canvas(previous: dict | None, incoming: dict) -> dict:
-    """Append new widgets, replacing equal id or equal type+dataRef."""
+    """Append widgets, replacing equal id or equal type+dataRef+where."""
     if not previous:
         return incoming
     items = list(_children(previous))
@@ -272,6 +350,35 @@ def _mapped_rows(rows: list[dict], mapping: dict, aliases: dict) -> list[dict]:
     return output
 
 
+def _expand_nested_rows(rows: list[dict], mapping: dict, aliases: dict) -> list[dict]:
+    """Use a nested object array when parent rows cannot satisfy the identity field."""
+    name_candidates = []
+    source = mapping.get("name")
+    if source is not None:
+        name_candidates.append(source)
+    name_candidates.extend(aliases.get("name", ()))
+
+    def has_name(row: dict) -> bool:
+        for candidate in name_candidates:
+            keys = candidate if isinstance(candidate, (list, tuple)) else (candidate,)
+            if all(_scalar(row.get(key)) not in (None, "") for key in keys):
+                return True
+        return False
+
+    if not name_candidates or any(has_name(row) for row in rows):
+        return rows
+
+    nested = [
+        child
+        for row in rows
+        for value in row.values()
+        if isinstance(value, list)
+        for child in value
+        if isinstance(child, dict) and has_name(child)
+    ]
+    return nested or rows
+
+
 def bind_tree(tree: dict, datasets: dict) -> dict:
     """Resolve dataRef recursively with generic sort/limit/field mapping."""
     node = dict(tree)
@@ -279,6 +386,22 @@ def bind_tree(tree: dict, datasets: dict) -> dict:
     data_ref = props.pop("dataRef", None)
     if isinstance(data_ref, str):
         rows = list((datasets.get(data_ref) or {}).get("rows") or [])
+        mapping = props.pop("fields", None)
+        mapping = mapping if isinstance(mapping, dict) else {}
+        aliases = field_aliases_for(str(node.get("type") or ""))
+        if aliases.get("name"):
+            rows = _expand_nested_rows(
+                [row for row in rows if isinstance(row, dict)],
+                mapping,
+                aliases,
+            )
+        where = props.pop("where", None)
+        if isinstance(where, dict) and where:
+            rows = [
+                row
+                for row in rows
+                if isinstance(row, dict) and _matches_where(row, where)
+            ]
         sort = props.pop("sort", None)
         if isinstance(sort, dict) and sort.get("key"):
             key = str(sort["key"])
@@ -292,12 +415,13 @@ def bind_tree(tree: dict, datasets: dict) -> dict:
         limit = props.pop("limit", None)
         if isinstance(limit, int) and limit >= 0:
             rows = rows[:limit]
-        mapping = props.pop("fields", None)
         rows = _mapped_rows(
             [row for row in rows if isinstance(row, dict)],
-            mapping if isinstance(mapping, dict) else {},
-            field_aliases_for(str(node.get("type") or "")),
+            mapping,
+            aliases,
         )
+        if aliases.get("name"):
+            rows = [row for row in rows if row.get("name") not in (None, "")]
         props[data_prop_for(str(node.get("type") or ""))] = rows
     node["props"] = props
     node["children"] = [

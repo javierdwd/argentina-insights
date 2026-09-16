@@ -31,15 +31,18 @@ export type StarterPrompt = {
   text: string;
   topic: StarterTopic;
   preview: StarterPreview;
+  /** Compact label for the editorial entry; the full text is still submitted. */
+  entryLabel?: string;
 };
 
 export const STARTER_PROMPTS: StarterPrompt[] = [
   // Cruce — hero section
   {
     id: "blue-por-mandato",
-    text: "Máximo del dólar blue en cada uno de los últimos 4 mandatos presidenciales",
+    text: "¿Qué mandato terminó con más tensión? Compará el cambio en reservas, riesgo país y dólar blue durante los últimos 4 gobiernos, y marcá los eventos presidenciales que coinciden con los mayores saltos",
     topic: "cruce",
-    preview: "bars",
+    preview: "timeline",
+    entryLabel: "Mandatos bajo presión",
   },
   {
     id: "blue-lineas-mandato",
@@ -55,15 +58,17 @@ export const STARTER_PROMPTS: StarterPrompt[] = [
   },
   {
     id: "riesgo-vs-confianza",
-    text: "Poné riesgo país y confianza en el gobierno en la misma línea de tiempo para 2026",
+    text: "Durante 2026, ¿la confianza en el Gobierno se movió antes o después que el riesgo país y el dólar blue? Cruzá las tres series y señalá los principales eventos presidenciales",
     topic: "cruce",
-    preview: "line",
+    preview: "timeline",
+    entryLabel: "¿La confianza anticipa al mercado?",
   },
   {
     id: "blue-dia-laboral",
-    text: "El día que el Senado aceptó la modernización laboral, ¿a cuánto cerraron blue y riesgo país?",
+    text: "Reconstruí la votación de modernización laboral del Senado: cómo votó cada bloque y provincia, y qué pasó con el blue, el MEP y el riesgo país ese día y durante la semana previa",
     topic: "cruce",
-    preview: "metrics",
+    preview: "map",
+    entryLabel: "Una votación, política y mercados",
   },
   {
     id: "blue-semana-votacion",
@@ -347,6 +352,17 @@ export const PREVIEW_LABEL: Record<StarterPreview, string> = {
   text: "Contexto",
   weather: "Clima",
 };
+
+const FEATURED_STARTER_IDS = new Set([
+  "blue-por-mandato",
+  "riesgo-vs-confianza",
+  "blue-dia-laboral",
+]);
+
+/** Short, high-signal examples shown beside the primary entry input. */
+export const FEATURED_STARTERS = STARTER_PROMPTS.filter((prompt) =>
+  FEATURED_STARTER_IDS.has(prompt.id),
+);
 
 /** Chat welcome pills: historico + cruce first, then economia / politica / cine. */
 export function chatSuggestionPrompts(limit = 6): StarterPrompt[] {

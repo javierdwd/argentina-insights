@@ -112,7 +112,8 @@ export const DynamicRenderer = memo(function DynamicRenderer({
   // Validate props against the per-type schema in dev.
   if (process.env.NODE_ENV !== "production") {
     const schema = NODE_SCHEMAS[node.type as keyof typeof NODE_SCHEMAS];
-    if (schema) {
+    const isPendingData = node.props?.dataRef != null;
+    if (schema && !isPendingData) {
       const result = schema.safeParse({
         id: node.id,
         type: node.type,
@@ -143,7 +144,9 @@ export const DynamicRenderer = memo(function DynamicRenderer({
   void _suggests;
   const widgetProps =
     _dataRef != null && rest.data === undefined && rest.people === undefined
-      ? { ...rest, data: [] }
+      ? node.type === "PersonCard"
+        ? { ...rest, people: [] }
+        : { ...rest, data: [] }
       : rest;
 
   const body = (

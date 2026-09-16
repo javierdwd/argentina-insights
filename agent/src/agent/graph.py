@@ -222,6 +222,32 @@ also dump the same offers as a ``- `` bullet list; never write "Usa /v1/…".
   public event + context/repercussions/what-happened normally needs BOTH. An
   explicit wiki-only/news-only ask uses one; a purely numeric request uses none.
 
+## Broad exploratory asks: cover, connect, conclude
+Treat open prompts such as "qué sabés de X", "contame sobre X", "panorama de X"
+or "analizá X" as requests for a rounded panorama, not as requests for the
+first metric that happens to match. Before composing, inspect and fetch EVERY
+materially relevant evidence role supported by the catalog:
+- identity/background from an official profile when available, otherwise
+  Wikipedia;
+- current reporting from News (default: the latest 7 days through today);
+- institutional, geographic or historical evidence directly tied to the
+  subject (for example mandates, chamber rosters and bloc/party composition,
+  voting records, or a supported territorial result);
+- quantitative series that directly describe the subject or their period.
+
+This is a relevance rule, not permission to fetch the whole catalog. Skip a
+role when no source supports it or the relationship would be decorative. A
+narrow request ("solo noticias", one metric, one date, one vote) stays narrow.
+For a broad ask, do NOT stop after one or two numeric series if other relevant
+roles remain unfetched; independent calls should run in parallel.
+
+The result must reason across sources, not merely stack widgets. In the analyst
+note, state 2–4 concise findings that connect dates, actors, institutions,
+coverage and indicators where the fetched evidence permits it. Distinguish
+coincidence/association from causation, flag conflicts or coverage gaps, and
+make the relationships visible in the chosen widgets. Deliver this synthesis
+now; do not defer the missing panorama facets to ``[[next]]``.
+
 ## How to think (multi-step)
 Often NO single endpoint answers the question. Do not refuse with "no tengo
 esa serie resumida". Break into steps:
@@ -510,6 +536,11 @@ Update the canvas ONLY when there is data to show; write the chat reply in
 - Every catalog widget marked as data-bound uses `props.dataRef` from the
   available datasets — never raw rows in props. Authored widgets use only
   factual values present in the analyst note.
+  To show a subset of one dataset, use generic
+  `props.where={{field: scalar}}`; multiple fields are AND, a scalar list is
+  OR. Use exact keys and values visible in the dataset index. Example:
+  `where={{"bloque": "La Libertad Avanza"}}`. Never claim a subset only in
+  the title/brief while binding every row.
   Optional `props.sort` + `props.limit` when user names a count
   ("últimos N") — ALWAYS set both; never eyeball-truncate.
 - Use only scalar keys for columns and series. Follow the widget catalog's
@@ -617,7 +648,7 @@ _ROUTE_RE = re.compile(
     re.IGNORECASE,
 )
 _NEXT_RE = re.compile(
-    r"\[\[next\]\](.*?)\[\[/next\]\]",
+    r"\[\[\s*next\s*\]\](.*?)(?:\[\[\s*/\s*next\s*\]\]|$)",
     re.IGNORECASE | re.DOTALL,
 )
 _ACTIONS_BLOCK_RE = re.compile(
@@ -741,6 +772,12 @@ _INTERNAL_PAREN_RE = re.compile(
 def _sanitize_user_facing(text: str) -> str:
     """Strip catalog paths, derived ids, and tool names from user-facing text."""
     out = _INTERNAL_PAREN_RE.sub("", text or "")
+    out = re.sub(
+        r"\[\[\s*/?\s*(?:next|values|route)\b[^\]]*\]\]",
+        "",
+        out,
+        flags=re.IGNORECASE,
+    )
     out = _PATH_LEAK_RE.sub("", out)
     out = _DERIVED_LEAK_RE.sub("", out)
     out = _TOOL_LEAK_RE.sub("", out)

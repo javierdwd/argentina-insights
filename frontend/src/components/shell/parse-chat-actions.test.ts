@@ -129,3 +129,18 @@ test("unclosed [[actions]] block still yields buttons", () => {
     "Comparar su mandato con los presidentes anteriores",
   ]);
 });
+
+test("unclosed [[next]] from a chat-routed response becomes buttons", () => {
+  const raw =
+    "No se encontraron eventos presidenciales registrados.\n\n" +
+    "[[next]]\n" +
+    "- [boton]Revisar eventos presidenciales de 2025[/boton]\n" +
+    "- [boton]Comparar los meses de mayor riesgo país con inflación y confianza[/boton]";
+  const { prose, actions } = parseChatActions(raw);
+  assert.equal(prose.includes("[[next]]"), false);
+  assert.equal(prose.includes("No se encontraron eventos"), true);
+  assert.deepEqual(actions, [
+    "Revisar eventos presidenciales de 2025",
+    "Comparar los meses de mayor riesgo país con inflación y confianza",
+  ]);
+});

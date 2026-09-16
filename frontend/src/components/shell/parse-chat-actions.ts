@@ -17,6 +17,9 @@ const ACTIONS_RE = /\[\[\s*actions\s*\]\]([\s\S]*?)\[\[\s*\/\s*actions\s*\]\]/gi
 
 const ACTIONS_TAG_RE = /\[\[\s*\/?\s*actions\s*\]\]/gi;
 
+const NEXT_OPEN_RE = /\[\[\s*next\s*\]\]/gi;
+const NEXT_CLOSE_RE = /\[\[\s*\/\s*next\s*\]\]/gi;
+
 const BOTON_RE =
   /\[\[\s*bot[oó]n\s*\]\]([\s\S]*?)\[\[\s*\/\s*bot[oó]n\s*\]\]|\[bot[oó]n\]([\s\S]*?)\[\/bot[oó]n\]/gi;
 
@@ -143,8 +146,13 @@ export function parseChatActions(content: string): {
   prose: string;
   actions: string[];
 } {
+  // Defense in depth for persisted or streamed analyst markup. The backend
+  // normally converts [[next]], but models can omit its closing tag.
+  const normalized = content
+    .replace(NEXT_OPEN_RE, "[[actions]]")
+    .replace(NEXT_CLOSE_RE, "[[/actions]]");
   const actions: string[] = [];
-  let prose = content.replace(ACTIONS_RE, (_full, body: string) => {
+  let prose = normalized.replace(ACTIONS_RE, (_full, body: string) => {
     for (const line of body.split("\n")) {
       pushAction(line, actions);
     }

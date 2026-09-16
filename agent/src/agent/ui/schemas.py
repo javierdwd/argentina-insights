@@ -51,6 +51,7 @@ class UINode(BaseModel):
         description=(
             "Widget-specific props.  See the catalog for allowed fields per type. "
             "For Chart: include dataRef, kind, xKey, series.  "
+            "Any data-bound widget may use where={field: value} to select rows. "
             "Never include raw data rows — use dataRef."
         ),
     )

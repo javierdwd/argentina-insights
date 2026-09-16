@@ -11,20 +11,21 @@ import {
   type ReactNode,
 } from "react";
 import {
+  BookmarkSimple,
+  Broom,
   CaretDown,
   CaretUp,
   ChatCircle,
   ChatCircleSlash,
   CircleNotch,
 } from "@phosphor-icons/react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import {
   useAgent,
   UseAgentUpdate,
 } from "@copilotkit/react-core/v2";
 import { latestTurnReasoning } from "./ChatActivity";
 
-const EASE = [0.32, 0.72, 0, 1] as const;
 const CHAT_PREF_KEY = "argentina-insights.chat-collapsed";
 const MD_QUERY = "(min-width: 768px)";
 /** Peek bar + safe area — stage keeps this clear so content is never covered. */
@@ -54,6 +55,12 @@ interface HomeStageProps {
   stage?: ReactNode;
   /** True when the stage is showing a canvas (not empty starters). */
   hasCanvas?: boolean;
+  /** True after the first prompt or destination opens. */
+  hasStarted?: boolean;
+  /** Reset the current canvas and return to the entry state. */
+  onClear?: () => void;
+  /** Save the current canvas in the workspace. */
+  onSave?: () => void;
 }
 
 /** Compact Argentine flag mark: celeste bands + Sol de Mayo. */
@@ -178,8 +185,14 @@ function MobileChatPeek({ onExpand }: { onExpand: () => void }) {
  * Two-column shell on desktop; on mobile the stage fills the viewport and
  * chat docks as a bottom peek (reasoning) that expands into a sheet.
  */
-export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
-  const reduce = useReducedMotion();
+export function HomeStage({
+  chat,
+  stage,
+  hasCanvas = false,
+  hasStarted = false,
+  onClear,
+  onSave,
+}: HomeStageProps) {
   const isDesktop = useIsDesktop();
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -217,6 +230,7 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
 
   const chatHidden = hydrated && collapsed && isDesktop;
   const compact = hasCanvas;
+  const entry = !hasStarted;
 
   const shell = useMemo<ChatShellValue>(
     () => ({ chatHidden, showChat }),
@@ -227,10 +241,10 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
     <ChatShellContext.Provider value={shell}>
       <main
         className={[
-          "flex h-[100dvh] min-h-0 flex-col overflow-hidden",
-          chatHidden
-            ? "md:block"
-            : "md:grid md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
+          "flex h-[100dvh] min-h-0 flex-col overflow-hidden md:grid md:transition-[grid-template-columns] md:duration-700 md:ease-[cubic-bezier(0.32,0.72,0,1)]",
+          chatHidden || entry
+            ? "md:grid-cols-[minmax(0,1fr)_minmax(0,0fr)]"
+            : "md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]",
         ].join(" ")}
         style={
           {
@@ -243,7 +257,9 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
             "relative flex min-h-0 flex-1 flex-col overflow-hidden md:h-full",
             compact
               ? "px-6 py-5 md:px-10 md:py-6 lg:px-12"
-              : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
+              : entry
+                ? "px-5 py-5 md:px-10 md:py-6 lg:px-14"
+                : "px-8 py-10 md:px-12 md:py-14 lg:px-16",
             // Clear the floating peek so widgets never sit under it.
             "max-md:pb-[var(--mobile-chat-peek)]",
           ].join(" ")}
@@ -256,53 +272,77 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
             ].join(" ")}
           />
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE }}
-            className="relative shrink-0"
+            initial={false}
+            className="entry-reveal relative shrink-0"
           >
             <div
               className={[
                 "flex items-start",
-                compact ? "gap-2.5" : "gap-3.5",
+                compact || entry ? "gap-2.5" : "gap-3.5",
               ].join(" ")}
             >
-              <BrandMark compact={compact} />
+              <BrandMark compact={compact || entry} />
               <div className={["min-w-0 flex-1", compact ? "" : "pt-0.5"].join(" ")}>
                 <div className="flex items-center justify-between gap-3">
                   <h1
                     className={[
-                      "font-display font-semibold tracking-tight text-foreground",
+                      "min-w-0 truncate font-display font-semibold tracking-tight text-foreground",
                       compact
-                        ? "text-xl md:text-2xl leading-tight"
+                        ? "text-lg leading-tight sm:text-xl md:text-2xl"
+                        : entry
+                          ? "text-lg leading-8"
                         : "text-3xl md:text-4xl lg:text-[2.65rem] lg:leading-[1.05]",
                     ].join(" ")}
                   >
                     Argentina Insights
                   </h1>
-                  {isDesktop ? (
-                    <button
-                      type="button"
-                      onClick={toggleChat}
-                      className={[
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
-                        chatHidden
-                          ? "bg-accent text-accent-foreground hover:opacity-95"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                      ].join(" ")}
-                      aria-pressed={chatHidden}
-                      aria-label={chatHidden ? "Mostrar chat" : "Ocultar chat"}
-                    >
-                      {chatHidden ? (
-                        <ChatCircle size={16} weight="regular" />
-                      ) : (
-                        <ChatCircleSlash size={16} weight="regular" />
-                      )}
-                      {chatHidden ? "Mostrar chat" : "Ocultar"}
-                    </button>
+                  {hasStarted ? (
+                    <div className="flex shrink-0 items-center gap-0.5 md:gap-1">
+                      {hasCanvas ? (
+                        <button
+                          type="button"
+                          onClick={onSave}
+                          className="inline-flex h-9 w-9 items-center justify-center gap-1.5 rounded-lg text-sm text-accent transition-colors hover:bg-accent-soft hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 md:h-auto md:w-auto md:px-2.5 md:py-1.5"
+                          aria-label="Guardar vista"
+                        >
+                          <BookmarkSimple size={17} weight="regular" aria-hidden />
+                          <span className="hidden md:inline">Guardar vista</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={onClear}
+                        className="inline-flex h-9 w-9 items-center justify-center gap-1.5 rounded-lg text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 md:h-auto md:w-auto md:px-2.5 md:py-1.5"
+                        aria-label="Limpiar"
+                      >
+                        <Broom size={17} weight="regular" aria-hidden />
+                        <span className="hidden md:inline">Limpiar</span>
+                      </button>
+                      {isDesktop ? (
+                        <button
+                          type="button"
+                          onClick={toggleChat}
+                          className={[
+                            "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                            chatHidden
+                              ? "bg-accent text-accent-foreground hover:opacity-95"
+                              : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                          ].join(" ")}
+                          aria-pressed={chatHidden}
+                          aria-label={chatHidden ? "Mostrar chat" : "Ocultar chat"}
+                        >
+                          {chatHidden ? (
+                            <ChatCircle size={16} weight="regular" />
+                          ) : (
+                            <ChatCircleSlash size={16} weight="regular" />
+                          )}
+                          {chatHidden ? "Mostrar chat" : "Ocultar"}
+                        </button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
-                {!compact ? (
+                {!compact && !entry ? (
                   <p className="mt-2.5 max-w-[36ch] text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
                     Economía, política, cine argentino, días históricos y cruces
                     entre todo eso. Elegí una pregunta o escribí en el chat.
@@ -313,12 +353,14 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
           </motion.div>
 
           <motion.div
-            initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
+            initial={false}
             className={[
-              "relative flex min-h-0 flex-1 flex-col overflow-hidden",
-              compact ? "mt-4 md:mt-5" : "mt-10 md:mt-12",
+              "entry-reveal entry-reveal-delay-1 relative flex min-h-0 flex-1 flex-col overflow-hidden",
+              compact
+                ? "mt-4 md:mt-5"
+                : entry
+                  ? "mt-2 md:mt-3"
+                  : "mt-10 md:mt-12",
             ].join(" ")}
           >
             {stage ?? (
@@ -334,10 +376,10 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
           Minimized mobile keeps height 0 so CopilotChat stays mounted.
         */}
         <div
-          hidden={chatHidden}
+          hidden={chatHidden || entry}
           id="mobile-chat-sheet"
           className={[
-            "flex flex-col bg-card",
+            chatHidden || entry ? "hidden" : "flex flex-col bg-card",
             "max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40",
             "max-md:border-t max-md:border-border",
             "max-md:transition-[height] max-md:duration-300 max-md:ease-[cubic-bezier(0.32,0.72,0,1)]",
@@ -366,7 +408,7 @@ export function HomeStage({ chat, stage, hasCanvas = false }: HomeStageProps) {
           </div>
         </div>
 
-        {!isDesktop && !mobileExpanded ? (
+        {hasStarted && !isDesktop && !mobileExpanded ? (
           <div className="fixed inset-x-0 bottom-0 z-40 md:hidden">
             <MobileChatPeek onExpand={() => setMobileExpanded(true)} />
           </div>

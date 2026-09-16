@@ -79,6 +79,26 @@ def test_respond_prompt_requires_next_block() -> None:
     assert "/v1/cotizaciones/dolares" in text  # full catalog still injected
 
 
+def test_broad_exploratory_asks_use_relevant_sources_and_synthesize() -> None:
+    text = _system_message("data", {}).content
+    folded = text.casefold()
+    assert "qué sabés de x" in folded
+    assert "materially relevant evidence role" in folded
+    assert "latest 7 days" in folded
+    assert "wikipedia" in folded
+    assert "news" in folded
+    assert "bloc/party composition" in folded
+    assert "quantitative series" in folded
+    assert "do not stop after one or two numeric series" in folded
+    assert "reason across sources" in folded
+    assert "association from causation" in folded
+    assert "not permission to fetch the whole catalog" in folded
+    broad_section = folded.split("## broad exploratory asks:", 1)[1].split(
+        "## how to think", 1
+    )[0]
+    assert "javier milei" not in broad_section
+
+
 def test_respond_prompt_requires_inline_boton_not_paths() -> None:
     msg = _system_message("data", {})
     text = msg.content
@@ -120,6 +140,18 @@ def test_sanitize_user_facing_strips_derived_paths() -> None:
     assert "period_overlay" not in out
     assert "máximo del dólar blue" in out
     assert "superposición" in out
+
+
+def test_sanitize_user_facing_strips_residual_internal_tags() -> None:
+    raw = (
+        "No se encontraron eventos.\n"
+        "[[next]]\n[boton]Revisar 2025[/boton]\n"
+        "[[route]] chat [[/route]]"
+    )
+    out = _sanitize_user_facing(raw)
+    assert "[[next]]" not in out
+    assert "[[route]]" not in out
+    assert "[boton]Revisar 2025[/boton]" in out
 
 
 def test_compose_brief_bans_derived_paths() -> None:
@@ -234,6 +266,21 @@ def test_next_to_actions_block_for_clickable_chat() -> None:
     assert "[[actions]]" in out
     assert "[[/actions]]" in out
     assert "Superponer riesgo país" in out
+
+
+def test_next_to_actions_block_salvages_unclosed_chat_next() -> None:
+    note = (
+        "No se encontraron eventos presidenciales registrados.\n\n"
+        "[[next]]\n"
+        "- [boton]Revisar eventos presidenciales de 2025[/boton]\n"
+        "- [boton]Comparar riesgo país con inflación y confianza[/boton]"
+    )
+    out = _next_to_actions_block(note)
+    assert "[[next]]" not in out
+    assert "[[actions]]" in out
+    assert "[[/actions]]" in out
+    assert "Revisar eventos presidenciales de 2025" in out
+    assert "Comparar riesgo país con inflación y confianza" in out
 
 
 def test_ensure_brief_actions_lifts_from_respond_note() -> None:

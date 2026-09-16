@@ -213,3 +213,147 @@ def test_generic_binding_applies_mapping_sort_and_limit() -> None:
     bound = bind_tree(tree, datasets)
     assert bound["props"]["people"] == [{"name": "Alfa", "photoUrl": "a.jpg"}]
     assert "dataRef" not in bound["props"]
+
+
+def test_person_card_binding_expands_nested_people_rows() -> None:
+    tree = {
+        "id": "cast",
+        "type": "PersonCard",
+        "title": "Elenco",
+        "props": {
+            "dataRef": "ds_movie",
+            "fields": {
+                "name": "name",
+                "photoUrl": "foto",
+                "role": "role",
+            },
+        },
+    }
+    datasets = {
+        "ds_movie": {
+            "rows": [
+                {
+                    "titulo": "Relatos salvajes",
+                    "elenco": [
+                        {"name": "Ricardo Darín", "foto": "darin.jpg", "role": "Simón"},
+                        {"name": "Érica Rivas", "foto": "rivas.jpg", "role": "Romina"},
+                    ],
+                }
+            ]
+        }
+    }
+
+    bound = bind_tree(tree, datasets)
+
+    assert bound["props"]["people"] == [
+        {"name": "Ricardo Darín", "photoUrl": "darin.jpg", "role": "Simón"},
+        {"name": "Érica Rivas", "photoUrl": "rivas.jpg", "role": "Romina"},
+    ]
+
+
+def test_generic_binding_filters_before_mapping() -> None:
+    tree = {
+        "id": "people",
+        "type": "PersonCard",
+        "title": "Senadores de LLA",
+        "props": {
+            "dataRef": "ds_votes",
+            "where": {"bloque": "la libertad avanza"},
+            "fields": {
+                "name": "nombre",
+                "role": "voto",
+                "party": "bloque",
+                "province": "provincia",
+            },
+        },
+    }
+    datasets = {
+        "ds_votes": {
+            "rows": [
+                {
+                    "nombre": "Alfa",
+                    "voto": "AFIRMATIVO",
+                    "bloque": "La Libertad Avanza",
+                    "provincia": "Mendoza",
+                },
+                {
+                    "nombre": "Beta",
+                    "voto": "NEGATIVO",
+                    "bloque": "Unión Cívica Radical",
+                    "provincia": "Córdoba",
+                },
+            ]
+        }
+    }
+    bound = bind_tree(tree, datasets)
+    assert bound["props"]["people"] == [
+        {
+            "name": "Alfa",
+            "role": "AFIRMATIVO",
+            "party": "La Libertad Avanza",
+            "province": "Mendoza",
+        }
+    ]
+    assert "where" not in bound["props"]
+
+
+def test_validation_rejects_where_without_matches() -> None:
+    tree = {
+        "id": "people",
+        "type": "PersonCard",
+        "title": "Bloque inexistente",
+        "props": {
+            "dataRef": "ds_votes",
+            "where": {"bloque": "Bloque inventado"},
+        },
+    }
+    datasets = {
+        "ds_votes": {
+            "status": "hit",
+            "N": 1,
+            "rows": [{"nombre": "Alfa", "bloque": "La Libertad Avanza"}],
+        }
+    }
+    result = validate_tree(tree, datasets, allowed_refs={"ds_votes"})
+    assert not result.valid
+    assert any("where matches no rows" in error for error in result.errors)
+
+
+def test_same_dataset_with_different_where_is_not_duplicate() -> None:
+    tree = {
+        "id": "root",
+        "type": "Stack",
+        "props": {},
+        "children": [
+            {
+                "id": "lla",
+                "type": "PersonCard",
+                "title": "LLA",
+                "props": {
+                    "dataRef": "ds_votes",
+                    "where": {"bloque": "La Libertad Avanza"},
+                },
+            },
+            {
+                "id": "ucr",
+                "type": "PersonCard",
+                "title": "UCR",
+                "props": {
+                    "dataRef": "ds_votes",
+                    "where": {"bloque": "Unión Cívica Radical"},
+                },
+            },
+        ],
+    }
+    datasets = {
+        "ds_votes": {
+            "status": "hit",
+            "N": 2,
+            "rows": [
+                {"nombre": "Alfa", "bloque": "La Libertad Avanza"},
+                {"nombre": "Beta", "bloque": "Unión Cívica Radical"},
+            ],
+        }
+    }
+    result = validate_tree(tree, datasets, allowed_refs={"ds_votes"})
+    assert result.valid

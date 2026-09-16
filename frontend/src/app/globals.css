@@ -12,6 +12,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
+  --font-editorial: var(--font-editorial);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -170,6 +171,72 @@ body::after {
   opacity: 0.07;
 }
 
+@keyframes entry-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .entry-reveal {
+    animation: entry-reveal 560ms var(--ease-out-expo) both;
+  }
+  .entry-reveal-delay-1 {
+    animation-delay: 80ms;
+  }
+  .entry-reveal-delay-2 {
+    animation-delay: 150ms;
+  }
+  .entry-reveal-delay-3 {
+    animation-delay: 220ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+}
+
+@supports (view-transition-name: none) {
+  .canvas-transition-surface {
+    view-transition-name: insights-canvas;
+  }
+
+  ::view-transition-group(insights-canvas) {
+    animation-duration: 520ms;
+    animation-timing-function: var(--ease-out-expo);
+  }
+
+  ::view-transition-old(insights-canvas) {
+    animation: canvas-transition-out 260ms ease-in both;
+  }
+
+  ::view-transition-new(insights-canvas) {
+    animation: canvas-transition-in 520ms var(--ease-out-expo) both;
+  }
+}
+
+@keyframes canvas-transition-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes canvas-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
 /*
  * CopilotKit v2 resets tokens on [data-copilotkit] to generic zinc.
  * Re-bind them to the Argentine sky palette so the chat is the same product.
@@ -231,4 +298,30 @@ body::after {
 
 .cpk-intelligence-indicator__content {
   color: var(--accent) !important;
+}
+
+/* CopilotKit suggestion pills use nowrap and can exceed narrow chat panels. */
+[data-testid="copilot-suggestions"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  justify-content: center;
+  padding-inline: 1rem;
+}
+
+[data-testid="copilot-suggestion"] {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 2rem;
+}
+
+[data-testid="copilot-suggestion"] > span:last-child {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  text-align: left;
 }
