@@ -24,15 +24,26 @@ export function Metric({
   const trendClass = TREND_CLASS[trend] ?? TREND_CLASS.flat;
   const displayValue =
     typeof value === "number" ? formatNumber(value) : value;
+  const valueSize =
+    displayValue.length > 10
+      ? "text-3xl md:text-4xl"
+      : "text-4xl md:text-5xl";
 
   return (
-    <div className="min-w-[12rem] border-t border-rule pt-4">
+    <div className="min-w-0 border-t border-rule pt-4">
       <p className="text-sm text-muted-foreground">{label}</p>
 
-      <p className="mt-1 font-display text-4xl font-semibold tracking-tight tabular-nums text-foreground md:text-5xl">
-        {displayValue}
+      <p className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span
+          className={cn(
+            "min-w-0 font-display font-semibold tracking-tight tabular-nums text-foreground [overflow-wrap:anywhere]",
+            valueSize,
+          )}
+        >
+          {displayValue}
+        </span>
         {unit ? (
-          <span className="ml-2 font-sans text-base font-normal text-muted-foreground">
+          <span className="font-sans text-sm font-normal text-muted-foreground md:text-base">
             {unit}
           </span>
         ) : null}
